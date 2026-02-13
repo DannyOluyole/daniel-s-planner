@@ -1,0 +1,1690 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Daniel Planner — Complete Time Management System</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&family=IBM+Plex+Sans:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --teal-dark: #005F5F;
+      --teal: #007A7A;
+      --teal-med: #009999;
+      --teal-light: #20B2AA;
+      --teal-xlight: #E0F5F5;
+      --gold: #B8860B;
+      --gold-med: #C49A2B;
+      --gold-light: #E5C568;
+      --gold-xlight: #FFF8E7;
+      --navy: #1C2E4A;
+      --cream: #FFFEF5;
+      --beige: #F5F1E6;
+      --beige-dark: #EDE8D8;
+      --red: #C62828;
+      --orange: #E65100;
+      --blue: #1565C0;
+      --green: #2E7D32;
+      --gray-dark: #2C2C2C;
+      --gray-med: #5A5A5A;
+      --gray-light: #D8D8D8;
+      --gray-xlight: #F0F0F0;
+      --white: #FFFFFF;
+      --shadow-teal: rgba(0,102,102,0.18);
+      --shadow-gold: rgba(184,134,11,0.18);
+      --shadow-dark: rgba(0,0,0,0.12);
+    }
+
+    body {
+      font-family: 'IBM Plex Sans', sans-serif;
+      background: var(--beige);
+      color: var(--gray-dark);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ===== VIEWS ===== */
+    .view { display: none; min-height: 100vh; }
+    .view.active { display: block; }
+
+    /* ===== GLOBAL NAV ===== */
+    .top-nav {
+      background: linear-gradient(135deg, var(--navy) 0%, var(--teal-dark) 100%);
+      padding: 0 2rem;
+      display: flex;
+      align-items: center;
+      gap: 0;
+      border-bottom: 3px solid var(--gold);
+      position: sticky; top: 0; z-index: 900;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+      flex-wrap: wrap;
+    }
+
+    .nav-brand {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.4rem;
+      font-weight: 900;
+      color: var(--gold-light);
+      letter-spacing: 0.03em;
+      padding: 1rem 1.5rem 1rem 0;
+      border-right: 2px solid rgba(255,255,255,0.2);
+      margin-right: 1rem;
+      white-space: nowrap;
+      cursor: pointer;
+    }
+
+    .nav-tab {
+      padding: 1rem 1.2rem;
+      color: rgba(255,255,255,0.7);
+      font-size: 0.85rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      cursor: pointer;
+      border-bottom: 3px solid transparent;
+      margin-bottom: -3px;
+      transition: all 0.25s ease;
+      white-space: nowrap;
+    }
+
+    .nav-tab:hover { color: white; border-bottom-color: rgba(255,255,255,0.4); }
+    .nav-tab.active { color: var(--gold-light); border-bottom-color: var(--gold); }
+
+    .nav-actions {
+      margin-left: auto;
+      display: flex;
+      gap: 0.5rem;
+      padding: 0.5rem 0;
+      flex-wrap: wrap;
+    }
+    .nav-actions .btn { font-size: 0.8rem; padding: 0.5rem 1rem; }
+
+    /* ===== TOAST & AUTOSAVE ===== */
+    .toast {
+      position: fixed; bottom: 2rem; right: 2rem;
+      background: var(--teal-dark); color: white;
+      padding: 0.9rem 1.8rem; border-radius: 10px;
+      font-weight: 600; font-size: 0.95rem;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.3);
+      transform: translateY(100px); opacity: 0;
+      transition: all 0.35s cubic-bezier(0.34,1.56,0.64,1);
+      z-index: 2000;
+    }
+    .toast.show { transform: translateY(0); opacity: 1; }
+
+    #autosaveIndicator {
+      position: fixed; bottom: 2rem; left: 2rem;
+      background: var(--teal); color: white;
+      padding: 0.5rem 1rem; border-radius: 24px;
+      font-size: 0.75rem; font-weight: 600;
+      opacity: 0; transition: opacity 0.4s; z-index: 2000;
+    }
+
+    /* ===== SECTION CARDS ===== */
+    .card {
+      background: white;
+      border-radius: 14px;
+      box-shadow: 0 4px 24px var(--shadow-teal), 0 0 0 1px rgba(0,122,122,0.08);
+      overflow: hidden;
+      transition: box-shadow 0.3s ease;
+    }
+    .card:hover { box-shadow: 0 8px 36px var(--shadow-teal), 0 0 0 2px var(--teal-light); }
+
+    .card-header {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: white;
+      background: linear-gradient(135deg, var(--teal-dark) 0%, var(--teal-med) 100%);
+      padding: 1rem 1.5rem;
+      border-bottom: 3px solid var(--gold);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+
+    .card-header.gold {
+      background: linear-gradient(135deg, var(--gold) 0%, var(--gold-med) 100%);
+      border-bottom-color: var(--teal);
+    }
+
+    .card-header.navy {
+      background: linear-gradient(135deg, var(--navy) 0%, #2a4a6e 100%);
+      border-bottom-color: var(--gold);
+    }
+
+    .card-body { padding: 1.5rem; }
+
+    /* ===== INPUTS ===== */
+    input[type="text"], input[type="date"], textarea, select {
+      width: 100%;
+      padding: 0.7rem 1rem;
+      border: 2px solid var(--gray-light);
+      border-radius: 8px;
+      font-family: 'IBM Plex Sans', sans-serif;
+      font-size: 0.95rem;
+      background: var(--cream);
+      color: var(--gray-dark);
+      transition: all 0.25s ease;
+    }
+    input[type="text"]:focus, input[type="date"]:focus, textarea:focus, select:focus {
+      outline: none;
+      border-color: var(--teal);
+      background: white;
+      box-shadow: 0 0 0 3px rgba(0,153,153,0.12);
+    }
+    textarea { resize: vertical; line-height: 1.7; }
+
+    /* ===== BUTTONS ===== */
+    .btn {
+      padding: 0.7rem 1.4rem;
+      font-size: 0.88rem;
+      font-weight: 600;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-family: 'IBM Plex Sans', sans-serif;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      transition: all 0.25s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+    .btn:hover { transform: translateY(-2px); }
+    .btn-teal { background: linear-gradient(135deg, var(--teal) 0%, var(--teal-dark) 100%); color: white; box-shadow: 0 4px 12px var(--shadow-teal); }
+    .btn-teal:hover { box-shadow: 0 6px 20px var(--shadow-teal); }
+    .btn-gold { background: linear-gradient(135deg, var(--gold-med) 0%, var(--gold) 100%); color: white; box-shadow: 0 4px 12px var(--shadow-gold); }
+    .btn-gold:hover { box-shadow: 0 6px 20px var(--shadow-gold); }
+    .btn-ghost { background: white; color: var(--teal); border: 2px solid var(--teal); }
+    .btn-red { background: var(--red); color: white; }
+    .btn-sm { padding: 0.45rem 0.9rem; font-size: 0.8rem; }
+    .btn-xs { padding: 0.3rem 0.65rem; font-size: 0.75rem; }
+
+    /* ===== PAGE TITLES ===== */
+    .page-hero {
+      background: linear-gradient(135deg, var(--navy) 0%, var(--teal-dark) 60%, var(--teal) 100%);
+      padding: 2.5rem 3rem;
+      color: white;
+      position: relative;
+      overflow: hidden;
+    }
+    .page-hero::before {
+      content: '';
+      position: absolute; inset: 0;
+      background: repeating-linear-gradient(45deg, transparent, transparent 30px, rgba(255,255,255,0.02) 30px, rgba(255,255,255,0.02) 60px);
+    }
+    .page-hero::after {
+      content: '';
+      position: absolute; right: -4rem; top: -4rem;
+      width: 18rem; height: 18rem;
+      background: radial-gradient(circle, rgba(196,154,43,0.25) 0%, transparent 70%);
+    }
+    .page-hero h2 {
+      font-family: 'Playfair Display', serif;
+      font-size: 2.5rem;
+      font-weight: 900;
+      position: relative; z-index: 1;
+      text-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    }
+    .page-hero p {
+      color: rgba(255,255,255,0.75);
+      font-style: italic;
+      margin-top: 0.4rem;
+      font-size: 1rem;
+      position: relative; z-index: 1;
+    }
+    .page-hero .hero-gold { color: var(--gold-light); }
+
+    .page-content { padding: 2rem 2.5rem; max-width: 1500px; margin: 0 auto; }
+
+    /* ===== DIVIDER ===== */
+    .divider {
+      height: 2px;
+      background: linear-gradient(90deg, var(--teal) 0%, var(--gold) 50%, transparent 100%);
+      margin: 1.5rem 0;
+      border: none;
+    }
+
+    /* ===== BADGE ===== */
+    .badge {
+      display: inline-block;
+      padding: 0.2rem 0.6rem;
+      border-radius: 12px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      font-family: 'IBM Plex Mono', monospace;
+      letter-spacing: 0.03em;
+    }
+    .badge-A { background: #FFEBEE; color: var(--red); border: 1.5px solid var(--red); }
+    .badge-B { background: #FFF3E0; color: var(--orange); border: 1.5px solid var(--orange); }
+    .badge-C { background: #E3F2FD; color: var(--blue); border: 1.5px solid var(--blue); }
+
+    /* =====================================================
+       CALENDAR VIEW
+    ===================================================== */
+    #view-calendar .page-content { max-width: 1300px; }
+
+    .calendar-nav {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+      flex-wrap: wrap;
+    }
+    .cal-nav-btn {
+      background: white;
+      border: 2px solid var(--teal);
+      color: var(--teal);
+      padding: 0.6rem 1rem;
+      border-radius: 8px;
+      font-size: 1.2rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      line-height: 1;
+    }
+    .cal-nav-btn:hover { background: var(--teal); color: white; }
+
+    .cal-month-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 2rem;
+      font-weight: 900;
+      color: var(--teal-dark);
+      flex: 1;
+    }
+
+    .cal-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 3px;
+      background: var(--teal-dark);
+      border: 3px solid var(--teal-dark);
+      border-radius: 14px;
+      overflow: hidden;
+    }
+
+    .cal-day-label {
+      background: linear-gradient(135deg, var(--teal-dark) 0%, var(--teal) 100%);
+      color: var(--gold-light);
+      text-align: center;
+      padding: 0.75rem 0.25rem;
+      font-weight: 700;
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+    }
+
+    .cal-cell {
+      background: white;
+      min-height: 110px;
+      padding: 0.5rem;
+      cursor: pointer;
+      position: relative;
+      transition: all 0.2s ease;
+      overflow: hidden;
+    }
+    .cal-cell:hover { background: var(--teal-xlight); transform: scale(1.01); z-index: 2; }
+    .cal-cell.empty { background: var(--beige-dark); cursor: default; }
+    .cal-cell.today { background: var(--gold-xlight) !important; }
+    .cal-cell.today .cal-date-num { color: var(--gold); }
+    .cal-cell.has-data { border-left: 3px solid var(--teal); }
+    .cal-cell.sunday .cal-date-num { color: var(--red); }
+
+    .cal-date-num {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.4rem;
+      font-weight: 900;
+      color: var(--teal-dark);
+      line-height: 1;
+    }
+
+    .cal-preview {
+      margin-top: 0.35rem;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .cal-preview-item {
+      font-size: 0.7rem;
+      color: var(--teal-dark);
+      background: var(--teal-xlight);
+      border-radius: 3px;
+      padding: 1px 5px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      border-left: 2px solid var(--teal);
+    }
+    .cal-preview-item.done {
+      text-decoration: line-through;
+      opacity: 0.5;
+    }
+    .cal-preview-more {
+      font-size: 0.65rem;
+      color: var(--gray-med);
+      font-style: italic;
+    }
+
+    /* =====================================================
+       MONTH VIEW
+    ===================================================== */
+    #view-month .tab-bar {
+      display: flex;
+      gap: 0;
+      border-bottom: 2px solid var(--gray-light);
+      margin-bottom: 2rem;
+    }
+    .month-tab {
+      padding: 0.85rem 1.8rem;
+      font-weight: 600;
+      font-size: 0.9rem;
+      cursor: pointer;
+      color: var(--gray-med);
+      border-bottom: 3px solid transparent;
+      margin-bottom: -2px;
+      transition: all 0.2s;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .month-tab:hover { color: var(--teal); }
+    .month-tab.active { color: var(--teal-dark); border-bottom-color: var(--teal); }
+
+    .month-panel { display: none; }
+    .month-panel.active { display: block; }
+
+    /* Reference System */
+    .ref-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+
+    /* Master Task List */
+    .mtask-item {
+      display: grid;
+      grid-template-columns: 40px 80px 1fr 115px 36px;
+      gap: 0.75rem;
+      align-items: center;
+      padding: 0.75rem 0.5rem;
+      border-bottom: 1.5px solid var(--gray-xlight);
+      transition: background 0.2s;
+    }
+    .mtask-due-input { font-family: 'IBM Plex Mono', monospace; font-size: 0.9rem; }
+    .mtask-item:hover { background: var(--beige); border-radius: 8px; }
+    .mtask-num {
+      font-weight: 700;
+      color: var(--teal);
+      font-family: 'IBM Plex Mono', monospace;
+      text-align: center;
+      font-size: 0.9rem;
+    }
+
+    /* Monthly Index */
+    .idx-item {
+      display: grid;
+      grid-template-columns: 50px 1fr 100px 60px;
+      gap: 1rem;
+      align-items: center;
+      padding: 0.7rem 0.5rem;
+      border-bottom: 1.5px solid var(--gray-xlight);
+      transition: background 0.2s;
+    }
+    .idx-item:hover { background: var(--beige); border-radius: 8px; }
+    .idx-day-num {
+      font-family: 'IBM Plex Mono', monospace; font-weight: 700; color: var(--teal);
+      font-size: 1rem; text-align: center;
+      background: none; border: none; cursor: pointer; padding: 0.4rem;
+    }
+    .idx-day-num:hover { text-decoration: underline; }
+
+    /* =====================================================
+       DAY PLANNER VIEW
+    ===================================================== */
+    #view-day .day-nav {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+    .day-nav-btn {
+      background: white;
+      border: 2px solid var(--teal);
+      color: var(--teal);
+      padding: 0.55rem 1rem;
+      border-radius: 8px;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .day-nav-btn:hover { background: var(--teal); color: white; }
+
+    .day-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.8rem;
+      font-weight: 900;
+      color: var(--teal-dark);
+    }
+    .day-title.date-clickable { cursor: pointer; }
+
+    .day-planner-grid {
+      display: grid;
+      grid-template-columns: 1fr 1.6fr;
+      gap: 2rem;
+      margin-top: 2rem;
+    }
+
+    .day-number-big {
+      font-family: 'Playfair Display', serif;
+      font-size: 6rem;
+      font-weight: 900;
+      color: var(--teal);
+      line-height: 1;
+      text-shadow: 4px 4px 0 rgba(196,154,43,0.2);
+    }
+    .day-number-big.date-clickable { cursor: pointer; }
+
+    .date-display-row {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 1.5rem;
+      align-items: center;
+      margin-bottom: 1.5rem;
+    }
+
+    .legend-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.5rem;
+      padding: 1rem;
+      background: var(--beige);
+      border-radius: 8px;
+      font-size: 0.85rem;
+    }
+    .legend-item { display: flex; align-items: center; gap: 0.4rem; }
+    .legend-sym { font-weight: 700; color: var(--teal); font-size: 1rem; }
+
+    .mission-box {
+      background: linear-gradient(135deg, rgba(0,153,153,0.08) 0%, rgba(196,154,43,0.08) 100%);
+      border: 2.5px solid var(--teal);
+      border-radius: 10px;
+      padding: 1.2rem;
+    }
+    .mission-label {
+      font-size: 0.8rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--teal-dark);
+      margin-bottom: 0.5rem;
+    }
+
+    .task-row {
+      display: grid;
+      grid-template-columns: 36px 70px 1fr 150px;
+      gap: 0.6rem;
+      align-items: center;
+      padding: 0.65rem 0.5rem;
+      background: var(--cream);
+      border-radius: 8px;
+      border: 2px solid transparent;
+      transition: all 0.2s;
+      margin-bottom: 0.4rem;
+    }
+    .task-row:hover { background: white; border-color: var(--teal-light); transform: translateX(3px); }
+    .task-row-num { font-weight: 700; color: var(--teal); text-align: center; font-family: 'IBM Plex Mono', monospace; }
+    .date-link-btn {
+      background: none; border: none; color: var(--teal); cursor: pointer; padding: 0.25rem;
+      font-size: 1rem; line-height: 1; opacity: 0.7;
+    }
+    .date-link-btn:hover { opacity: 1; }
+    .date-with-link { display: flex; gap: 0.25rem; align-items: center; }
+    .date-with-link input { flex: 1; min-width: 0; }
+    .mtask-due-wrap { display: flex; gap: 0.25rem; align-items: center; }
+    .mtask-due-wrap input { flex: 1; min-width: 0; }
+
+    select.priority-sel {
+      padding: 0.4rem 0.5rem;
+      border: 2px solid var(--gray-light);
+      border-radius: 6px;
+      font-size: 0.85rem;
+      font-weight: 700;
+      cursor: pointer;
+      background: white;
+      font-family: 'IBM Plex Mono', monospace;
+    }
+
+    .checkbox-inp {
+      width: 22px; height: 22px;
+      cursor: pointer;
+      accent-color: var(--teal);
+    }
+
+    .time-row {
+      display: grid;
+      grid-template-columns: 100px 1fr 36px;
+      gap: 0.75rem;
+      align-items: center;
+      padding: 0.65rem 0.5rem;
+      border-bottom: 2px solid var(--gray-xlight);
+      transition: all 0.2s;
+    }
+    .time-row:hover { background: var(--cream); border-bottom-color: var(--teal); }
+    .time-lbl {
+      font-weight: 600;
+      color: var(--teal-dark);
+      font-size: 1rem;
+      font-family: 'IBM Plex Mono', monospace;
+    }
+    .time-lbl.hour { font-size: 1.15rem; color: var(--teal); }
+
+    .notes-ta {
+      background: var(--cream);
+      border: 2px solid var(--gray-light);
+      border-radius: 8px;
+      padding: 1rem;
+      min-height: 180px;
+      font-family: 'IBM Plex Sans', sans-serif;
+      line-height: 1.8;
+      font-size: 0.95rem;
+    }
+
+    .day-actions {
+      display: flex;
+      gap: 1rem;
+      margin-top: 2rem;
+      flex-wrap: wrap;
+    }
+
+    /* =====================================================
+       RESPONSIVE
+    ===================================================== */
+    @media (max-width: 900px) {
+      .day-planner-grid { grid-template-columns: 1fr; }
+      .ref-grid { grid-template-columns: 1fr; }
+      .mtask-item { grid-template-columns: 36px 70px 1fr 36px; }
+      .mtask-item .mtask-due-wrap { display: none; }
+      .page-content { padding: 1.2rem 1rem; }
+      .page-hero { padding: 1.5rem 1.2rem; }
+      .page-hero h2 { font-size: 1.7rem; }
+      .cal-cell { min-height: 70px; }
+      .cal-date-num { font-size: 1.1rem; }
+    }
+
+    @media (max-width: 600px) {
+      .cal-grid { grid-template-columns: repeat(7, 1fr); }
+      .cal-cell { min-height: 50px; padding: 0.25rem; }
+      .cal-preview { display: none; }
+    }
+
+    /* ===== MODAL ===== */
+    .modal-overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 1800;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal {
+      background: white;
+      border-radius: 16px;
+      max-width: 520px;
+      width: 100%;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+      overflow: hidden;
+      animation: modalIn 0.3s cubic-bezier(0.34,1.56,0.64,1);
+    }
+    @keyframes modalIn { from { transform: scale(0.85); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+    .modal-header {
+      background: linear-gradient(135deg, var(--teal-dark), var(--teal));
+      padding: 1.2rem 1.5rem;
+      color: white;
+      font-family: 'Playfair Display', serif;
+      font-size: 1.3rem;
+      font-weight: 700;
+      border-bottom: 3px solid var(--gold);
+    }
+    .modal-body { padding: 1.5rem; }
+    .modal-footer { padding: 1rem 1.5rem; background: var(--beige); display: flex; justify-content: flex-end; gap: 0.75rem; }
+
+    /* ===== STAT PILLS ===== */
+    .stat-row {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+      margin-bottom: 1.5rem;
+    }
+    .stat-pill {
+      background: white;
+      border: 2px solid var(--gray-light);
+      border-radius: 30px;
+      padding: 0.5rem 1.2rem;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--gray-med);
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+    .stat-pill strong { color: var(--teal-dark); font-family: 'IBM Plex Mono', monospace; }
+
+    .task-row.done-row input[type="text"] { text-decoration: line-through; opacity: 0.55; }
+    .task-status-sel { font-size: 0.8rem; padding: 0.35rem 0.4rem; }
+
+    .month-main-nav {
+      display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem;
+    }
+    .month-main-nav select { max-width: 200px; }
+
+    @media print {
+      .top-nav, .day-actions, .toast, .modal-overlay, #autosaveIndicator { display: none !important; }
+      .view { display: block !important; }
+      #view-calendar, #view-month { display: none !important; }
+      #view-day { display: block !important; }
+      .card { box-shadow: none; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ===== TOP NAV ===== -->
+<nav class="top-nav">
+  <div class="nav-brand" onclick="showView('calendar')">📖 Daniel Planner</div>
+  <div class="nav-tab active" id="nav-calendar" onclick="showView('calendar')">📅 Calendar</div>
+  <div class="nav-tab" id="nav-month" onclick="showView('month')">📚 Monthly System</div>
+  <div class="nav-tab" id="nav-day" onclick="showView('day')">📝 Day Planner</div>
+  <div class="nav-actions">
+    <button class="btn btn-teal btn-sm" onclick="saveAllCurrent()">💾 Save</button>
+    <button class="btn btn-gold btn-sm" onclick="exportPlanner()">⬇ Export</button>
+    <button class="btn btn-gold btn-sm" onclick="importPlanner()">⬆ Import</button>
+    <button class="btn btn-red btn-sm" onclick="resetPlanner()">⚠ Reset</button>
+  </div>
+</nav>
+
+<!-- ===== TOAST & AUTOSAVE ===== -->
+<div class="toast" id="toast"></div>
+<div id="autosaveIndicator">✓ Auto-Saved</div>
+
+<!-- ===== MODAL ===== -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <div class="modal-header" id="modalTitle">Confirm</div>
+    <div class="modal-body" id="modalBody"></div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-teal" id="modalConfirmBtn">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===============================================================
+     VIEW: CALENDAR
+=============================================================== -->
+<div class="view active" id="view-calendar">
+  <div class="page-hero">
+    <h2>📅 Daniel Planner — Calendar <span class="hero-gold" id="calHeroTitle">2025</span></h2>
+    <p>Click any day to open its Daniel Day Planner • First Things First</p>
+  </div>
+  <div class="page-content">
+    <div class="calendar-nav">
+      <button class="cal-nav-btn" onclick="changeCalYear(-1)">&#9664;&#9664;</button>
+      <button class="cal-nav-btn" onclick="changeCalMonth(-1)">&#9664;</button>
+      <div class="cal-month-title" id="calMonthTitle">January 2025</div>
+      <button class="cal-nav-btn" onclick="changeCalMonth(1)">&#9654;</button>
+      <button class="cal-nav-btn" onclick="changeCalYear(1)">&#9654;&#9654;</button>
+      <button class="btn btn-gold btn-sm" onclick="showView('month')">📚 Monthly System</button>
+      <button class="btn btn-teal btn-sm" onclick="goToToday()">⬤ Today</button>
+    </div>
+    <div class="cal-grid" id="calGrid"></div>
+    <div style="margin-top:1rem; display:flex; align-items:center; gap:1.5rem; font-size:0.82rem; color:var(--gray-med); flex-wrap:wrap;">
+      <span style="display:flex;align-items:center;gap:6px;"><span style="width:12px;height:12px;background:var(--teal);border-radius:2px;display:inline-block;"></span> Has entries</span>
+      <span style="display:flex;align-items:center;gap:6px;"><span style="width:12px;height:12px;background:var(--gold-xlight);border:2px solid var(--gold);border-radius:2px;display:inline-block;"></span> Today</span>
+      <span style="color:var(--red);">■</span> Sunday
+      <span style="margin-left:auto; font-style:italic;">Click any date to open Day Planner</span>
+    </div>
+  </div>
+</div>
+
+<!-- ===============================================================
+     VIEW: MONTHLY SYSTEM
+=============================================================== -->
+<div class="view" id="view-month">
+  <div class="page-hero">
+    <h2>📚 Monthly System — <span class="hero-gold" id="monthHeroTitle">January 2025</span></h2>
+    <p>Monthly Reference Guide • Master Task List • Monthly Index</p>
+  </div>
+  <div class="page-content">
+    <div class="month-main-nav">
+      <button class="cal-nav-btn" onclick="changeMonthView(-1)">&#9664;</button>
+      <div style="font-family:'Playfair Display',serif; font-size:1.5rem; font-weight:900; color:var(--teal-dark); min-width:200px;" id="monthViewLabel">January 2025</div>
+      <button class="cal-nav-btn" onclick="changeMonthView(1)">&#9654;</button>
+      <div style="flex:1;"></div>
+      <button class="btn btn-teal btn-sm" onclick="saveMonthData()">💾 Save Month</button>
+    </div>
+
+    <div class="tab-bar">
+      <div class="month-tab active" onclick="switchMonthTab('ref', this)">📖 Reference Guide</div>
+      <div class="month-tab" onclick="switchMonthTab('tasks', this)">✅ Master Task List</div>
+      <div class="month-tab" onclick="switchMonthTab('index', this)">🗂️ Monthly Index</div>
+    </div>
+
+    <!-- REFERENCE GUIDE -->
+    <div class="month-panel active" id="mpanel-ref">
+      <p style="font-size:0.9rem; color:var(--gray-med); margin-bottom:1.5rem; font-style:italic;">
+        Your monthly reference system — key goals, important information, contacts, and guides for this month.
+      </p>
+      <div class="ref-grid">
+        <div class="card">
+          <div class="card-header">🎯 Monthly Goals &amp; Mission</div>
+          <div class="card-body">
+            <textarea id="ref-mission" class="notes-ta" rows="5" placeholder="What are your primary goals and mission for this month?"></textarea>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header">📋 Key Roles &amp; Responsibilities</div>
+          <div class="card-body">
+            <textarea id="ref-roles" class="notes-ta" rows="5" placeholder="List your key roles this month (e.g., Manager, Parent, Project Lead)..."></textarea>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header gold">💰 Budget &amp; Financial Notes</div>
+          <div class="card-body">
+            <textarea id="ref-budget" class="notes-ta" rows="5" placeholder="Monthly budget, financial targets, expenses to track..."></textarea>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header gold">📞 Key Contacts &amp; Numbers</div>
+          <div class="card-body">
+            <textarea id="ref-contacts" class="notes-ta" rows="5" placeholder="Important phone numbers, emails, or contacts for this month..."></textarea>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header navy">🏥 Health &amp; Wellness Goals</div>
+          <div class="card-body">
+            <textarea id="ref-health" class="notes-ta" rows="4" placeholder="Health goals, appointments, exercise targets..."></textarea>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header navy">📅 Key Dates &amp; Deadlines</div>
+          <div class="card-body">
+            <textarea id="ref-dates" class="notes-ta" rows="4" placeholder="Birthdays, anniversaries, deadlines, events..."></textarea>
+          </div>
+        </div>
+      </div>
+      <div class="card" style="margin-top:1.5rem;">
+        <div class="card-header">📝 Monthly Notes &amp; Reference Information</div>
+        <div class="card-body">
+          <textarea id="ref-notes" class="notes-ta" rows="6" placeholder="Any other reference information, quotes, reminders, or notes you want accessible all month..."></textarea>
+        </div>
+      </div>
+    </div>
+
+    <!-- MASTER TASK LIST -->
+    <div class="month-panel" id="mpanel-tasks">
+      <p style="font-size:0.9rem; color:var(--gray-med); margin-bottom:1.5rem; font-style:italic;">
+        All tasks for this month. Prioritize A (must do), B (should do), C (could do). Mark status as tasks are completed or moved.
+      </p>
+      <div class="stat-row" id="mtaskStats"></div>
+      <div class="card">
+        <div class="card-header">✅ Master Task List — <span id="mtaskMonthLabel">January 2025</span></div>
+        <div class="card-body" style="padding:1rem 0.5rem;">
+          <div style="display:grid; grid-template-columns:40px 80px 1fr 115px 36px; gap:0.75rem; padding:0.5rem; font-size:0.75rem; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; color:var(--gray-med); border-bottom:2px solid var(--teal);">
+            <span style="text-align:center;">#</span>
+            <span>Priority</span>
+            <span>Task</span>
+            <span>Due (dd-mm-yyyy)</span>
+            <span style="text-align:center;">✓</span>
+          </div>
+          <div id="masterTaskList"></div>
+        </div>
+      </div>
+      <button class="btn btn-ghost btn-sm" style="margin-top:1rem;" onclick="addMasterTaskRow()">+ Add Task Row</button>
+    </div>
+
+    <!-- MONTHLY INDEX -->
+    <div class="month-panel" id="mpanel-index">
+      <p style="font-size:0.9rem; color:var(--gray-med); margin-bottom:1.5rem; font-style:italic;">
+        A reference index of what happened each day this month — your monthly record and log.
+      </p>
+      <div class="card">
+        <div class="card-header">🗂️ Monthly Index — <span id="midxMonthLabel">January 2025</span></div>
+        <div class="card-body" style="padding:1rem 0.5rem;">
+          <div style="display:grid; grid-template-columns:50px 1fr 100px 60px; gap:1rem; padding:0.5rem; font-size:0.75rem; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; color:var(--gray-med); border-bottom:2px solid var(--teal);">
+            <span style="text-align:center;">Day</span>
+            <span>Entry / Summary</span>
+            <span>Category</span>
+            <span style="text-align:center;">🔗</span>
+          </div>
+          <div id="monthlyIndex"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===============================================================
+     VIEW: DAY PLANNER
+=============================================================== -->
+<div class="view" id="view-day">
+  <div class="page-hero">
+    <h2>📝 Daniel Day Planner — <span class="hero-gold" id="dayHeroTitle">Today</span></h2>
+    <p>First Things First • Begin with the End in Mind</p>
+  </div>
+  <div class="page-content" style="max-width:1400px;">
+    <div style="display:flex; align-items:center; gap:1rem; margin-bottom:1.5rem; flex-wrap:wrap;">
+      <div class="day-nav">
+        <button class="day-nav-btn" onclick="changeDayView(-1)">&#9664; Prev</button>
+        <div class="day-title date-clickable" id="dayViewTitle" onclick="(function(){var i=document.getElementById('dayDateInput');i.showPicker?.();i.focus();})()" title="Change date">Monday, Jan 13</div>
+        <button class="day-nav-btn" onclick="changeDayView(1)">Next &#9654;</button>
+      </div>
+      <button class="btn btn-gold btn-sm" onclick="goToDayToday()">⬤ Today</button>
+      <button class="btn btn-ghost btn-sm" onclick="showView('calendar')">📅 Calendar</button>
+    </div>
+
+    <div class="day-planner-grid">
+      <!-- LEFT COLUMN -->
+      <div style="display:flex; flex-direction:column; gap:1.5rem;">
+        <div class="card">
+          <div class="card-header gold">Today</div>
+          <div class="card-body">
+            <div class="date-display-row">
+              <div class="day-number-big date-clickable" id="dayBigNum" onclick="(function(){var i=document.getElementById('dayDateInput');i.showPicker?.();i.focus();})()" title="Change date">13</div>
+              <div style="display:flex; flex-direction:column; gap:0.6rem;">
+                <div class="date-with-link">
+                  <input type="date" id="dayDateInput" title="Select date — change navigates to that day" />
+                  <button type="button" class="date-link-btn" onclick="showView('calendar')" title="Open Calendar">📅</button>
+                </div>
+                <input type="text" id="dayDayName" readonly style="font-weight:600; color:var(--teal-dark);" />
+              </div>
+            </div>
+            <div class="legend-grid">
+              <div class="legend-item"><span class="legend-sym">✓</span> Completed</div>
+              <div class="legend-item"><span class="legend-sym">→</span> Rescheduled</div>
+              <div class="legend-item"><span class="legend-sym">✗</span> Delegated</div>
+              <div class="legend-item"><span class="legend-sym">◯</span> In Process</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">🎯 Daily Mission</div>
+          <div class="card-body">
+            <div class="mission-box">
+              <div class="mission-label">What matters most today?</div>
+              <textarea id="dayMission" class="notes-ta" rows="3" placeholder="Your focus and intention for today..."></textarea>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">✅ Priority Tasks</div>
+          <div class="card-body" style="padding:1rem 1rem;">
+            <div id="dayTaskList"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT COLUMN -->
+      <div style="display:flex; flex-direction:column; gap:1.5rem;">
+        <div class="card">
+          <div class="card-header">⏰ Appointment Schedule</div>
+          <div class="card-body" style="padding:0.75rem;">
+            <div id="daySchedule"></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header navy">📝 Notes &amp; Reflections</div>
+          <div class="card-body">
+            <textarea id="dayNotes" class="notes-ta" rows="10" placeholder="Daily tracker, expenses, thoughts, learnings, gratitude..."></textarea>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="day-actions">
+      <button class="btn btn-teal" onclick="saveDayPlanner()">💾 Save Day</button>
+      <button class="btn btn-gold" onclick="loadDayPlanner()">📂 Reload</button>
+      <button class="btn btn-ghost" onclick="clearDayPlanner()">🗑️ Clear</button>
+      <button class="btn btn-ghost" onclick="window.print()">🖨️ Print</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ================================================================
+   CONSTANTS & STATE
+================================================================ */
+const STORAGE_PREFIX = "danielPlanner-v4-";
+const TODAY = new Date();
+TODAY.setHours(0,0,0,0);
+
+let calYear  = TODAY.getFullYear();
+let calMonth = TODAY.getMonth();
+let monthViewYear  = TODAY.getFullYear();
+let monthViewMonth = TODAY.getMonth();
+let dayViewDate = new Date(TODAY);
+
+const MONTHS = ['January','February','March','April','May','June','July',
+                'August','September','October','November','December'];
+const DAYS   = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+
+let _dayUIBuilt = false;
+let _dayLoading = false;
+let _daySaveTimer = null;
+let _monthSaveTimer = null;
+let _modalCb = null;
+let _pendingSave = false;
+
+/* ================================================================
+   DATE KEY HELPERS
+================================================================ */
+function dateKey(d) {
+  const dt = (typeof d === 'string') ? new Date(d + 'T00:00:00') : d;
+  return dt.getFullYear() + '-' + String(dt.getMonth()+1).padStart(2,'0') + '-' + String(dt.getDate()).padStart(2,'0');
+}
+function monthKey(y, m) {
+  return y + '-' + String(m+1).padStart(2,'0');
+}
+
+/* dd-mm-yyyy ↔ yyyy-mm-dd */
+function parseDdmmyyyy(str) {
+  if (!str || !str.trim()) return '';
+  const m = str.trim().match(/^(\d{1,2})-(\d{1,2})-(\d{4})$|^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+  if (m) {
+    if (m[4]) return m[4] + '-' + m[5].padStart(2,'0') + '-' + m[6].padStart(2,'0');
+    return m[3] + '-' + m[2].padStart(2,'0') + '-' + m[1].padStart(2,'0');
+  }
+  return '';
+}
+function formatToDdmmyyyy(iso) {
+  if (!iso || !iso.match(/^\d{4}-\d{2}-\d{2}$/)) return '';
+  const [y, m, d] = iso.split('-');
+  return d + '-' + m + '-' + y;
+}
+function goToDateFromMtask(dueInput) {
+  const raw = dueInput.value.trim();
+  const iso = parseDdmmyyyy(raw);
+  if (iso) {
+    dayViewDate = new Date(iso + 'T00:00:00');
+    showView('day');
+    showToast('Opened ' + formatToDdmmyyyy(iso));
+  } else {
+    showToast('Enter date as dd-mm-yyyy first');
+  }
+}
+
+/* ================================================================
+   STORAGE — localStorage (browser-compatible)
+================================================================ */
+async function storageSave(key, obj) {
+  try {
+    const fullKey = STORAGE_PREFIX + key;
+    const payload = { savedAt: new Date().toISOString(), data: obj };
+    localStorage.setItem(fullKey, JSON.stringify(payload));
+    _pendingSave = false;
+    showAutoSaveIndicator();
+    return true;
+  } catch (e) {
+    if (e.name === 'QuotaExceededError') {
+      showToast('⚠️ Storage full. Try exporting a backup and resetting.');
+    } else {
+      showToast('⚠️ Could not save: ' + (e.message || 'Unknown error'));
+    }
+    return false;
+  }
+}
+
+async function storageLoad(key) {
+  try {
+    const fullKey = STORAGE_PREFIX + key;
+    const raw = localStorage.getItem(fullKey);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return parsed.data != null ? parsed.data : parsed;
+  } catch {
+    return null;
+  }
+}
+
+/* ================================================================
+   TOAST, MODAL, AUTOSAVE
+================================================================ */
+function showToast(msg, bg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.background = bg || '';
+  t.classList.add('show');
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => t.classList.remove('show'), 3200);
+}
+
+function showAutoSaveIndicator() {
+  const el = document.getElementById('autosaveIndicator');
+  el.style.opacity = '1';
+  clearTimeout(el._t);
+  el._t = setTimeout(() => { el.style.opacity = '0'; }, 1800);
+}
+
+function showModal(title, body, confirmText, cb) {
+  document.getElementById('modalTitle').textContent = title;
+  document.getElementById('modalBody').innerHTML = body;
+  document.getElementById('modalConfirmBtn').textContent = confirmText || 'Confirm';
+  _modalCb = cb;
+  document.getElementById('modalOverlay').classList.add('open');
+}
+function closeModal() {
+  document.getElementById('modalOverlay').classList.remove('open');
+}
+document.getElementById('modalConfirmBtn').addEventListener('click', () => {
+  closeModal();
+  if (_modalCb) _modalCb();
+});
+
+/* ================================================================
+   EXPORT / IMPORT / RESET
+================================================================ */
+function exportPlanner() {
+  const allData = {};
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (key.startsWith(STORAGE_PREFIX)) {
+      allData[key] = localStorage.getItem(key);
+    }
+  }
+  const blob = new Blob([JSON.stringify(allData, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'daniel-planner-backup-' + new Date().toISOString().slice(0, 10) + '.json';
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('✅ Backup exported!');
+}
+
+function importPlanner() {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = 'application/json,.json';
+  input.onchange = e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(evt) {
+      try {
+        const data = JSON.parse(evt.target.result);
+        if (typeof data !== 'object') throw new Error('Invalid format');
+        let count = 0;
+        for (const k of Object.keys(data)) {
+          if (k.startsWith(STORAGE_PREFIX) && typeof data[k] === 'string') {
+            localStorage.setItem(k, data[k]);
+            count++;
+          }
+        }
+        showToast('✅ Restored ' + count + ' item(s)!');
+        setTimeout(() => location.reload(), 1200);
+      } catch {
+        showToast('Invalid backup file.');
+      }
+    };
+    reader.readAsText(file);
+  };
+  input.click();
+}
+
+function resetPlanner() {
+  showModal(
+    'Reset Planner',
+    '<p style="color:var(--gray-med);">Delete ALL planner data permanently? This cannot be undone.</p>',
+    'Delete All',
+    () => {
+      const keys = Object.keys(localStorage).filter(k => k.startsWith(STORAGE_PREFIX));
+      keys.forEach(k => localStorage.removeItem(k));
+      showToast('Planner reset.');
+      setTimeout(() => location.reload(), 1000);
+    }
+  );
+}
+
+function saveAllCurrent() {
+  const view = document.querySelector('.view.active');
+  if (view && view.id === 'view-day') saveDayPlanner();
+  else if (view && view.id === 'view-month') saveMonthData();
+  else showToast('Save from Day Planner or Monthly System.');
+}
+
+/* ================================================================
+   VIEW SWITCHING
+================================================================ */
+function showView(name) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('view-' + name).classList.add('active');
+  document.getElementById('nav-'  + name).classList.add('active');
+  if (name === 'calendar') renderCalendar();
+  if (name === 'month')    renderMonthView();
+  if (name === 'day')      renderDayView();
+}
+
+/* ================================================================
+   CALENDAR VIEW
+================================================================ */
+function renderCalendar() {
+  const label = MONTHS[calMonth] + ' ' + calYear;
+  document.getElementById('calMonthTitle').textContent = label;
+  document.getElementById('calHeroTitle').textContent  = calYear;
+  document.title = 'Daniel Planner — ' + label;
+  buildCalGrid();
+}
+
+async function buildCalGrid() {
+  const grid = document.getElementById('calGrid');
+  grid.innerHTML = '';
+
+  ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].forEach(d => {
+    const el = document.createElement('div');
+    el.className = 'cal-day-label';
+    el.textContent = d;
+    grid.appendChild(el);
+  });
+
+  const firstDay = new Date(calYear, calMonth, 1).getDay();
+  const daysInMonth = new Date(calYear, calMonth+1, 0).getDate();
+
+  for (let i = 0; i < firstDay; i++) {
+    const el = document.createElement('div');
+    el.className = 'cal-cell empty';
+    grid.appendChild(el);
+  }
+
+  const keys = [];
+  for (let d = 1; d <= daysInMonth; d++) {
+    keys.push(dateKey(new Date(calYear, calMonth, d)));
+  }
+  const dataMap = {};
+  await Promise.all(keys.map(async k => {
+    const d = await storageLoad('day-' + k);
+    if (d) dataMap[k] = d;
+  }));
+
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dt  = new Date(calYear, calMonth, d);
+    const dk  = dateKey(dt);
+    const isToday   = (dk === dateKey(TODAY));
+    const isSunday  = (dt.getDay() === 0);
+    const dayData   = dataMap[dk];
+    const hasData   = dayData && (
+      (dayData.mission && dayData.mission.trim()) ||
+      (dayData.tasks && dayData.tasks.some(t => t.text)) ||
+      (dayData.schedule && dayData.schedule.some(s => s.text))
+    );
+
+    const cell = document.createElement('div');
+    cell.className = 'cal-cell' + (isToday ? ' today' : '') + (isSunday ? ' sunday' : '') + (hasData ? ' has-data' : '');
+
+    const num = document.createElement('div');
+    num.className = 'cal-date-num';
+    num.textContent = d;
+    cell.appendChild(num);
+
+    if (hasData) {
+      const preview = document.createElement('div');
+      preview.className = 'cal-preview';
+      let shown = 0;
+      const addItem = (text, done) => {
+        if (shown >= 3) return;
+        const item = document.createElement('div');
+        item.className = 'cal-preview-item' + (done ? ' done' : '');
+        item.textContent = text;
+        preview.appendChild(item);
+        shown++;
+      };
+      (dayData.tasks || []).forEach(t => t.text && addItem((t.priority ? '['+t.priority+'] ':'') + t.text, t.status === 'completed' || t.done));
+      (dayData.schedule || []).forEach(s => s.text && addItem('⏰ ' + s.text, s.done));
+      const total = (dayData.tasks||[]).filter(t=>t.text).length + (dayData.schedule||[]).filter(s=>s.text).length;
+      if (total > shown) {
+        const more = document.createElement('div');
+        more.className = 'cal-preview-more';
+        more.textContent = '+' + (total - shown) + ' more…';
+        preview.appendChild(more);
+      }
+      cell.appendChild(preview);
+    }
+
+    cell.addEventListener('click', () => {
+      dayViewDate = new Date(calYear, calMonth, d);
+      showView('day');
+    });
+    grid.appendChild(cell);
+  }
+}
+
+function changeCalMonth(delta) {
+  calMonth += delta;
+  if (calMonth > 11) { calMonth = 0; calYear++; }
+  if (calMonth < 0) { calMonth = 11; calYear--; }
+  renderCalendar();
+}
+function changeCalYear(delta) { calYear += delta; renderCalendar(); }
+function goToToday() {
+  calYear = TODAY.getFullYear();
+  calMonth = TODAY.getMonth();
+  renderCalendar();
+}
+
+/* ================================================================
+   MONTH VIEW
+================================================================ */
+function renderMonthView() {
+  const label = MONTHS[monthViewMonth] + ' ' + monthViewYear;
+  document.getElementById('monthHeroTitle').textContent = label;
+  document.getElementById('monthViewLabel').textContent = label;
+  document.getElementById('mtaskMonthLabel').textContent = label;
+  document.getElementById('midxMonthLabel').textContent = label;
+  loadMonthData();
+}
+
+function changeMonthView(delta) {
+  monthViewMonth += delta;
+  if (monthViewMonth > 11) { monthViewMonth = 0; monthViewYear++; }
+  if (monthViewMonth < 0) { monthViewMonth = 11; monthViewYear--; }
+  renderMonthView();
+}
+
+async function loadMonthData() {
+  const data = await storageLoad('month-' + monthKey(monthViewYear, monthViewMonth));
+  const d = data || {};
+  document.getElementById('ref-mission').value = d.mission || '';
+  document.getElementById('ref-roles').value = d.roles || '';
+  document.getElementById('ref-budget').value = d.budget || '';
+  document.getElementById('ref-contacts').value = d.contacts || '';
+  document.getElementById('ref-health').value = d.health || '';
+  document.getElementById('ref-dates').value = d.keyDates || '';
+  document.getElementById('ref-notes').value = d.notes || '';
+  buildMasterTaskList(d.tasks || []);
+  buildMonthlyIndex(d.index || []);
+  updateMtaskStats();
+}
+
+async function saveMonthData() {
+  const obj = {
+    mission: document.getElementById('ref-mission').value,
+    roles: document.getElementById('ref-roles').value,
+    budget: document.getElementById('ref-budget').value,
+    contacts: document.getElementById('ref-contacts').value,
+    health: document.getElementById('ref-health').value,
+    keyDates: document.getElementById('ref-dates').value,
+    notes: document.getElementById('ref-notes').value,
+    tasks: collectMasterTasks(),
+    index: collectMonthIndex()
+  };
+  const ok = await storageSave('month-' + monthKey(monthViewYear, monthViewMonth), obj);
+  if (ok) showToast('✅ Monthly data saved!');
+  updateMtaskStats();
+}
+
+function buildMasterTaskList(tasks) {
+  const container = document.getElementById('masterTaskList');
+  container.innerHTML = '';
+  const count = Math.max(20, tasks.length + 5);
+  for (let i = 0; i < count; i++) {
+    const t = tasks[i] || {};
+    const dueDisplay = t.due ? (t.due.match(/^\d{4}-\d{2}-\d{2}$/) ? formatToDdmmyyyy(t.due) : t.due) : '';
+    const row = document.createElement('div');
+    row.className = 'mtask-item';
+    row.innerHTML = `
+      <div class="mtask-num">${i+1}</div>
+      <select class="priority-sel" style="width:100%;" onchange="updateMtaskStats(); scheduleMonthSave()">
+        <option value="">—</option>
+        <option value="A" ${t.priority==='A'?'selected':''}>A — Vital</option>
+        <option value="B" ${t.priority==='B'?'selected':''}>B — Important</option>
+        <option value="C" ${t.priority==='C'?'selected':''}>C — Nice</option>
+      </select>
+      <input type="text" placeholder="Task description..." value="${esc(t.text||'')}" oninput="scheduleMonthSave()" />
+      <div class="mtask-due-wrap">
+        <input type="text" class="mtask-due mtask-due-input" placeholder="dd-mm-yyyy" value="${esc(dueDisplay)}" oninput="scheduleMonthSave()" maxlength="10" />
+        <button type="button" class="date-link-btn" onclick="goToDateFromMtask(this.previousElementSibling)" title="Open this day in Day Planner">📅</button>
+      </div>
+      <input type="checkbox" class="checkbox-inp" ${t.done?'checked':''} onchange="updateMtaskStats(); scheduleMonthSave()" />
+    `;
+    container.appendChild(row);
+  }
+  updateMtaskStats();
+}
+
+function addMasterTaskRow() {
+  const tasks = collectMasterTasks();
+  tasks.push({ priority:'', text:'', due:'', done:false });
+  buildMasterTaskList(tasks);
+  showToast('+ Row added');
+}
+
+function collectMasterTasks() {
+  const tasks = [];
+  document.querySelectorAll('.mtask-item').forEach(row => {
+    const dueEl = row.querySelector('.mtask-due');
+    const dueRaw = dueEl ? dueEl.value : '';
+    const dueIso = parseDdmmyyyy(dueRaw) || dueRaw;
+    tasks.push({
+      priority: row.querySelector('select').value,
+      text: row.querySelector('input[type="text"]:not(.mtask-due)').value,
+      due: dueIso,
+      done: row.querySelector('input[type="checkbox"]').checked
+    });
+  });
+  return tasks;
+}
+
+function updateMtaskStats() {
+  let total=0, done=0, a=0, b=0, c=0;
+  document.querySelectorAll('.mtask-item').forEach(row => {
+    const text = row.querySelector('input[type="text"]').value.trim();
+    if (!text) return;
+    total++;
+    if (row.querySelector('input[type="checkbox"]').checked) done++;
+    const p = row.querySelector('select').value;
+    if (p==='A') a++; else if (p==='B') b++; else if (p==='C') c++;
+  });
+  document.getElementById('mtaskStats').innerHTML = `
+    <div class="stat-pill">Total <strong>${total}</strong></div>
+    <div class="stat-pill">Done <strong>${done}</strong></div>
+    <div class="stat-pill">Left <strong>${total-done}</strong></div>
+    <div class="stat-pill"><span class="badge badge-A">A</span> <strong>${a}</strong></div>
+    <div class="stat-pill"><span class="badge badge-B">B</span> <strong>${b}</strong></div>
+    <div class="stat-pill"><span class="badge badge-C">C</span> <strong>${c}</strong></div>
+  `;
+}
+
+function buildMonthlyIndex(entries) {
+  const container = document.getElementById('monthlyIndex');
+  container.innerHTML = '';
+  const daysInMonth = new Date(monthViewYear, monthViewMonth+1, 0).getDate();
+  for (let d = 1; d <= daysInMonth; d++) {
+    const e = (entries && entries[d-1]) ? entries[d-1] : {};
+    const row = document.createElement('div');
+    row.className = 'idx-item';
+    row.innerHTML = `
+      <button type="button" class="idx-day-num" onclick="openDayFromIndex(${d})" title="Open Day Planner for ${String(d).padStart(2,'0')}-${String(monthViewMonth+1).padStart(2,'0')}-${monthViewYear}">${d}</button>
+      <input type="text" placeholder="Summary of the day..." value="${esc(e.summary||'')}" oninput="scheduleMonthSave()" />
+      <input type="text" placeholder="Category" value="${esc(e.category||'')}" oninput="scheduleMonthSave()" />
+      <button class="btn btn-teal btn-xs" onclick="openDayFromIndex(${d})" title="Open Day Planner">📝</button>
+    `;
+    container.appendChild(row);
+  }
+}
+
+function openDayFromIndex(day) {
+  dayViewDate = new Date(monthViewYear, monthViewMonth, day);
+  showView('day');
+}
+
+function collectMonthIndex() {
+  const entries = [];
+  document.querySelectorAll('.idx-item').forEach(row => {
+    const inputs = row.querySelectorAll('input[type="text"]');
+    entries.push({ summary: inputs[0].value, category: inputs[1].value });
+  });
+  return entries;
+}
+
+function switchMonthTab(name, el) {
+  document.querySelectorAll('.month-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.month-panel').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('mpanel-' + name).classList.add('active');
+}
+
+function scheduleMonthSave() {
+  clearTimeout(_monthSaveTimer);
+  _monthSaveTimer = setTimeout(saveMonthData, 1400);
+}
+
+/* ================================================================
+   DAY PLANNER
+================================================================ */
+function buildDayUI() {
+  if (_dayUIBuilt) return;
+  _dayUIBuilt = true;
+
+  const taskList = document.getElementById('dayTaskList');
+  taskList.innerHTML = '';
+  for (let i = 1; i <= 10; i++) {
+    const row = document.createElement('div');
+    row.className = 'task-row';
+    row.id = 'dt-row-' + i;
+    row.innerHTML = `
+      <div class="task-row-num">${i}</div>
+      <select class="priority-sel" id="dt-pri-${i}" onchange="applyPriStyle(${i}); scheduleDaySave()">
+        <option value="">—</option>
+        <option value="A">A</option>
+        <option value="B">B</option>
+        <option value="C">C</option>
+      </select>
+      <input type="text" id="dt-txt-${i}" placeholder="Task description..." oninput="scheduleDaySave()" />
+      <select class="task-status-sel" id="dt-status-${i}" onchange="toggleStatusRow(${i}); scheduleDaySave()">
+        <option value="">—</option>
+        <option value="completed">✓ Completed</option>
+        <option value="rescheduled">→ Rescheduled</option>
+        <option value="delegated">✗ Delegated</option>
+        <option value="inprocess">◯ In Process</option>
+      </select>
+    `;
+    taskList.appendChild(row);
+  }
+
+  const sched = document.getElementById('daySchedule');
+  sched.innerHTML = '';
+  for (let h = 6; h <= 21; h++) {
+    const lbl = h === 12 ? '12:00 PM' : h > 12 ? (h-12) + ':00 PM' : h + ':00 AM';
+    const row = document.createElement('div');
+    row.className = 'time-row';
+    row.innerHTML = `
+      <div class="time-lbl hour">${lbl}</div>
+      <input type="text" id="ds-txt-${h}" placeholder="Appointment or event..." oninput="scheduleDaySave()" />
+      <input type="checkbox" class="checkbox-inp" id="ds-chk-${h}" onchange="scheduleDaySave()" />
+    `;
+    sched.appendChild(row);
+  }
+}
+
+function applyPriStyle(i) {
+  const sel = document.getElementById('dt-pri-' + i);
+  if (!sel) return;
+  const v = sel.value;
+  sel.style.color = v==='A' ? '#C62828' : v==='B' ? '#E65100' : v==='C' ? '#1565C0' : '';
+  sel.style.borderColor = v==='A' ? '#C62828' : v==='B' ? '#E65100' : v==='C' ? '#1565C0' : '';
+}
+
+function toggleStatusRow(i) {
+  const row = document.getElementById('dt-row-' + i);
+  const sel = document.getElementById('dt-status-' + i);
+  if (!row || !sel) return;
+  row.classList.toggle('done-row', sel.value === 'completed');
+}
+
+function renderDayView() {
+  buildDayUI();
+
+  const dk = dateKey(dayViewDate);
+  const dayNum = dayViewDate.getDate();
+  const dayName = DAYS[dayViewDate.getDay()];
+  const monthNm = MONTHS[dayViewDate.getMonth()];
+  const fullDate = dayName + ', ' + monthNm + ' ' + dayNum + ', ' + dayViewDate.getFullYear();
+
+  document.getElementById('dayHeroTitle').textContent = fullDate;
+  document.getElementById('dayViewTitle').textContent = fullDate;
+  document.getElementById('dayBigNum').textContent = dayNum;
+  document.getElementById('dayDateInput').value = dk;
+  document.getElementById('dayDayName').value = dayName;
+
+  _dayLoading = true;
+  clearTimeout(_daySaveTimer);
+  clearDayFields();
+  loadDayData(dk).then(() => { _dayLoading = false; });
+}
+
+function clearDayFields() {
+  document.getElementById('dayMission').value = '';
+  document.getElementById('dayNotes').value = '';
+  for (let i = 1; i <= 10; i++) {
+    const pri = document.getElementById('dt-pri-' + i); if (pri) { pri.value=''; pri.style.color=''; pri.style.borderColor=''; }
+    const txt = document.getElementById('dt-txt-' + i); if (txt) txt.value = '';
+    const status = document.getElementById('dt-status-' + i); if (status) status.value = '';
+    const row = document.getElementById('dt-row-' + i); if (row) row.classList.remove('done-row');
+  }
+  for (let h = 6; h <= 21; h++) {
+    const txt = document.getElementById('ds-txt-' + h); if (txt) txt.value = '';
+    const chk = document.getElementById('ds-chk-' + h); if (chk) chk.checked = false;
+  }
+}
+
+async function loadDayData(dk) {
+  const data = await storageLoad('day-' + dk);
+  if (!data) return;
+
+  document.getElementById('dayMission').value = data.mission || '';
+  document.getElementById('dayNotes').value = data.notes || '';
+
+  if (data.tasks) {
+    data.tasks.forEach((t, idx) => {
+      const i = idx + 1;
+      const pri = document.getElementById('dt-pri-' + i); if (pri) { pri.value = t.priority || ''; applyPriStyle(i); }
+      const txt = document.getElementById('dt-txt-' + i); if (txt) txt.value = t.text || '';
+      const status = document.getElementById('dt-status-' + i);
+      if (status) {
+        status.value = t.status || (t.done ? 'completed' : '');
+        toggleStatusRow(i);
+      }
+    });
+  }
+
+  if (data.schedule) {
+    data.schedule.forEach((s, idx) => {
+      const h = 6 + idx;
+      const txt = document.getElementById('ds-txt-' + h); if (txt) txt.value = s.text || '';
+      const chk = document.getElementById('ds-chk-' + h); if (chk) chk.checked = !!s.done;
+    });
+  }
+}
+
+async function saveDayPlanner() {
+  const dk = dateKey(dayViewDate);
+  const tasks = [];
+  for (let i = 1; i <= 10; i++) {
+    const status = (document.getElementById('dt-status-' + i) || {}).value || '';
+    tasks.push({
+      priority: (document.getElementById('dt-pri-' + i) || {}).value || '',
+      text: (document.getElementById('dt-txt-' + i) || {}).value || '',
+      status,
+      done: status === 'completed'
+    });
+  }
+  const schedule = [];
+  for (let h = 6; h <= 21; h++) {
+    schedule.push({
+      hour: h,
+      text: (document.getElementById('ds-txt-' + h) || {}).value || '',
+      done: !!(document.getElementById('ds-chk-' + h) || {}).checked
+    });
+  }
+  const obj = {
+    date: dk,
+    mission: document.getElementById('dayMission').value,
+    notes: document.getElementById('dayNotes').value,
+    tasks,
+    schedule,
+    savedAt: new Date().toISOString()
+  };
+  const ok = await storageSave('day-' + dk, obj);
+  if (ok) {
+    showToast('✅ Saved — ' + dk);
+    syncIndexFromDay(dayViewDate, obj);
+  }
+}
+
+function scheduleDaySave() {
+  if (_dayLoading) return;
+  _pendingSave = true;
+  clearTimeout(_daySaveTimer);
+  _daySaveTimer = setTimeout(saveDayPlanner, 1500);
+}
+
+async function loadDayPlanner() {
+  _dayLoading = true;
+  clearTimeout(_daySaveTimer);
+  clearDayFields();
+  await loadDayData(dateKey(dayViewDate));
+  _dayLoading = false;
+  showToast('📂 Day planner loaded!');
+}
+
+function clearDayPlanner() {
+  showModal(
+    'Clear Day Planner',
+    '<p style="color:var(--gray-med);">Clear all fields? Saved data is not deleted.</p>',
+    'Clear',
+    () => { clearDayFields(); showToast('🗑️ Fields cleared'); }
+  );
+}
+
+function changeDayView(delta) {
+  const d = new Date(dayViewDate);
+  d.setDate(d.getDate() + delta);
+  dayViewDate = d;
+  renderDayView();
+}
+function goToDayToday() { dayViewDate = new Date(TODAY); renderDayView(); }
+
+document.getElementById('dayDateInput').addEventListener('change', function() {
+  dayViewDate = new Date(this.value + 'T00:00:00');
+  renderDayView();
+});
+
+async function syncIndexFromDay(dt, dayData) {
+  const mk = monthKey(dt.getFullYear(), dt.getMonth());
+  const prev = await storageLoad('month-' + mk) || {};
+  const days = new Date(dt.getFullYear(), dt.getMonth()+1, 0).getDate();
+  const index = Array.from({ length: days }, (_, i) => {
+    return (prev.index && prev.index[i]) ? Object.assign({}, prev.index[i]) : {};
+  });
+  const d = dt.getDate() - 1;
+  let summary = '';
+  if (dayData.mission && dayData.mission.trim()) {
+    summary = dayData.mission.substring(0, 60);
+  } else {
+    const ft = (dayData.tasks || []).find(t => t.text);
+    if (ft) summary = (ft.priority ? '['+ft.priority+'] ' : '') + ft.text.substring(0, 50);
+  }
+  if (summary) {
+    index[d].summary = summary;
+    prev.index = index;
+    if (!prev.tasks) prev.tasks = [];
+    await storageSave('month-' + mk, prev);
+  }
+}
+
+/* ================================================================
+   UTILITIES
+================================================================ */
+function esc(s) {
+  return (s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+window.addEventListener('beforeunload', function(e) {
+  if (_pendingSave) {
+    e.preventDefault();
+    e.returnValue = 'You have unsaved changes.';
+  }
+});
+
+/* ================================================================
+   INIT
+================================================================ */
+window.addEventListener('DOMContentLoaded', () => {
+  buildDayUI();
+  renderCalendar();
+});
+</script>
+</body>
+</html>
