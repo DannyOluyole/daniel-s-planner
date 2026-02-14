@@ -695,6 +695,8 @@
   <div class="nav-tab" id="nav-month" onclick="showView('month')">📚 Monthly System</div>
   <div class="nav-tab" id="nav-day" onclick="showView('day')">📝 Day Planner</div>
   <div class="nav-actions">
+    <button class="btn btn-teal btn-sm" id="cloudSyncBtn" onclick="toggleCloudSyncModal()" title="Cloud Sync">☁️ Sync</button>
+    <span id="cloudSyncStatus" style="font-size:0.7rem;opacity:0.9;display:none;" title="Synced across devices">✓</span>
     <button class="btn btn-teal btn-sm" onclick="saveAllCurrent()">💾 Save</button>
     <button class="btn btn-gold btn-sm" onclick="exportPlanner()">⬇ Export</button>
     <button class="btn btn-gold btn-sm" onclick="importPlanner()">⬆ Import</button>
@@ -714,6 +716,36 @@
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
       <button class="btn btn-teal" id="modalConfirmBtn">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== CLOUD SYNC MODAL ===== -->
+<div class="modal-overlay" id="cloudSyncModal">
+  <div class="modal" style="max-width:480px;">
+    <div class="modal-header">☁️ Cloud Sync</div>
+    <div class="modal-body" style="font-size:0.9rem;">
+      <p style="margin-bottom:1rem;color:var(--gray-med);">Same data on every device. Use the same 2 values everywhere.</p>
+      <div id="cloudSyncForm">
+        <label style="display:block;font-weight:600;margin-bottom:0.4rem;">1. Sync Code</label>
+        <div style="display:flex;gap:0.5rem;margin-bottom:1rem;">
+          <input type="text" id="cloudSyncCode" placeholder="e.g. myplanner2025" style="flex:1;" maxlength="32" />
+          <button type="button" class="btn btn-ghost btn-sm" onclick="generateSyncCode()">Generate</button>
+        </div>
+        <label style="display:block;font-weight:600;margin-bottom:0.4rem;">2. Database URL</label>
+        <input type="text" id="cloudDatabaseURL" placeholder="https://your-project-default-rtdb.firebaseio.com" style="font-family:monospace;font-size:0.9rem;margin-bottom:0.5rem;" />
+        <p style="font-size:0.8rem;color:var(--gray-med);margin-bottom:0.75rem;">Firebase → Realtime Database → copy URL at top of page.</p>
+        <p style="font-size:0.8rem;padding:0.5rem;background:#e8f5e9;border-radius:6px;color:#2e7d32;">✓ Use <strong>https://</strong> to open planner (GitHub Pages). Rules: <code style="font-size:0.75rem;">{"rules":{"planners":{".read":true,".write":true}}}</code></p>
+      </div>
+      <div id="cloudSyncActive" style="display:none;">
+        <p style="color:var(--green);font-weight:600;">✓ Cloud sync is active</p>
+        <p style="font-size:0.85rem;margin-top:0.5rem;">Sync code: <code id="cloudSyncCodeDisplay"></code></p>
+        <button type="button" class="btn btn-red btn-sm" style="margin-top:1rem;" onclick="disableCloudSync()">Disable Cloud Sync</button>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeCloudSyncModal()">Close</button>
+      <button class="btn btn-teal" id="cloudSyncSaveBtn" onclick="saveCloudSyncConfig()">Enable Sync</button>
     </div>
   </div>
 </div>
@@ -1016,13 +1048,176 @@ function goToDateFromMtask(dueInput) {
 }
 
 /* ================================================================
-   STORAGE — localStorage (browser-compatible)
+   CLOUD SYNC (Firebase Realtime Database)
+================================================================ */
+const CLOUD_CONFIG_KEY = 'danielPlanner-cloudConfig';
+let _syncCode = null;
+let _cloudUnsubscribe = null;
+let _baseUrl = '';
+
+function getCloudConfig() {
+  try {
+    const raw = localStorage.getItem(CLOUD_CONFIG_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch { return null; }
+}
+
+function initFirebase() {
+  const cfg = getCloudConfig();
+  if (!cfg || !cfg.databaseURL || !cfg.syncCode) return { ok: false, err: 'Not configured' };
+  _syncCode = (cfg.syncCode || '').trim().replace(/[^a-zA-Z0-9_-]/g, '_') || 'default';
+  _baseUrl = (cfg.databaseURL || '').replace(/\/+$/, '') + '/planners/' + _syncCode;
+  return { ok: true };
+}
+
+async function cloudSave(key, obj) {
+  if (!_baseUrl || !key) return;
+  const payload = { savedAt: new Date().toISOString(), data: obj };
+  const safeKey = (key || '').replace(/[.$#\[\]/]/g, '_');
+  try {
+    const r = await fetch(_baseUrl + '/' + safeKey + '.json', { method: 'PUT', body: JSON.stringify(payload), headers: { 'Content-Type': 'application/json' } });
+    if (!r.ok) throw new Error(r.status);
+  } catch (e) {
+    console.warn('Cloud save failed:', e);
+  }
+}
+
+async function cloudLoad(key) {
+  if (!_baseUrl || !key) return null;
+  const safeKey = (key || '').replace(/[.$#\[\]/]/g, '_');
+  try {
+    const r = await fetch(_baseUrl + '/' + safeKey + '.json');
+    if (!r.ok) return null;
+    const val = await r.json();
+    return val?.data != null ? val.data : val;
+  } catch {
+    return null;
+  }
+}
+
+function applyCloudDataToLocal(data) {
+  if (!data || typeof data !== 'object') return;
+  _cloudApplying = true;
+  try {
+    for (const k of Object.keys(data)) {
+      const val = data[k];
+      if (val && typeof val === 'object') {
+        const fullKey = STORAGE_PREFIX + k;
+        localStorage.setItem(fullKey, JSON.stringify(val));
+      }
+    }
+    const view = document.querySelector('.view.active');
+    if (view?.id === 'view-calendar') renderCalendar();
+    else if (view?.id === 'view-month') { monthViewMonth = TODAY.getMonth(); monthViewYear = TODAY.getFullYear(); renderMonthView(); }
+    else if (view?.id === 'view-day') renderDayView();
+    showToast('☁️ Synced from cloud');
+  } finally {
+    _cloudApplying = false;
+  }
+}
+
+let _cloudApplying = false;
+
+function startCloudListener() {
+  if (_cloudUnsubscribe) { _cloudUnsubscribe(); _cloudUnsubscribe = null; }
+  if (!_baseUrl) return;
+  const poll = async () => {
+    try {
+      const r = await fetch(_baseUrl + '.json');
+      if (r.ok) {
+        const val = await r.json();
+        if (val && !_cloudApplying) applyCloudDataToLocal(val);
+      }
+    } catch {}
+  };
+  poll();
+  const id = setInterval(poll, 4000);
+  _cloudUnsubscribe = () => clearInterval(id);
+}
+
+function toggleCloudSyncModal() {
+  const el = document.getElementById('cloudSyncModal');
+  const isActive = !!getCloudConfig();
+  document.getElementById('cloudSyncForm').style.display = isActive ? 'none' : 'block';
+  document.getElementById('cloudSyncActive').style.display = isActive ? 'block' : 'none';
+  if (isActive) {
+    const cfg = getCloudConfig();
+    document.getElementById('cloudSyncCodeDisplay').textContent = cfg?.syncCode || '';
+  }
+  el.classList.add('open');
+}
+
+function closeCloudSyncModal() {
+  document.getElementById('cloudSyncModal').classList.remove('open');
+}
+
+function generateSyncCode() {
+  const s = 'abcdefghijklmnopqrstuvwxyz0123456789';
+  let code = '';
+  for (let i = 0; i < 12; i++) code += s[Math.floor(Math.random() * s.length)];
+  document.getElementById('cloudSyncCode').value = code;
+}
+
+async function saveCloudSyncConfig() {
+  const code = (document.getElementById('cloudSyncCode').value || '').trim().replace(/[^a-zA-Z0-9_-]/g, '_');
+  const databaseURL = (document.getElementById('cloudDatabaseURL').value || '').trim();
+  if (!code) { showToast('Enter a sync code'); return; }
+  if (!databaseURL || (!databaseURL.includes('firebaseio.com') && !databaseURL.includes('firebasedatabase.app'))) {
+    showToast('Enter your Firebase Database URL');
+    return;
+  }
+  const config = { syncCode: code, databaseURL: databaseURL.replace(/\/+$/, '') };
+  localStorage.setItem(CLOUD_CONFIG_KEY, JSON.stringify(config));
+  const init = initFirebase();
+  if (!init.ok) {
+    showToast(init.err || 'Config error');
+    return;
+  }
+  try {
+    const test = await fetch(_baseUrl + '/_ping.json', { method: 'PUT', body: '{"ok":1}', headers: { 'Content-Type': 'application/json' } });
+    if (!test.ok) throw new Error('Rules block write. Use: {"rules":{"planners":{".read":true,".write":true}}}');
+  } catch (e) {
+    showToast('Cannot connect. Use https:// to open planner.');
+    return;
+  }
+  await fetch(_baseUrl + '/_ping.json', { method: 'DELETE' });
+  startCloudListener();
+  for (let i = 0; i < localStorage.length; i++) {
+    const k = localStorage.key(i);
+    if (k?.startsWith(STORAGE_PREFIX)) {
+      try {
+        const raw = localStorage.getItem(k);
+        const parsed = JSON.parse(raw);
+        const key = k.replace(STORAGE_PREFIX, '');
+        await cloudSave(key, parsed?.data ?? parsed);
+      } catch {}
+    }
+  }
+  document.getElementById('cloudSyncStatus').style.display = 'inline';
+  closeCloudSyncModal();
+  showToast('☁️ Cloud sync enabled — data uploaded');
+  renderCalendar();
+}
+
+function disableCloudSync() {
+  localStorage.removeItem(CLOUD_CONFIG_KEY);
+  if (_cloudUnsubscribe) { _cloudUnsubscribe(); _cloudUnsubscribe = null; }
+  _baseUrl = '';
+  _syncCode = null;
+  document.getElementById('cloudSyncStatus').style.display = 'none';
+  closeCloudSyncModal();
+  showToast('Cloud sync disabled');
+}
+
+/* ================================================================
+   STORAGE — localStorage + cloud
 ================================================================ */
 async function storageSave(key, obj) {
   try {
     const fullKey = STORAGE_PREFIX + key;
     const payload = { savedAt: new Date().toISOString(), data: obj };
     localStorage.setItem(fullKey, JSON.stringify(payload));
+    if (_baseUrl && !_cloudApplying) await cloudSave(key, obj);
     _pendingSave = false;
     showAutoSaveIndicator();
     return true;
@@ -1037,6 +1232,15 @@ async function storageSave(key, obj) {
 }
 
 async function storageLoad(key) {
+  if (_baseUrl && !_cloudApplying) {
+    const cloud = await cloudLoad(key);
+    if (cloud != null) {
+      const fullKey = STORAGE_PREFIX + key;
+      const payload = { savedAt: new Date().toISOString(), data: cloud };
+      localStorage.setItem(fullKey, JSON.stringify(payload));
+      return cloud;
+    }
+  }
   try {
     const fullKey = STORAGE_PREFIX + key;
     const raw = localStorage.getItem(fullKey);
@@ -1682,6 +1886,10 @@ window.addEventListener('beforeunload', function(e) {
    INIT
 ================================================================ */
 window.addEventListener('DOMContentLoaded', () => {
+  if (initFirebase().ok) {
+    startCloudListener();
+    document.getElementById('cloudSyncStatus').style.display = 'inline';
+  }
   buildDayUI();
   renderCalendar();
 });
