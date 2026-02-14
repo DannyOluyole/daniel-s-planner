@@ -237,6 +237,15 @@
       font-size: 1rem;
       position: relative; z-index: 1;
     }
+    .page-hero .hero-quote {
+      margin-top: 1.2rem;
+      font-size: 0.95rem;
+      font-style: italic;
+      color: rgba(255,255,255,0.9);
+      border-left: 4px solid var(--gold-light);
+      padding-left: 1rem;
+      max-width: 620px;
+    }
     .page-hero .hero-gold { color: var(--gold-light); }
 
     .page-content { padding: 2rem 2.5rem; max-width: 1500px; margin: 0 auto; }
@@ -677,10 +686,62 @@
     }
     .month-main-nav select { max-width: 200px; }
 
+    /* ===== GOVERNING VALUES PYRAMID ===== */
+    #view-values .page-content { max-width: 560px; margin-left: auto; margin-right: auto; }
+    .values-pyramid-wrapper {
+      display: flex;
+      justify-content: center;
+      margin: 2.5rem 0;
+    }
+    .values-pyramid-svg {
+      width: 100%;
+      max-width: 420px;
+      height: auto;
+    }
+    .values-pyramid-svg .tier {
+      fill: white;
+      stroke: #2C2C2C;
+      stroke-width: 2;
+    }
+    .values-pyramid-svg text {
+      font-family: 'IBM Plex Sans', sans-serif;
+      font-weight: 700;
+      font-size: 11px;
+      fill: #2C2C2C;
+      text-anchor: middle;
+    }
+    .values-def-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 1.25rem;
+    }
+    .value-item label.value-label {
+      display: block;
+      font-weight: 700;
+      color: var(--teal-dark);
+      margin-bottom: 0.4rem;
+      font-size: 1rem;
+    }
+    .value-item .value-def {
+      width: 100%;
+      min-height: 3.5rem;
+      padding: 0.6rem 0.8rem;
+      font-size: 0.9rem;
+      border: 2px solid var(--gray-light);
+      border-radius: 8px;
+      font-family: 'IBM Plex Sans', sans-serif;
+      resize: vertical;
+    }
+    .value-item .value-def:focus {
+      outline: none;
+      border-color: var(--teal);
+      box-shadow: 0 0 0 2px rgba(0,153,153,0.12);
+    }
+
     @media print {
       .top-nav, .day-actions, .toast, .modal-overlay, #autosaveIndicator { display: none !important; }
       .view { display: block !important; }
-      #view-calendar, #view-month { display: none !important; }
+      #view-calendar, #view-month, #view-values { display: none !important; }
       #view-day { display: block !important; }
       .card { box-shadow: none; }
     }
@@ -694,12 +755,12 @@
   <div class="nav-tab active" id="nav-calendar" onclick="showView('calendar')">📅 Calendar</div>
   <div class="nav-tab" id="nav-month" onclick="showView('month')">📚 Monthly System</div>
   <div class="nav-tab" id="nav-day" onclick="showView('day')">📝 Day Planner</div>
+  <div class="nav-tab" id="nav-values" onclick="showView('values')">⚖️ Governing Values</div>
   <div class="nav-actions">
-    <button class="btn btn-teal btn-sm" id="cloudSyncBtn" onclick="toggleCloudSyncModal()" title="Cloud Sync">☁️ Sync</button>
-    <span id="cloudSyncStatus" style="font-size:0.7rem;opacity:0.9;display:none;" title="Synced across devices">✓</span>
     <button class="btn btn-teal btn-sm" onclick="saveAllCurrent()">💾 Save</button>
     <button class="btn btn-gold btn-sm" onclick="exportPlanner()">⬇ Export</button>
     <button class="btn btn-gold btn-sm" onclick="importPlanner()">⬆ Import</button>
+    <button class="btn btn-ghost btn-sm" onclick="openCloudSyncModal()" id="cloudSyncBtn" title="Cloud Sync">☁ Sync</button>
     <button class="btn btn-red btn-sm" onclick="resetPlanner()">⚠ Reset</button>
   </div>
 </nav>
@@ -721,31 +782,31 @@
 </div>
 
 <!-- ===== CLOUD SYNC MODAL ===== -->
-<div class="modal-overlay" id="cloudSyncModal">
-  <div class="modal" style="max-width:480px;">
-    <div class="modal-header">☁️ Cloud Sync</div>
-    <div class="modal-body" style="font-size:0.9rem;">
-      <p style="margin-bottom:1rem;color:var(--gray-med);">Same data on every device. Use the same 2 values everywhere.</p>
-      <div id="cloudSyncForm">
-        <label style="display:block;font-weight:600;margin-bottom:0.4rem;">1. Sync Code</label>
-        <div style="display:flex;gap:0.5rem;margin-bottom:1rem;">
-          <input type="text" id="cloudSyncCode" placeholder="e.g. myplanner2025" style="flex:1;" maxlength="32" />
-          <button type="button" class="btn btn-ghost btn-sm" onclick="generateSyncCode()">Generate</button>
+<div class="modal-overlay" id="cloudSyncOverlay">
+  <div class="modal" style="max-width:560px;">
+    <div class="modal-header">☁ Cloud Sync</div>
+    <div class="modal-body">
+      <p style="color:var(--gray-med);font-size:0.9rem;margin-bottom:1rem;">Sync your planner across devices. Use <strong>Firebase Realtime Database</strong> (free tier).</p>
+      <div style="margin-bottom:1rem;">
+        <label style="display:block;font-weight:600;margin-bottom:0.4rem;font-size:0.85rem;">Sync ID (share this to sync with other devices)</label>
+        <div style="display:flex;gap:0.5rem;">
+          <input type="text" id="syncIdInput" placeholder="e.g. my-planner-2025" style="flex:1;" />
+          <button class="btn btn-teal btn-sm" onclick="generateSyncId()">Generate</button>
         </div>
-        <label style="display:block;font-weight:600;margin-bottom:0.4rem;">2. Database URL</label>
-        <input type="text" id="cloudDatabaseURL" placeholder="https://your-project-default-rtdb.firebaseio.com" style="font-family:monospace;font-size:0.9rem;margin-bottom:0.5rem;" />
-        <p style="font-size:0.8rem;color:var(--gray-med);margin-bottom:0.75rem;">Firebase → Realtime Database → copy URL at top of page.</p>
-        <p style="font-size:0.8rem;padding:0.5rem;background:#e8f5e9;border-radius:6px;color:#2e7d32;">✓ Use <strong>https://</strong> to open planner (GitHub Pages). Rules: <code style="font-size:0.75rem;">{"rules":{"planners":{".read":true,".write":true}}}</code></p>
       </div>
-      <div id="cloudSyncActive" style="display:none;">
-        <p style="color:var(--green);font-weight:600;">✓ Cloud sync is active</p>
-        <p style="font-size:0.85rem;margin-top:0.5rem;">Sync code: <code id="cloudSyncCodeDisplay"></code></p>
-        <button type="button" class="btn btn-red btn-sm" style="margin-top:1rem;" onclick="disableCloudSync()">Disable Cloud Sync</button>
+      <div style="margin-bottom:1rem;">
+        <label style="display:block;font-weight:600;margin-bottom:0.4rem;font-size:0.85rem;">Firebase Database URL</label>
+        <input type="text" id="firebaseUrlInput" placeholder="https://YOUR-PROJECT.firebaseio.com" style="width:100%;" />
       </div>
+      <div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:1rem;">
+        <input type="checkbox" id="cloudSyncEnabled" onchange="toggleCloudSync(this.checked)" />
+        <label for="cloudSyncEnabled" style="font-weight:600;">Enable cloud sync</label>
+      </div>
+      <p style="font-size:0.8rem;color:var(--gray-med);">Create a free project at <a href="https://console.firebase.google.com" target="_blank" rel="noopener">Firebase Console</a> → Realtime Database → copy the URL.</p>
     </div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeCloudSyncModal()">Close</button>
-      <button class="btn btn-teal" id="cloudSyncSaveBtn" onclick="saveCloudSyncConfig()">Enable Sync</button>
+      <button class="btn btn-teal" onclick="saveCloudSyncConfig()">Save</button>
     </div>
   </div>
 </div>
@@ -757,6 +818,7 @@
   <div class="page-hero">
     <h2>📅 Daniel Planner — Calendar <span class="hero-gold" id="calHeroTitle">2025</span></h2>
     <p>Click any day to open its Daniel Day Planner • First Things First</p>
+    <p class="hero-quote">"There is no chance, no destiny, no fate, that can circumvent or hinder or control the firm resolve of a determined soul."</p>
   </div>
   <div class="page-content">
     <div class="calendar-nav">
@@ -984,6 +1046,83 @@
   </div>
 </div>
 
+<!-- ===============================================================
+     VIEW: GOVERNING VALUES
+=============================================================== -->
+<div class="view" id="view-values">
+  <div class="page-hero">
+    <h2>⚖️ Governing Values</h2>
+    <p>Your hierarchy of purpose — from daily tasks to the values that guide everything</p>
+  </div>
+  <div class="page-content">
+    <div class="values-pyramid-wrapper">
+      <svg class="values-pyramid-svg" viewBox="0 0 400 320" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <style>.tier{fill:white;stroke:#2C2C2C;stroke-width:2}</style>
+        </defs>
+        <!-- Bottom: GOVERNING VALUES -->
+        <path class="tier" d="M 20 280 L 380 280 L 340 220 L 60 220 Z"/>
+        <text x="200" y="256">GOVERNING VALUES</text>
+        <!-- Third: LONG-RANGE GOALS -->
+        <path class="tier" d="M 60 220 L 340 220 L 300 160 L 100 160 Z"/>
+        <text x="200" y="196">LONG-RANGE GOALS</text>
+        <!-- Second: INTERMEDIATE GOALS -->
+        <path class="tier" d="M 100 160 L 300 160 L 260 100 L 140 100 Z"/>
+        <text x="200" y="136">INTERMEDIATE GOALS</text>
+        <!-- Top: DAILY TASKS -->
+        <path class="tier" d="M 140 100 L 260 100 L 200 40 Z"/>
+        <text x="200" y="82">DAILY TASKS</text>
+      </svg>
+    </div>
+    <p style="text-align:center; color:var(--gray-med); font-style:italic; font-size:0.95rem; margin-top:1.5rem;">
+      Build from the base up. Let your values govern your goals, and your goals shape your daily tasks.
+    </p>
+    <div class="card" style="margin-top:2.5rem;">
+      <div class="card-header gold">My Governing Values — Define What They Mean to You</div>
+      <div class="card-body">
+        <div class="values-def-grid">
+          <div class="value-item">
+            <label class="value-label">Love</label>
+            <textarea class="value-def" id="val-love" placeholder="Your definition..." rows="2" oninput="scheduleValuesSave()"></textarea>
+          </div>
+          <div class="value-item">
+            <label class="value-label">Joy</label>
+            <textarea class="value-def" id="val-joy" placeholder="Your definition..." rows="2" oninput="scheduleValuesSave()"></textarea>
+          </div>
+          <div class="value-item">
+            <label class="value-label">Peace</label>
+            <textarea class="value-def" id="val-peace" placeholder="Your definition..." rows="2" oninput="scheduleValuesSave()"></textarea>
+          </div>
+          <div class="value-item">
+            <label class="value-label">Longsuffering</label>
+            <textarea class="value-def" id="val-longsuffering" placeholder="Your definition..." rows="2" oninput="scheduleValuesSave()"></textarea>
+          </div>
+          <div class="value-item">
+            <label class="value-label">Kindness</label>
+            <textarea class="value-def" id="val-kindness" placeholder="Your definition..." rows="2" oninput="scheduleValuesSave()"></textarea>
+          </div>
+          <div class="value-item">
+            <label class="value-label">Goodness</label>
+            <textarea class="value-def" id="val-goodness" placeholder="Your definition..." rows="2" oninput="scheduleValuesSave()"></textarea>
+          </div>
+          <div class="value-item">
+            <label class="value-label">Faithfulness</label>
+            <textarea class="value-def" id="val-faithfulness" placeholder="Your definition..." rows="2" oninput="scheduleValuesSave()"></textarea>
+          </div>
+          <div class="value-item">
+            <label class="value-label">Gentleness</label>
+            <textarea class="value-def" id="val-gentleness" placeholder="Your definition..." rows="2" oninput="scheduleValuesSave()"></textarea>
+          </div>
+          <div class="value-item">
+            <label class="value-label">Self-control</label>
+            <textarea class="value-def" id="val-selfcontrol" placeholder="Your definition..." rows="2" oninput="scheduleValuesSave()"></textarea>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
 /* ================================================================
    CONSTANTS & STATE
@@ -1006,8 +1145,14 @@ let _dayUIBuilt = false;
 let _dayLoading = false;
 let _daySaveTimer = null;
 let _monthSaveTimer = null;
+let _valuesSaveTimer = null;
 let _modalCb = null;
 let _pendingSave = false;
+
+const GOVERNING_VALUES_KEYS = ['love','joy','peace','longsuffering','kindness','goodness','faithfulness','gentleness','selfcontrol'];
+const SYNC_CONFIG_KEY = STORAGE_PREFIX + 'sync-config';
+let _firebaseDb = null;
+let _firebaseUnsubscribe = null;
 
 /* ================================================================
    DATE KEY HELPERS
@@ -1048,176 +1193,113 @@ function goToDateFromMtask(dueInput) {
 }
 
 /* ================================================================
-   CLOUD SYNC (Firebase Realtime Database)
+   STORAGE — localStorage + optional Firebase cloud sync
 ================================================================ */
-const CLOUD_CONFIG_KEY = 'danielPlanner-cloudConfig';
-let _syncCode = null;
-let _cloudUnsubscribe = null;
-let _baseUrl = '';
-
-function getCloudConfig() {
+function getSyncConfig() {
   try {
-    const raw = localStorage.getItem(CLOUD_CONFIG_KEY);
-    return raw ? JSON.parse(raw) : null;
+    const raw = localStorage.getItem(SYNC_CONFIG_KEY);
+    if (!raw) return null;
+    const c = JSON.parse(raw);
+    if (c.enabled && c.syncId && c.databaseURL) return c;
+    return null;
   } catch { return null; }
 }
 
+let _firebaseLoadPromise = null;
+function loadFirebaseScripts() {
+  if (typeof firebase !== 'undefined') return Promise.resolve();
+  if (_firebaseLoadPromise) return _firebaseLoadPromise;
+  _firebaseLoadPromise = new Promise((resolve, reject) => {
+    const s1 = document.createElement('script');
+    s1.src = 'https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.min.js';
+    s1.onload = () => {
+      const s2 = document.createElement('script');
+      s2.src = 'https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.min.js';
+      s2.onload = () => resolve();
+      s2.onerror = () => reject(new Error('Firebase database failed to load'));
+      document.head.appendChild(s2);
+    };
+    s1.onerror = () => reject(new Error('Firebase app failed to load'));
+    document.head.appendChild(s1);
+  });
+  return _firebaseLoadPromise;
+}
+
 function initFirebase() {
-  const cfg = getCloudConfig();
-  if (!cfg || !cfg.databaseURL || !cfg.syncCode) return { ok: false, err: 'Not configured' };
-  _syncCode = (cfg.syncCode || '').trim().replace(/[^a-zA-Z0-9_-]/g, '_') || 'default';
-  _baseUrl = (cfg.databaseURL || '').replace(/\/+$/, '') + '/planners/' + _syncCode;
-  return { ok: true };
-}
-
-async function cloudSave(key, obj) {
-  if (!_baseUrl || !key) return;
-  const payload = { savedAt: new Date().toISOString(), data: obj };
-  const safeKey = (key || '').replace(/[.$#\[\]/]/g, '_');
+  const cfg = getSyncConfig();
+  if (!cfg) return null;
+  if (_firebaseDb) return _firebaseDb;
   try {
-    const r = await fetch(_baseUrl + '/' + safeKey + '.json', { method: 'PUT', body: JSON.stringify(payload), headers: { 'Content-Type': 'application/json' } });
-    if (!r.ok) throw new Error(r.status);
+    if (typeof firebase === 'undefined') return null;
+    firebase.initializeApp({ databaseURL: cfg.databaseURL }, 'danielPlanner');
+    _firebaseDb = firebase.database();
+    setupFirebaseListeners();
+    return _firebaseDb;
   } catch (e) {
-    console.warn('Cloud save failed:', e);
-  }
-}
-
-async function cloudLoad(key) {
-  if (!_baseUrl || !key) return null;
-  const safeKey = (key || '').replace(/[.$#\[\]/]/g, '_');
-  try {
-    const r = await fetch(_baseUrl + '/' + safeKey + '.json');
-    if (!r.ok) return null;
-    const val = await r.json();
-    return val?.data != null ? val.data : val;
-  } catch {
+    if (e.code === 'app/duplicate-app') {
+      _firebaseDb = firebase.app('danielPlanner').database();
+      setupFirebaseListeners();
+      return _firebaseDb;
+    }
+    console.warn('Firebase init failed:', e);
     return null;
   }
 }
 
-function applyCloudDataToLocal(data) {
-  if (!data || typeof data !== 'object') return;
-  _cloudApplying = true;
+async function ensureFirebase() {
+  if (_firebaseDb) return _firebaseDb;
+  const cfg = getSyncConfig();
+  if (!cfg || !cfg.enabled) return null;
+  if (typeof firebase === 'undefined') {
+    try { await loadFirebaseScripts(); } catch (e) { console.warn('Firebase load failed:', e); return null; }
+  }
+  return initFirebase();
+}
+
+function firebaseRef(key) {
+  const cfg = getSyncConfig();
+  if (!cfg) return null;
+  const db = _firebaseDb || initFirebase();
+  if (!db) return null;
+  return db.ref('planner/' + encodeURIComponent(cfg.syncId) + '/' + encodeURIComponent(key));
+}
+
+function setupFirebaseListeners() {
+  const cfg = getSyncConfig();
+  if (!cfg || !_firebaseDb) return;
+  if (_firebaseUnsubscribe) _firebaseUnsubscribe();
   try {
-    for (const k of Object.keys(data)) {
-      const val = data[k];
-      if (val && typeof val === 'object') {
-        const fullKey = STORAGE_PREFIX + k;
-        localStorage.setItem(fullKey, JSON.stringify(val));
+    const rootRef = _firebaseDb.ref('planner/' + encodeURIComponent(cfg.syncId));
+    _firebaseUnsubscribe = rootRef.on('value', function(snap) {
+      if (!snap || !snap.val()) return;
+      const d = snap.val();
+      for (const k in d) {
+        if (k.startsWith(STORAGE_PREFIX) && typeof d[k] === 'string') {
+          const current = localStorage.getItem(k);
+          if (current !== d[k]) {
+            localStorage.setItem(k, d[k]);
+            showToast('☁ Synced from cloud');
+            const view = document.querySelector('.view.active');
+            if (view) { if (view.id === 'view-calendar') buildCalGrid(); else if (view.id === 'view-month') loadMonthData(); else if (view.id === 'view-day') loadDayData(dateKey(dayViewDate)); }
+            break;
+          }
+        }
       }
-    }
-    const view = document.querySelector('.view.active');
-    if (view?.id === 'view-calendar') renderCalendar();
-    else if (view?.id === 'view-month') { monthViewMonth = TODAY.getMonth(); monthViewYear = TODAY.getFullYear(); renderMonthView(); }
-    else if (view?.id === 'view-day') renderDayView();
-    showToast('☁️ Synced from cloud');
-  } finally {
-    _cloudApplying = false;
-  }
+    });
+  } catch (e) { console.warn('Firebase listener failed:', e); }
 }
 
-let _cloudApplying = false;
-
-function startCloudListener() {
-  if (_cloudUnsubscribe) { _cloudUnsubscribe(); _cloudUnsubscribe = null; }
-  if (!_baseUrl) return;
-  const poll = async () => {
-    try {
-      const r = await fetch(_baseUrl + '.json');
-      if (r.ok) {
-        const val = await r.json();
-        if (val && !_cloudApplying) applyCloudDataToLocal(val);
-      }
-    } catch {}
-  };
-  poll();
-  const id = setInterval(poll, 4000);
-  _cloudUnsubscribe = () => clearInterval(id);
-}
-
-function toggleCloudSyncModal() {
-  const el = document.getElementById('cloudSyncModal');
-  const isActive = !!getCloudConfig();
-  document.getElementById('cloudSyncForm').style.display = isActive ? 'none' : 'block';
-  document.getElementById('cloudSyncActive').style.display = isActive ? 'block' : 'none';
-  if (isActive) {
-    const cfg = getCloudConfig();
-    document.getElementById('cloudSyncCodeDisplay').textContent = cfg?.syncCode || '';
-  }
-  el.classList.add('open');
-}
-
-function closeCloudSyncModal() {
-  document.getElementById('cloudSyncModal').classList.remove('open');
-}
-
-function generateSyncCode() {
-  const s = 'abcdefghijklmnopqrstuvwxyz0123456789';
-  let code = '';
-  for (let i = 0; i < 12; i++) code += s[Math.floor(Math.random() * s.length)];
-  document.getElementById('cloudSyncCode').value = code;
-}
-
-async function saveCloudSyncConfig() {
-  const code = (document.getElementById('cloudSyncCode').value || '').trim().replace(/[^a-zA-Z0-9_-]/g, '_');
-  const databaseURL = (document.getElementById('cloudDatabaseURL').value || '').trim();
-  if (!code) { showToast('Enter a sync code'); return; }
-  if (!databaseURL || (!databaseURL.includes('firebaseio.com') && !databaseURL.includes('firebasedatabase.app'))) {
-    showToast('Enter your Firebase Database URL');
-    return;
-  }
-  const config = { syncCode: code, databaseURL: databaseURL.replace(/\/+$/, '') };
-  localStorage.setItem(CLOUD_CONFIG_KEY, JSON.stringify(config));
-  const init = initFirebase();
-  if (!init.ok) {
-    showToast(init.err || 'Config error');
-    return;
-  }
-  try {
-    const test = await fetch(_baseUrl + '/_ping.json', { method: 'PUT', body: '{"ok":1}', headers: { 'Content-Type': 'application/json' } });
-    if (!test.ok) throw new Error('Rules block write. Use: {"rules":{"planners":{".read":true,".write":true}}}');
-  } catch (e) {
-    showToast('Cannot connect. Use https:// to open planner.');
-    return;
-  }
-  await fetch(_baseUrl + '/_ping.json', { method: 'DELETE' });
-  startCloudListener();
-  for (let i = 0; i < localStorage.length; i++) {
-    const k = localStorage.key(i);
-    if (k?.startsWith(STORAGE_PREFIX)) {
-      try {
-        const raw = localStorage.getItem(k);
-        const parsed = JSON.parse(raw);
-        const key = k.replace(STORAGE_PREFIX, '');
-        await cloudSave(key, parsed?.data ?? parsed);
-      } catch {}
-    }
-  }
-  document.getElementById('cloudSyncStatus').style.display = 'inline';
-  closeCloudSyncModal();
-  showToast('☁️ Cloud sync enabled — data uploaded');
-  renderCalendar();
-}
-
-function disableCloudSync() {
-  localStorage.removeItem(CLOUD_CONFIG_KEY);
-  if (_cloudUnsubscribe) { _cloudUnsubscribe(); _cloudUnsubscribe = null; }
-  _baseUrl = '';
-  _syncCode = null;
-  document.getElementById('cloudSyncStatus').style.display = 'none';
-  closeCloudSyncModal();
-  showToast('Cloud sync disabled');
-}
-
-/* ================================================================
-   STORAGE — localStorage + cloud
-================================================================ */
 async function storageSave(key, obj) {
   try {
     const fullKey = STORAGE_PREFIX + key;
     const payload = { savedAt: new Date().toISOString(), data: obj };
-    localStorage.setItem(fullKey, JSON.stringify(payload));
-    if (_baseUrl && !_cloudApplying) await cloudSave(key, obj);
+    const json = JSON.stringify(payload);
+    localStorage.setItem(fullKey, json);
+    await ensureFirebase();
+    const ref = firebaseRef(fullKey);
+    if (ref) {
+      try { await ref.set(json); } catch (e) { console.warn('Cloud sync write failed:', e); }
+    }
     _pendingSave = false;
     showAutoSaveIndicator();
     return true;
@@ -1232,23 +1314,72 @@ async function storageSave(key, obj) {
 }
 
 async function storageLoad(key) {
-  if (_baseUrl && !_cloudApplying) {
-    const cloud = await cloudLoad(key);
-    if (cloud != null) {
-      const fullKey = STORAGE_PREFIX + key;
-      const payload = { savedAt: new Date().toISOString(), data: cloud };
-      localStorage.setItem(fullKey, JSON.stringify(payload));
-      return cloud;
-    }
-  }
   try {
     const fullKey = STORAGE_PREFIX + key;
+    await ensureFirebase();
+    const ref = firebaseRef(fullKey);
+    if (ref) {
+      try {
+        const snap = await ref.get();
+        if (snap && snap.val()) {
+          const parsed = JSON.parse(snap.val());
+          const data = parsed.data != null ? parsed.data : parsed;
+          localStorage.setItem(fullKey, snap.val());
+          return data;
+        }
+      } catch (e) { console.warn('Cloud sync read failed:', e); }
+    }
     const raw = localStorage.getItem(fullKey);
     if (!raw) return null;
     const parsed = JSON.parse(raw);
     return parsed.data != null ? parsed.data : parsed;
   } catch {
     return null;
+  }
+}
+
+function openCloudSyncModal() {
+  const cfg = getSyncConfig();
+  document.getElementById('syncIdInput').value = cfg ? cfg.syncId : '';
+  document.getElementById('firebaseUrlInput').value = cfg ? cfg.databaseURL : '';
+  document.getElementById('cloudSyncEnabled').checked = cfg ? cfg.enabled : false;
+  document.getElementById('cloudSyncOverlay').classList.add('open');
+}
+function closeCloudSyncModal() {
+  document.getElementById('cloudSyncOverlay').classList.remove('open');
+}
+function toggleCloudSync(enabled) {
+  document.getElementById('cloudSyncEnabled').checked = enabled;
+}
+function generateSyncId() {
+  document.getElementById('syncIdInput').value = 'planner-' + Date.now();
+}
+async function saveCloudSyncConfig() {
+  const syncId = (document.getElementById('syncIdInput').value || '').trim().replace(/[^a-zA-Z0-9_-]/g, '-') || ('planner-' + Date.now());
+  const databaseURL = (document.getElementById('firebaseUrlInput').value || '').trim();
+  const enabled = document.getElementById('cloudSyncEnabled').checked;
+  if (!databaseURL && enabled) {
+    showToast('Enter Firebase Database URL');
+    return;
+  }
+  const cfg = { syncId, databaseURL, enabled };
+  localStorage.setItem(SYNC_CONFIG_KEY, JSON.stringify(cfg));
+  document.getElementById('cloudSyncBtn').classList.toggle('btn-teal', enabled);
+  document.getElementById('cloudSyncBtn').classList.toggle('btn-ghost', !enabled);
+  closeCloudSyncModal();
+  if (cfg.enabled) {
+    await ensureFirebase();
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key.startsWith(STORAGE_PREFIX) && key !== SYNC_CONFIG_KEY) {
+        const ref = firebaseRef(key);
+        if (ref) { try { await ref.set(localStorage.getItem(key)); } catch (e) {} }
+      }
+    }
+    showToast('☁ Cloud sync enabled');
+  } else {
+    _firebaseDb = null;
+    showToast('Cloud sync disabled');
   }
 }
 
@@ -1355,7 +1486,8 @@ function saveAllCurrent() {
   const view = document.querySelector('.view.active');
   if (view && view.id === 'view-day') saveDayPlanner();
   else if (view && view.id === 'view-month') saveMonthData();
-  else showToast('Save from Day Planner or Monthly System.');
+  else if (view && view.id === 'view-values') { saveValuesData(); showToast('✅ Values saved!'); }
+  else showToast('Save from Day Planner, Monthly System, or Governing Values.');
 }
 
 /* ================================================================
@@ -1369,6 +1501,7 @@ function showView(name) {
   if (name === 'calendar') renderCalendar();
   if (name === 'month')    renderMonthView();
   if (name === 'day')      renderDayView();
+  if (name === 'values')   loadValuesData();
 }
 
 /* ================================================================
@@ -1645,6 +1778,31 @@ function scheduleMonthSave() {
 }
 
 /* ================================================================
+   GOVERNING VALUES
+================================================================ */
+async function loadValuesData() {
+  const data = await storageLoad('governing-values');
+  if (!data) return;
+  GOVERNING_VALUES_KEYS.forEach(k => {
+    const el = document.getElementById('val-' + k);
+    if (el && data[k] != null) el.value = data[k];
+  });
+}
+async function saveValuesData() {
+  const obj = {};
+  GOVERNING_VALUES_KEYS.forEach(k => {
+    const el = document.getElementById('val-' + k);
+    if (el) obj[k] = el.value || '';
+  });
+  await storageSave('governing-values', obj);
+  showAutoSaveIndicator();
+}
+function scheduleValuesSave() {
+  clearTimeout(_valuesSaveTimer);
+  _valuesSaveTimer = setTimeout(saveValuesData, 1200);
+}
+
+/* ================================================================
    DAY PLANNER
 ================================================================ */
 function buildDayUI() {
@@ -1886,10 +2044,6 @@ window.addEventListener('beforeunload', function(e) {
    INIT
 ================================================================ */
 window.addEventListener('DOMContentLoaded', () => {
-  if (initFirebase().ok) {
-    startCloudListener();
-    document.getElementById('cloudSyncStatus').style.display = 'inline';
-  }
   buildDayUI();
   renderCalendar();
 });
