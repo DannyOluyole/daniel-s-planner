@@ -737,13 +737,155 @@
       border-color: var(--teal);
       box-shadow: 0 0 0 2px rgba(0,153,153,0.12);
     }
+    /* ===== SETTING GOALS / SMART DIAGRAM ===== */
+    #view-goals .page-content {
+      max-width: 800px; margin-left: auto; margin-right: auto;
+      padding: 2.5rem 3rem 4rem; padding-top: 2rem;
+    }
+    #view-goals .page-hero { margin-bottom: 0.5rem; }
+    .smart-diagram-wrapper {
+      display: flex; justify-content: center; align-items: center;
+      margin: 2.5rem 0 3rem; padding: 2rem 1.5rem;
+      min-height: 400px;
+    }
+    .smart-diagram-svg {
+      width: 100%; max-width: 720px; height: auto;
+      filter: drop-shadow(0 2px 8px rgba(0,0,0,0.06));
+    }
+    .smart-diagram-svg text { font-family: 'IBM Plex Sans', sans-serif; }
+    .smart-tagline {
+      text-align: center; color: var(--gray-med); font-style: italic; font-size: 0.95rem;
+      margin: 2.5rem auto 1rem; max-width: 480px; line-height: 1.6;
+    }
+    .smart-center-editable {
+      width: 100%; height: 100%; border: none; border-radius: 50%; resize: none; text-align: center;
+      font-family: 'IBM Plex Sans', sans-serif; font-size: 13px; font-weight: 600; color: var(--teal-dark);
+      background: transparent; outline: none; padding: 12px; box-sizing: border-box; line-height: 1.4;
+    }
+    .smart-center-editable::placeholder { color: var(--teal); opacity: 0.7; }
+    /* ===== KEEPNOTES (Google Keep style) ===== */
+    #view-notes .page-content { max-width: 1200px; padding-bottom: 5rem; }
+    .keep-takenote {
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+      padding: 0.75rem 1rem;
+      margin-bottom: 1.5rem;
+      display: flex;
+      gap: 0.5rem;
+      align-items: flex-start;
+      border: 1px solid var(--gray-light);
+    }
+    .keep-takenote input, .keep-takenote textarea {
+      border: none;
+      outline: none;
+      font-family: 'IBM Plex Sans', sans-serif;
+      font-size: 0.95rem;
+      flex: 1;
+      resize: none;
+      background: transparent;
+    }
+    .keep-takenote input { font-weight: 600; }
+    .keep-takenote textarea { min-height: 24px; }
+    .keep-takenote input::placeholder, .keep-takenote textarea::placeholder { color: #9e9e9e; }
+    .keep-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: 1rem;
+      grid-auto-rows: minmax(120px, auto);
+    }
+    .keep-note {
+      border-radius: 8px;
+      padding: 1rem;
+      min-height: 100px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+      display: flex;
+      flex-direction: column;
+      transition: box-shadow 0.2s;
+      border: none;
+      position: relative;
+    }
+    .keep-note:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.18); }
+    .keep-note.pinned { border-left: 4px solid var(--gold); }
+    .keep-note-color-yellow { background: #FEF9C3; }
+    .keep-note-color-pink { background: #FCE7F3; }
+    .keep-note-color-blue { background: #DBEAFE; }
+    .keep-note-color-green { background: #D1FAE5; }
+    .keep-note-color-purple { background: #EDE9FE; }
+    .keep-note-color-white { background: #FFFFFF; border: 1px solid #E5E7EB; }
+    .keep-note-title { font-weight: 600; font-size: 0.95rem; margin-bottom: 0.4rem; word-break: break-word; }
+    .keep-note-body { font-size: 0.9rem; color: #374151; line-height: 1.5; white-space: pre-wrap; word-break: break-word; flex: 1; }
+    .keep-note-actions {
+      display: flex;
+      gap: 0.25rem;
+      margin-top: 0.75rem;
+      opacity: 0.7;
+    }
+    .keep-note-actions:hover { opacity: 1; }
+    .keep-note-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 0.25rem;
+      font-size: 1rem;
+      color: #5A5A5A;
+      border-radius: 4px;
+    }
+    .keep-note-btn:hover { background: rgba(0,0,0,0.06); color: #2C2C2C; }
+    .keep-fab {
+      position: fixed;
+      bottom: 2rem;
+      right: 2rem;
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--teal) 0%, var(--teal-dark) 100%);
+      color: white;
+      border: none;
+      font-size: 1.8rem;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(0,122,122,0.4);
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      line-height: 1;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .keep-fab:hover { transform: scale(1.05); box-shadow: 0 6px 20px rgba(0,122,122,0.5); }
+    #view-notes .keep-fab { display: flex !important; }
+    .voice-fab {
+      position: fixed; bottom: 1.5rem; left: 1.5rem; width: 3.5rem; height: 3.5rem; border-radius: 50%;
+      background: var(--teal); color: white; border: none; font-size: 1.4rem; cursor: pointer;
+      box-shadow: 0 2px 8px rgba(0,153,153,0.4); display: flex; align-items: center; justify-content: center;
+      transition: transform 0.2s, box-shadow 0.2s, background 0.2s; z-index: 100;
+    }
+    .voice-fab:hover { transform: scale(1.05); box-shadow: 0 4px 12px rgba(0,153,153,0.5); }
+    .voice-fab.listening { background: #c53030; box-shadow: 0 2px 8px rgba(197,48,48,0.5); animation: voice-pulse 1.2s infinite; }
+    @keyframes voice-pulse { 50% { transform: scale(1.08); } }
+    .date-link, .date-link-inline {
+      color: var(--teal-dark);
+      text-decoration: underline;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    .date-link:hover, .date-link-inline:hover { color: var(--teal); }
+    .date-link-inline {
+      display: inline-block;
+      padding: 0.2rem 0.5rem;
+      background: var(--teal-xlight);
+      border-radius: 6px;
+      font-size: 0.85rem;
+      text-decoration: none;
+    }
 
     @media print {
       .top-nav, .day-actions, .toast, .modal-overlay, #autosaveIndicator { display: none !important; }
       .view { display: block !important; }
-      #view-calendar, #view-month, #view-values { display: none !important; }
+      #view-calendar, #view-month, #view-values, #view-goals, #view-notes { display: none !important; }
       #view-day { display: block !important; }
       .card { box-shadow: none; }
+      .voice-fab { display: none !important; }
     }
   </style>
 </head>
@@ -756,6 +898,8 @@
   <div class="nav-tab" id="nav-month" onclick="showView('month')">📚 Monthly System</div>
   <div class="nav-tab" id="nav-day" onclick="showView('day')">📝 Day Planner</div>
   <div class="nav-tab" id="nav-values" onclick="showView('values')">⚖️ Governing Values</div>
+  <div class="nav-tab" id="nav-goals" onclick="showView('goals')">🎯 Setting Goals</div>
+  <div class="nav-tab" id="nav-notes" onclick="showView('notes')">📌 KeepNotes</div>
   <div class="nav-actions">
     <button class="btn btn-teal btn-sm" onclick="saveAllCurrent()">💾 Save</button>
     <button class="btn btn-gold btn-sm" onclick="exportPlanner()">⬇ Export</button>
@@ -1117,11 +1261,100 @@
             <label class="value-label">Self-control</label>
             <textarea class="value-def" id="val-selfcontrol" placeholder="Your definition..." rows="2" oninput="scheduleValuesSave()"></textarea>
           </div>
+          <div class="value-item">
+            <label class="value-label">Personal Health and Fitness</label>
+            <textarea class="value-def" id="val-personalhealthfitness" placeholder="Your definition..." rows="2" oninput="scheduleValuesSave()"></textarea>
+          </div>
+          <div class="value-item">
+            <label class="value-label">Financial Independence</label>
+            <textarea class="value-def" id="val-financialindependence" placeholder="Your definition..." rows="2" oninput="scheduleValuesSave()"></textarea>
+          </div>
+          <div class="value-item">
+            <label class="value-label">Value Time</label>
+            <textarea class="value-def" id="val-valuetime" placeholder="Your definition..." rows="2" oninput="scheduleValuesSave()"></textarea>
+          </div>
         </div>
       </div>
     </div>
   </div>
 </div>
+
+<!-- ===============================================================
+     VIEW: SETTING GOALS
+=============================================================== -->
+<div class="view" id="view-goals">
+  <div class="page-hero">
+    <h2>🎯 Setting Goals</h2>
+    <p>Use the SMART framework to create goals that work</p>
+  </div>
+  <div class="page-content">
+    <div class="smart-diagram-wrapper">
+      <svg class="smart-diagram-svg" viewBox="-50 -40 800 620" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <style>.smart-connector{fill:none;stroke:#2C2C2C;stroke-width:1.5}</style>
+        </defs>
+        <!-- Straight connectors from each field to center (350, 275) — template layout -->
+        <path class="smart-connector" d="M 350 125 L 350 177"/>
+        <path class="smart-connector" d="M 241 124 L 350 275"/>
+        <path class="smart-connector" d="M 459 124 L 350 275"/>
+        <path class="smart-connector" d="M 310 331 L 350 275"/>
+        <path class="smart-connector" d="M 390 331 L 350 275"/>
+        <!-- S — SPECIFIC (top center) -->
+        <rect x="250" y="35" width="200" height="90" rx="12" fill="white" stroke="#2C2C2C" stroke-width="2"/>
+        <text x="350" y="62" text-anchor="middle" font-weight="700" font-size="14">S — SPECIFIC</text>
+        <text x="350" y="82" text-anchor="middle" font-size="11" fill="#5A5A5A">states exactly what will be accomplished</text>
+        <!-- T — TIMELY (upper-left) -->
+        <rect x="1" y="77" width="240" height="95" rx="12" fill="white" stroke="#2C2C2C" stroke-width="2"/>
+        <text x="121" y="102" text-anchor="middle" font-weight="700" font-size="14">T — TIMELY</text>
+        <text x="121" y="122" text-anchor="middle" font-size="11" fill="#5A5A5A">time allowed is reasonable and not too long</text>
+        <!-- M — MEASURABLE (upper-right) -->
+        <rect x="459" y="77" width="240" height="95" rx="12" fill="white" stroke="#2C2C2C" stroke-width="2"/>
+        <text x="579" y="102" text-anchor="middle" font-weight="700" font-size="14">M — MEASURABLE</text>
+        <text x="579" y="122" text-anchor="middle" font-size="11" fill="#5A5A5A">milestone event and date given</text>
+        <!-- R — REALISTIC (lower-left, centered) -->
+        <rect x="70" y="284" width="240" height="95" rx="12" fill="white" stroke="#2C2C2C" stroke-width="2"/>
+        <text x="190" y="309" text-anchor="middle" font-weight="700" font-size="14">R — REALISTIC</text>
+        <text x="190" y="329" text-anchor="middle" font-size="11" fill="#5A5A5A">Goals are achieved within geographic</text>
+        <text x="190" y="345" text-anchor="middle" font-size="11" fill="#5A5A5A">and other constraints</text>
+        <!-- A — ACTION-ORIENTED (lower-right, centered) -->
+        <rect x="390" y="284" width="240" height="95" rx="12" fill="white" stroke="#2C2C2C" stroke-width="2"/>
+        <text x="510" y="309" text-anchor="middle" font-weight="700" font-size="14">A — ACTION-ORIENTED</text>
+        <text x="510" y="329" text-anchor="middle" font-size="11" fill="#5A5A5A">sets up things to be done</text>
+        <!-- Center circle — "Your Smart Goals" -->
+        <circle cx="350" cy="275" r="98" fill="var(--teal-xlight)" stroke="var(--teal)" stroke-width="2"/>
+        <foreignObject x="252" y="177" width="196" height="196" requiredExtensions="http://www.w3.org/1999/xhtml">
+          <textarea xmlns="http://www.w3.org/1999/xhtml" id="smartGoalCenter" class="smart-center-editable" placeholder="Your Smart Goals" rows="5" onblur="saveSmartGoalCenter()" oninput="scheduleSmartGoalSave()"></textarea>
+        </foreignObject>
+      </svg>
+    </div>
+    <p class="smart-tagline">
+      Write goals that are Specific, Measurable, Action-oriented, Realistic, and Timely.
+    </p>
+  </div>
+</div>
+
+<!-- ===============================================================
+     VIEW: KEEPNOTES
+=============================================================== -->
+<div class="view" id="view-notes">
+  <div class="page-hero">
+    <h2>📌 KeepNotes</h2>
+    <p>Quick notes and reminders — like Google Keep</p>
+  </div>
+  <div class="page-content">
+    <div class="keep-takenote">
+      <div style="display:flex; flex-direction:column; flex:1; gap:0.4rem;">
+        <input type="text" id="keepNewTitle" placeholder="Take a note..." maxlength="200" />
+        <textarea id="keepNewBody" placeholder="Add a note or list..." rows="1" style="min-height:24px;"></textarea>
+      </div>
+      <button class="btn btn-teal btn-sm" onclick="addKeepNote()">Add</button>
+    </div>
+    <div class="keep-grid" id="keepNotesGrid"></div>
+    <button class="keep-fab" onclick="focusKeepNewNote()" title="Add note">+</button>
+  </div>
+</div>
+
+<button class="voice-fab" id="voiceFab" onclick="toggleVoiceInput()" title="Voice to text — focus a field, then click mic and speak">🎤</button>
 
 <script>
 /* ================================================================
@@ -1149,10 +1382,99 @@ let _valuesSaveTimer = null;
 let _modalCb = null;
 let _pendingSave = false;
 
-const GOVERNING_VALUES_KEYS = ['love','joy','peace','longsuffering','kindness','goodness','faithfulness','gentleness','selfcontrol'];
+const GOVERNING_VALUES_KEYS = ['love','joy','peace','longsuffering','kindness','goodness','faithfulness','gentleness','selfcontrol','personalhealthfitness','financialindependence','valuetime'];
 const SYNC_CONFIG_KEY = STORAGE_PREFIX + 'sync-config';
 let _firebaseDb = null;
 let _firebaseUnsubscribe = null;
+let _voiceRecognition = null;
+let _voiceTargetEl = null;
+let _lastFocusedInput = null;
+
+function initVoiceInputTracking() {
+  document.addEventListener('focusin', (e) => {
+    const el = e.target;
+    if (el && (el.tagName === 'TEXTAREA' || (el.tagName === 'INPUT' && (el.type === 'text' || el.type === 'search')) || (el.isContentEditable && el.getAttribute('contenteditable') === 'true'))) {
+      _lastFocusedInput = el;
+    }
+  });
+}
+
+/* ================================================================
+   VOICE TO TEXT
+================================================================ */
+function initVoiceRecognition() {
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SpeechRecognition) return null;
+  const r = new SpeechRecognition();
+  r.continuous = true;
+  r.interimResults = true;
+  r.lang = navigator.language || 'en-US';
+  r.onresult = (e) => {
+    let final = '';
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      const transcript = e.results[i][0].transcript;
+      if (e.results[i].isFinal) final += transcript;
+    }
+    if (final && _voiceTargetEl) {
+      const el = _voiceTargetEl;
+      const insert = final + ' ';
+      if (el.isContentEditable) {
+        document.execCommand('insertText', false, insert);
+        el.dispatchEvent(new Event('input', { bubbles: true }));
+      } else {
+        const start = el.selectionStart != null ? el.selectionStart : el.value.length;
+        const end = el.selectionEnd != null ? el.selectionEnd : start;
+        const before = el.value.substring(0, start);
+        const after = el.value.substring(end);
+        el.value = before + insert + after;
+        el.selectionStart = el.selectionEnd = before.length + insert.length;
+        el.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+    }
+  };
+  r.onerror = (e) => { if (e.error !== 'aborted') showToast('Voice: ' + (e.error || 'Error')); };
+  r.onend = () => {
+    const fab = document.getElementById('voiceFab');
+    if (fab) fab.classList.remove('listening');
+  };
+  return r;
+}
+function toggleVoiceInput() {
+  let el = document.activeElement;
+  const isInput = el && (
+    el.tagName === 'TEXTAREA' ||
+    (el.tagName === 'INPUT' && (el.type === 'text' || el.type === 'search')) ||
+    (el.isContentEditable && el.getAttribute('contenteditable') === 'true')
+  );
+  if (!isInput) el = _lastFocusedInput;
+  const valid = el && (el.tagName === 'TEXTAREA' || (el.tagName === 'INPUT' && (el.type === 'text' || el.type === 'search')) || (el.isContentEditable && el.getAttribute('contenteditable') === 'true'));
+  if (!valid) {
+    showToast('Focus a text field first, then click the mic');
+    return;
+  }
+  if (!window.isSecureContext) {
+    showToast('Voice input needs HTTPS. Try opening from localhost or a hosted URL.');
+    return;
+  }
+  if (!_voiceRecognition) _voiceRecognition = initVoiceRecognition();
+  if (!_voiceRecognition) {
+    showToast('Voice input not supported. Use Chrome or Edge.');
+    return;
+  }
+  const fab = document.getElementById('voiceFab');
+  if (fab && fab.classList.contains('listening')) {
+    _voiceRecognition.stop();
+    fab.classList.remove('listening');
+    showToast('Listening stopped');
+    return;
+  }
+  _voiceTargetEl = el;
+  try {
+    _voiceRecognition.start();
+    if (fab) fab.classList.add('listening');
+    showToast('Listening... speak now');
+  } catch (e) { showToast('Voice: ' + (e.message || 'Failed')); }
+}
 
 /* ================================================================
    DATE KEY HELPERS
@@ -1190,6 +1512,108 @@ function goToDateFromMtask(dueInput) {
   } else {
     showToast('Enter date as dd-mm-yyyy first');
   }
+}
+
+/* Parse date from text - returns ISO yyyy-mm-dd or '' */
+function parseDateFromText(str) {
+  if (!str || typeof str !== 'string') return '';
+  const s = str.trim();
+  let m = s.match(/^(\d{1,2})[-\/.](\d{1,2})[-\/.](\d{4})$/);
+  if (m) return m[3] + '-' + m[2].padStart(2,'0') + '-' + m[1].padStart(2,'0');
+  m = s.match(/^(\d{4})[-\/.](\d{1,2})[-\/.](\d{1,2})$/);
+  if (m) return m[1] + '-' + m[2].padStart(2,'0') + '-' + m[3].padStart(2,'0');
+  m = s.match(/^(\d{1,2})[-\/.](\d{1,2})[-\/.](\d{2})$/);
+  if (m) return '20' + m[3] + '-' + m[2].padStart(2,'0') + '-' + m[1].padStart(2,'0');
+  const months = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
+  m = s.match(new RegExp('(\\d{1,2})\\s+(' + months.join('|') + ')[a-z]*\\s+(\\d{4})', 'i'));
+  if (m) return m[3] + '-' + String(months.indexOf(m[2].toLowerCase().slice(0,3)) + 1).padStart(2,'0') + '-' + m[1].padStart(2,'0');
+  m = s.match(new RegExp('(' + months.join('|') + ')[a-z]*\\s+(\\d{1,2})\\s+(\\d{4})', 'i'));
+  if (m) return m[3] + '-' + String(months.indexOf(m[1].toLowerCase().slice(0,3)) + 1).padStart(2,'0') + '-' + m[2].padStart(2,'0');
+  return '';
+}
+
+/* Find all date-like substrings in text, return [{match, iso}, ...] */
+function findDatesInText(text) {
+  if (!text || typeof text !== 'string') return [];
+  const re = /(\d{1,2}[-\/.]\d{1,2}[-\/.]\d{4}|\d{4}[-\/.]\d{1,2}[-\/.]\d{1,2}|\d{1,2}[-\/.]\d{1,2}[-\/.]\d{2}|\d{1,2}\s+(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\s+\d{4}|(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\s+\d{1,2}\s+\d{4})/gi;
+  const results = [];
+  let match;
+  while ((match = re.exec(text)) !== null) {
+    const iso = parseDateFromText(match[1]);
+    if (iso && !results.some(r => r.match === match[1])) results.push({ match: match[1], iso });
+  }
+  return results;
+}
+
+function linkifyText(text) {
+  if (!text) return '';
+  let s = esc(text);
+  findDatesInText(text).forEach(({ match, iso }) => {
+    const span = '<span class="date-link" contenteditable="false" data-date-iso="' + iso + '" onclick="goToDateFromLink(\'' + iso + '\')" title="Go to this date">' + esc(match) + '</span>';
+    while (s.indexOf(match) >= 0) s = s.replace(match, span);
+  });
+  return s;
+}
+function goToDateFromLink(isoOrEvent) {
+  const iso = typeof isoOrEvent === 'string' ? isoOrEvent : (isoOrEvent.target?.closest?.('[data-date-iso]')?.getAttribute?.('data-date-iso') || isoOrEvent.target?.getAttribute?.('data-date-iso'));
+  if (!iso || !iso.match(/^\d{4}-\d{2}-\d{2}$/)) return;
+  dayViewDate = new Date(iso + 'T00:00:00');
+  showView('day');
+  renderDayView();
+  showToast('📅 Opened ' + formatToDdmmyyyy(iso));
+}
+
+/* Linkify dates in contenteditable - run on blur. Wraps date strings in clickable spans. */
+function linkifyDatesInContentEditable(el) {
+  if (!el || !el.textContent) return;
+  const dates = findDatesInText(el.textContent);
+  if (dates.length === 0) return;
+  let s = el.textContent;
+  dates.forEach(({ match, iso }) => {
+    const span = '<span class="date-link" contenteditable="false" data-date-iso="' + iso + '" onclick="goToDateFromLink(\'' + iso + '\')" title="Go to this date">' + esc(match) + '</span>';
+    while (s.indexOf(match) >= 0) s = s.replace(match, span);
+  });
+  el.innerHTML = s;
+}
+
+/* Strip linkify spans back to plain text (for editing) */
+function getPlainTextFromLinkified(el) {
+  if (!el) return '';
+  return (el.textContent || '').trim();
+}
+
+/* Update or create date-links row for input/textarea */
+function updateDateLinksForField(field) {
+  if (!field) return;
+  let row = field.nextElementSibling;
+  if (!row || !row.classList.contains('date-links-row')) {
+    row = document.createElement('div');
+    row.className = 'date-links-row';
+    row.style.width = '100%';
+    field.parentNode.insertBefore(row, field.nextSibling);
+  }
+  const dates = findDatesInText(field.value || '');
+  if (dates.length === 0) {
+    row.innerHTML = '';
+    row.style.display = 'none';
+    return;
+  }
+  row.style.display = 'flex';
+  row.style.gap = '0.5rem';
+  row.style.flexWrap = 'wrap';
+  row.style.marginTop = '0.35rem';
+  row.style.marginBottom = '0.5rem';
+  row.innerHTML = dates.map(d => '<span class="date-link-inline" data-date-iso="' + d.iso + '" onclick="goToDateFromLink(\'' + d.iso + '\')">📅 ' + esc(d.match) + '</span>').join('');
+}
+function setupDateLinkifyForView(viewId) {
+  const view = document.getElementById(viewId);
+  if (!view) return;
+  if (!view.dataset.dateLinkifySetup) {
+    view.dataset.dateLinkifySetup = '1';
+    view.addEventListener('input', e => { if (e.target.matches('input[type="text"], input[type="date"], textarea')) updateDateLinksForField(e.target); });
+    view.addEventListener('change', e => { if (e.target.matches('input[type="text"], input[type="date"], textarea')) updateDateLinksForField(e.target); });
+  }
+  view.querySelectorAll('input[type="text"], input[type="date"], textarea').forEach(updateDateLinksForField);
 }
 
 /* ================================================================
@@ -1487,7 +1911,9 @@ function saveAllCurrent() {
   if (view && view.id === 'view-day') saveDayPlanner();
   else if (view && view.id === 'view-month') saveMonthData();
   else if (view && view.id === 'view-values') { saveValuesData(); showToast('✅ Values saved!'); }
-  else showToast('Save from Day Planner, Monthly System, or Governing Values.');
+  else if (view && view.id === 'view-goals') { saveSmartGoalCenter(); showToast('✅ Goal saved!'); }
+  else if (view && view.id === 'view-notes') { saveKeepNotes(); showToast('✅ Notes saved!'); }
+  else showToast('Save from Day Planner, Monthly System, Governing Values, Setting Goals, or KeepNotes.');
 }
 
 /* ================================================================
@@ -1502,6 +1928,9 @@ function showView(name) {
   if (name === 'month')    renderMonthView();
   if (name === 'day')      renderDayView();
   if (name === 'values')   loadValuesData();
+  if (name === 'goals')    loadSmartGoalCenter();
+  if (name === 'notes')    renderKeepNotes();
+  if (name === 'values')   setupDateLinkifyForView('view-values');
 }
 
 /* ================================================================
@@ -1642,6 +2071,7 @@ async function loadMonthData() {
   buildMasterTaskList(d.tasks || []);
   buildMonthlyIndex(d.index || []);
   updateMtaskStats();
+  setupDateLinkifyForView('view-month');
 }
 
 async function saveMonthData() {
@@ -1803,6 +2233,121 @@ function scheduleValuesSave() {
 }
 
 /* ================================================================
+   SMART GOAL (Setting Goals center)
+================================================================ */
+let _smartGoalSaveTimer = null;
+async function loadSmartGoalCenter() {
+  const el = document.getElementById('smartGoalCenter');
+  if (!el) return;
+  const data = await storageLoad('smart-goal-center');
+  el.value = (typeof data === 'string' ? data : (data && data.text) ? data.text : '') || '';
+}
+async function saveSmartGoalCenter() {
+  const el = document.getElementById('smartGoalCenter');
+  if (!el) return;
+  await storageSave('smart-goal-center', el.value.trim());
+  showAutoSaveIndicator();
+}
+function scheduleSmartGoalSave() {
+  clearTimeout(_smartGoalSaveTimer);
+  _smartGoalSaveTimer = setTimeout(saveSmartGoalCenter, 800);
+}
+
+/* ================================================================
+   KEEPNOTES
+================================================================ */
+const KEEP_COLORS = ['yellow','pink','blue','green','purple','white'];
+let _keepNotes = [];
+let _keepSaveTimer = null;
+
+async function loadKeepNotes() {
+  const data = await storageLoad('keep-notes');
+  _keepNotes = Array.isArray(data) ? data : [];
+  return _keepNotes;
+}
+async function saveKeepNotes() {
+  await storageSave('keep-notes', _keepNotes);
+  showAutoSaveIndicator();
+}
+function scheduleKeepSave() {
+  clearTimeout(_keepSaveTimer);
+  _keepSaveTimer = setTimeout(saveKeepNotes, 800);
+}
+function focusKeepNewNote() {
+  document.getElementById('keepNewTitle').focus();
+}
+function addKeepNote() {
+  const title = (document.getElementById('keepNewTitle').value || '').trim();
+  const body = (document.getElementById('keepNewBody').value || '').trim();
+  if (!title && !body) { showToast('Add some text'); return; }
+  _keepNotes.push({
+    id: Date.now(),
+    title,
+    body,
+    color: 'yellow',
+    pinned: false,
+    createdAt: new Date().toISOString()
+  });
+  document.getElementById('keepNewTitle').value = '';
+  document.getElementById('keepNewBody').value = '';
+  refreshKeepNotesGrid();
+  scheduleKeepSave();
+  showToast('Note added');
+}
+function deleteKeepNote(id) {
+  _keepNotes = _keepNotes.filter(n => n.id !== id);
+  refreshKeepNotesGrid();
+  scheduleKeepSave();
+  showToast('Note deleted');
+}
+function togglePinKeepNote(id) {
+  const n = _keepNotes.find(nn => nn.id === id);
+  if (n) { n.pinned = !n.pinned; refreshKeepNotesGrid(); scheduleKeepSave(); }
+}
+function changeKeepNoteColor(id) {
+  const n = _keepNotes.find(nn => nn.id === id);
+  if (!n) return;
+  const idx = KEEP_COLORS.indexOf(n.color || 'yellow');
+  n.color = KEEP_COLORS[(idx + 1) % KEEP_COLORS.length];
+  refreshKeepNotesGrid();
+  scheduleKeepSave();
+}
+function updateKeepNote(id, title, body) {
+  const n = _keepNotes.find(nn => nn.id === id);
+  if (n) { n.title = title; n.body = body; n.updatedAt = new Date().toISOString(); scheduleKeepSave(); }
+}
+function refreshKeepNotesGrid() {
+  const grid = document.getElementById('keepNotesGrid');
+  if (!grid) return;
+  const sorted = [..._keepNotes].sort((a,b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0) || (b.id - a.id));
+  grid.innerHTML = sorted.map(n => {
+    const colorClass = 'keep-note-color-' + (n.color || 'yellow');
+    const pinClass = n.pinned ? ' pinned' : '';
+    return `<div class="keep-note ${colorClass}${pinClass}" data-id="${n.id}">
+      <div class="keep-note-title" contenteditable="true" onblur="updateKeepNoteFromCard(${n.id});linkifyDatesInContentEditable(this)">${linkifyText(n.title || '')}</div>
+      <div class="keep-note-body" contenteditable="true" onblur="updateKeepNoteFromCard(${n.id});linkifyDatesInContentEditable(this)">${linkifyText(n.body || '')}</div>
+      <div class="keep-note-actions">
+        <button class="keep-note-btn" onclick="togglePinKeepNote(${n.id})" title="Pin">📌</button>
+        <button class="keep-note-btn" onclick="changeKeepNoteColor(${n.id})" title="Change color">🎨</button>
+        <button class="keep-note-btn" onclick="deleteKeepNote(${n.id})" title="Delete">🗑</button>
+      </div>
+    </div>`;
+  }).join('');
+  setupDateLinkifyForView('view-notes');
+}
+async function renderKeepNotes() {
+  await loadKeepNotes();
+  refreshKeepNotesGrid();
+}
+function updateKeepNoteFromCard(id) {
+  const card = document.querySelector('.keep-note[data-id="' + id + '"]');
+  if (!card) return;
+  const titleEl = card.querySelector('.keep-note-title');
+  const bodyEl = card.querySelector('.keep-note-body');
+  if (titleEl && bodyEl) updateKeepNote(id, titleEl.textContent.trim(), bodyEl.textContent.trim());
+}
+
+/* ================================================================
    DAY PLANNER
 ================================================================ */
 function buildDayUI() {
@@ -1883,7 +2428,7 @@ function renderDayView() {
   _dayLoading = true;
   clearTimeout(_daySaveTimer);
   clearDayFields();
-  loadDayData(dk).then(() => { _dayLoading = false; });
+  loadDayData(dk).then(() => { _dayLoading = false; setupDateLinkifyForView('view-day'); });
 }
 
 function clearDayFields() {
@@ -2046,6 +2591,7 @@ window.addEventListener('beforeunload', function(e) {
 window.addEventListener('DOMContentLoaded', () => {
   buildDayUI();
   renderCalendar();
+  initVoiceInputTracking();
 });
 </script>
 </body>
