@@ -763,6 +763,21 @@
     .budget-kpi .k { font-size: 0.78rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--gray-med); font-weight: 800; }
     .budget-kpi .v { margin-top: 0.25rem; font-size: 1.25rem; font-weight: 900; font-family: 'IBM Plex Mono', monospace; color: var(--teal-dark); }
     .budget-kpi.negative .v { color: var(--red); }
+    .budget-lock-overlay {
+      position: absolute; inset: 0; z-index: 100;
+      background: linear-gradient(135deg, #1C2E4A 0%, #005F5F 100%);
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 1.5rem; padding: 2rem; border-radius: 14px;
+    }
+    .budget-lock-overlay.hidden { display: none; }
+    #view-budget { position: relative; }
+    .budget-lock-overlay .lock-icon { font-size: 4rem; color: var(--gold-light); opacity: 0.9; }
+    .budget-lock-overlay .lock-msg { color: rgba(255,255,255,0.95); font-size: 1.2rem; font-weight: 600; text-align: center; max-width: 320px; }
+    .budget-lock-overlay .pin-wrap { display: flex; flex-direction: column; align-items: center; gap: 0.5rem; }
+    .budget-lock-overlay .pin-wrap input { font-family: 'IBM Plex Mono', monospace; font-size: 1.25rem; padding: 0.6rem 1rem; width: 140px; text-align: center; letter-spacing: 0.4em; border: 2px solid var(--gold); border-radius: 8px; }
+    .budget-lock-overlay .pin-error { color: #ff8a80; font-size: 0.9rem; font-weight: 600; min-height: 1.4rem; }
+    .budget-lock-overlay .btn-unlock-budget { background: linear-gradient(135deg, var(--gold) 0%, var(--gold-med) 100%); color: var(--navy); font-weight: 800; padding: 0.9rem 2rem; border: none; border-radius: 10px; cursor: pointer; font-size: 1rem; text-transform: uppercase; letter-spacing: 0.06em; box-shadow: 0 4px 16px rgba(184,134,11,0.4); }
+    .budget-lock-overlay .btn-unlock-budget:hover { filter: brightness(1.1); transform: scale(1.02); }
 
     /* ===== SPEECH TO TEXT ===== */
     #sttBtn.listening { background: linear-gradient(135deg, var(--teal) 0%, var(--teal-dark) 100%); color: white; border-color: rgba(255,255,255,0.22); }
@@ -1358,6 +1373,15 @@
      VIEW: BUDGET
 =============================================================== -->
 <div class="view" id="view-budget">
+  <div id="budget-lock-overlay" class="budget-lock-overlay" aria-hidden="false">
+    <div class="lock-icon" aria-hidden="true">🔒</div>
+    <p class="lock-msg">Budget is locked. Enter PIN to view and edit your budget.</p>
+    <div class="pin-wrap">
+      <input type="password" id="budget-pin-input" placeholder="PIN" maxlength="8" inputmode="numeric" pattern="[0-9]*" autocomplete="off" />
+      <p id="budget-pin-error" class="pin-error" aria-live="polite"></p>
+      <button type="button" class="btn-unlock-budget" onclick="unlockBudget()">Unlock</button>
+    </div>
+  </div>
   <div class="page-hero">
     <h2>💰 Budget Template</h2>
     <p>Plan a month with income, expenses, and savings — with a live summary</p>
@@ -1463,6 +1487,7 @@ let monthViewYear  = TODAY.getFullYear();
 let monthViewMonth = TODAY.getMonth();
 let budgetViewYear = TODAY.getFullYear();
 let budgetViewMonth = TODAY.getMonth();
+let budgetLocked = true;
 let dayViewDate = new Date(TODAY);
 
 const MONTHS = ['January','February','March','April','May','June','July',
@@ -2130,6 +2155,7 @@ function showView(name) {
       clearTimeout(_budgetSaveTimer);
       _budgetSaveTimer = null;
       saveBudgetData();
+      budgetLocked = true;
     } else if (current.id === 'view-values') {
       clearTimeout(_valuesSaveTimer);
       _valuesSaveTimer = null;
@@ -2499,6 +2525,38 @@ function renderBudgetView() {
   const el = document.getElementById('budgetMonthLabel');
   if (el) el.textContent = 'Budget — ' + label;
   loadBudgetData();
+  var overlay = document.getElementById('budget-lock-overlay');
+  if (overlay) {
+    if (budgetLocked) {
+      overlay.classList.remove('hidden');
+      overlay.setAttribute('aria-hidden', 'false');
+      var pinInput = document.getElementById('budget-pin-input');
+      var pinErr = document.getElementById('budget-pin-error');
+      if (pinInput) { pinInput.value = ''; }
+      if (pinErr) pinErr.textContent = '';
+    } else {
+      overlay.classList.add('hidden');
+      overlay.setAttribute('aria-hidden', 'true');
+    }
+  }
+}
+
+var BUDGET_PIN = '4608';
+
+function unlockBudget() {
+  var input = document.getElementById('budget-pin-input');
+  var errEl = document.getElementById('budget-pin-error');
+  var pin = (input && input.value) ? String(input.value).trim() : '';
+  if (pin !== BUDGET_PIN) {
+    if (errEl) { errEl.textContent = 'Incorrect PIN. Try again.'; }
+    if (input) { input.value = ''; input.focus(); }
+    return;
+  }
+  if (errEl) errEl.textContent = '';
+  if (input) input.value = '';
+  budgetLocked = false;
+  var overlay = document.getElementById('budget-lock-overlay');
+  if (overlay) { overlay.classList.add('hidden'); overlay.setAttribute('aria-hidden', 'true'); }
 }
 
 function changeBudgetView(delta) {
@@ -2563,11 +2621,11 @@ function collectBudgetList(kind) {
 }
 
 function updateBudgetSummary() {
+  // Match Excel template: Total Income, Total Expenses (Fixed + Variable only), Net = Income - Expenses. Savings & Debt tracked separately.
   const income = collectBudgetList('income').reduce((sum, x) => sum + (x.amount || 0), 0);
   const fixed = collectBudgetList('fixed').reduce((sum, x) => sum + (x.amount || 0), 0);
   const variable = collectBudgetList('variable').reduce((sum, x) => sum + (x.amount || 0), 0);
-  const savings = collectBudgetList('savings').reduce((sum, x) => sum + (x.amount || 0), 0);
-  const expenses = fixed + variable + savings;
+  const expenses = fixed + variable;
   const net = income - expenses;
 
   const kIncome = document.querySelector('#kpiIncome .v');
