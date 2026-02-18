@@ -1,2515 +1,410 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Daniel Planner — Complete Time Management System</title>
-  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&family=IBM+Plex+Sans:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
-  <style>
-    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
-
-    :root {
-      --teal-dark: #005F5F;
-      --teal: #007A7A;
-      --teal-med: #009999;
-      --teal-light: #20B2AA;
-      --teal-xlight: #E0F5F5;
-      --gold: #B8860B;
-      --gold-med: #C49A2B;
-      --gold-light: #E5C568;
-      --gold-xlight: #FFF8E7;
-      --navy: #1C2E4A;
-      --cream: #FFFEF5;
-      --beige: #F5F1E6;
-      --beige-dark: #EDE8D8;
-      --red: #C62828;
-      --orange: #E65100;
-      --blue: #1565C0;
-      --green: #2E7D32;
-      --gray-dark: #2C2C2C;
-      --gray-med: #5A5A5A;
-      --gray-light: #D8D8D8;
-      --gray-xlight: #F0F0F0;
-      --white: #FFFFFF;
-      --shadow-teal: rgba(0,102,102,0.18);
-      --shadow-gold: rgba(184,134,11,0.18);
-      --shadow-dark: rgba(0,0,0,0.12);
-    }
-
-    body {
-      font-family: 'IBM Plex Sans', sans-serif;
-      background: var(--beige);
-      color: var(--gray-dark);
-      min-height: 100vh;
-      overflow-x: hidden;
-    }
-
-    /* ===== VIEWS ===== */
-    .view { display: none; min-height: 100vh; }
-    .view.active { display: block; }
-
-    /* ===== GLOBAL NAV ===== */
-    .top-nav {
-      background: linear-gradient(135deg, var(--navy) 0%, var(--teal-dark) 100%);
-      padding: 0 2rem;
-      display: flex;
-      align-items: center;
-      gap: 0;
-      border-bottom: 3px solid var(--gold);
-      position: sticky; top: 0; z-index: 900;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
-      flex-wrap: wrap;
-    }
-
-    .nav-brand {
-      font-family: 'Playfair Display', serif;
-      font-size: 1.4rem;
-      font-weight: 900;
-      color: var(--gold-light);
-      letter-spacing: 0.03em;
-      padding: 1rem 1.5rem 1rem 0;
-      border-right: 2px solid rgba(255,255,255,0.2);
-      margin-right: 1rem;
-      white-space: nowrap;
-      cursor: pointer;
-    }
-
-    .nav-tab {
-      padding: 1rem 1.2rem;
-      color: rgba(255,255,255,0.7);
-      font-size: 0.85rem;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.07em;
-      cursor: pointer;
-      border-bottom: 3px solid transparent;
-      margin-bottom: -3px;
-      transition: all 0.25s ease;
-      white-space: nowrap;
-    }
-
-    .nav-tab:hover { color: white; border-bottom-color: rgba(255,255,255,0.4); }
-    .nav-tab.active { color: var(--gold-light); border-bottom-color: var(--gold); }
-
-    .nav-actions {
-      margin-left: auto;
-      display: flex;
-      gap: 0.5rem;
-      padding: 0.5rem 0;
-      flex-wrap: wrap;
-    }
-    .nav-actions .btn { font-size: 0.8rem; padding: 0.5rem 1rem; }
-
-    /* ===== TOAST & AUTOSAVE ===== */
-    .toast {
-      position: fixed; bottom: 2rem; right: 2rem;
-      background: var(--teal-dark); color: white;
-      padding: 0.9rem 1.8rem; border-radius: 10px;
-      font-weight: 600; font-size: 0.95rem;
-      box-shadow: 0 8px 30px rgba(0,0,0,0.3);
-      transform: translateY(100px); opacity: 0;
-      transition: all 0.35s cubic-bezier(0.34,1.56,0.64,1);
-      z-index: 2000;
-    }
-    .toast.show { transform: translateY(0); opacity: 1; }
-
-    #autosaveIndicator {
-      position: fixed; bottom: 2rem; left: 2rem;
-      background: var(--teal); color: white;
-      padding: 0.5rem 1rem; border-radius: 24px;
-      font-size: 0.75rem; font-weight: 600;
-      opacity: 0; transition: opacity 0.4s; z-index: 2000;
-    }
-
-    /* ===== SECTION CARDS ===== */
-    .card {
-      background: white;
-      border-radius: 14px;
-      box-shadow: 0 4px 24px var(--shadow-teal), 0 0 0 1px rgba(0,122,122,0.08);
-      overflow: hidden;
-      transition: box-shadow 0.3s ease;
-    }
-    .card:hover { box-shadow: 0 8px 36px var(--shadow-teal), 0 0 0 2px var(--teal-light); }
-
-    .card-header {
-      font-family: 'Playfair Display', serif;
-      font-size: 1.25rem;
-      font-weight: 700;
-      color: white;
-      background: linear-gradient(135deg, var(--teal-dark) 0%, var(--teal-med) 100%);
-      padding: 1rem 1.5rem;
-      border-bottom: 3px solid var(--gold);
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-      display: flex;
-      align-items: center;
-      gap: 0.6rem;
-    }
-
-    .card-header.gold {
-      background: linear-gradient(135deg, var(--gold) 0%, var(--gold-med) 100%);
-      border-bottom-color: var(--teal);
-    }
-
-    .card-header.navy {
-      background: linear-gradient(135deg, var(--navy) 0%, #2a4a6e 100%);
-      border-bottom-color: var(--gold);
-    }
-
-    .card-body { padding: 1.5rem; }
-
-    /* ===== INPUTS ===== */
-    input[type="text"], input[type="date"], textarea, select {
-      width: 100%;
-      padding: 0.7rem 1rem;
-      border: 2px solid var(--gray-light);
-      border-radius: 8px;
-      font-family: 'IBM Plex Sans', sans-serif;
-      font-size: 0.95rem;
-      background: var(--cream);
-      color: var(--gray-dark);
-      transition: all 0.25s ease;
-    }
-    input[type="text"]:focus, input[type="date"]:focus, textarea:focus, select:focus {
-      outline: none;
-      border-color: var(--teal);
-      background: white;
-      box-shadow: 0 0 0 3px rgba(0,153,153,0.12);
-    }
-    textarea { resize: vertical; line-height: 1.7; }
-
-    /* ===== BUTTONS ===== */
-    .btn {
-      padding: 0.7rem 1.4rem;
-      font-size: 0.88rem;
-      font-weight: 600;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-      font-family: 'IBM Plex Sans', sans-serif;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      transition: all 0.25s ease;
-      display: inline-flex;
-      align-items: center;
-      gap: 0.4rem;
-    }
-    .btn:hover { transform: translateY(-2px); }
-    .btn-teal { background: linear-gradient(135deg, var(--teal) 0%, var(--teal-dark) 100%); color: white; box-shadow: 0 4px 12px var(--shadow-teal); }
-    .btn-teal:hover { box-shadow: 0 6px 20px var(--shadow-teal); }
-    .btn-gold { background: linear-gradient(135deg, var(--gold-med) 0%, var(--gold) 100%); color: white; box-shadow: 0 4px 12px var(--shadow-gold); }
-    .btn-gold:hover { box-shadow: 0 6px 20px var(--shadow-gold); }
-    .btn-ghost { background: white; color: var(--teal); border: 2px solid var(--teal); }
-    .btn-red { background: var(--red); color: white; }
-    .btn-sm { padding: 0.45rem 0.9rem; font-size: 0.8rem; }
-    .btn-xs { padding: 0.3rem 0.65rem; font-size: 0.75rem; }
-
-    /* ===== PAGE TITLES ===== */
-    .page-hero {
-      background: linear-gradient(135deg, var(--navy) 0%, var(--teal-dark) 60%, var(--teal) 100%);
-      padding: 2.5rem 3rem;
-      color: white;
-      position: relative;
-      overflow: hidden;
-    }
-    .page-hero::before {
-      content: '';
-      position: absolute; inset: 0;
-      background: repeating-linear-gradient(45deg, transparent, transparent 30px, rgba(255,255,255,0.02) 30px, rgba(255,255,255,0.02) 60px);
-    }
-    .page-hero::after {
-      content: '';
-      position: absolute; right: -4rem; top: -4rem;
-      width: 18rem; height: 18rem;
-      background: radial-gradient(circle, rgba(196,154,43,0.25) 0%, transparent 70%);
-    }
-    .page-hero h2 {
-      font-family: 'Playfair Display', serif;
-      font-size: 2.5rem;
-      font-weight: 900;
-      position: relative; z-index: 1;
-      text-shadow: 0 2px 8px rgba(0,0,0,0.3);
-    }
-    .page-hero p {
-      color: rgba(255,255,255,0.75);
-      font-style: italic;
-      margin-top: 0.4rem;
-      font-size: 1rem;
-      position: relative; z-index: 1;
-    }
-    .page-hero .hero-quote {
-      margin-top: 1.2rem;
-      font-size: 0.95rem;
-      font-style: italic;
-      color: rgba(255,255,255,0.9);
-      border-left: 4px solid var(--gold-light);
-      padding-left: 1rem;
-      max-width: 620px;
-    }
-    .page-hero .hero-gold { color: var(--gold-light); }
-
-    .page-content { padding: 2rem 2.5rem; max-width: 1500px; margin: 0 auto; }
-
-    /* ===== DIVIDER ===== */
-    .divider {
-      height: 2px;
-      background: linear-gradient(90deg, var(--teal) 0%, var(--gold) 50%, transparent 100%);
-      margin: 1.5rem 0;
-      border: none;
-    }
-
-    /* ===== BADGE ===== */
-    .badge {
-      display: inline-block;
-      padding: 0.2rem 0.6rem;
-      border-radius: 12px;
-      font-size: 0.75rem;
-      font-weight: 700;
-      font-family: 'IBM Plex Mono', monospace;
-      letter-spacing: 0.03em;
-    }
-    .badge-A { background: #FFEBEE; color: var(--red); border: 1.5px solid var(--red); }
-    .badge-B { background: #FFF3E0; color: var(--orange); border: 1.5px solid var(--orange); }
-    .badge-C { background: #E3F2FD; color: var(--blue); border: 1.5px solid var(--blue); }
-
-    /* =====================================================
-       CALENDAR VIEW
-    ===================================================== */
-    #view-calendar .page-content { max-width: 1300px; }
-
-    .calendar-nav {
-      display: flex;
-      align-items: center;
-      gap: 1rem;
-      margin-bottom: 1.5rem;
-      flex-wrap: wrap;
-    }
-    .cal-nav-btn {
-      background: white;
-      border: 2px solid var(--teal);
-      color: var(--teal);
-      padding: 0.6rem 1rem;
-      border-radius: 8px;
-      font-size: 1.2rem;
-      cursor: pointer;
-      transition: all 0.2s;
-      line-height: 1;
-    }
-    .cal-nav-btn:hover { background: var(--teal); color: white; }
-
-    .cal-month-title {
-      font-family: 'Playfair Display', serif;
-      font-size: 2rem;
-      font-weight: 900;
-      color: var(--teal-dark);
-      flex: 1;
-    }
-
-    .cal-grid {
-      display: grid;
-      grid-template-columns: repeat(7, 1fr);
-      gap: 3px;
-      background: var(--teal-dark);
-      border: 3px solid var(--teal-dark);
-      border-radius: 14px;
-      overflow: hidden;
-    }
-
-    .cal-day-label {
-      background: linear-gradient(135deg, var(--teal-dark) 0%, var(--teal) 100%);
-      color: var(--gold-light);
-      text-align: center;
-      padding: 0.75rem 0.25rem;
-      font-weight: 700;
-      font-size: 0.8rem;
-      text-transform: uppercase;
-      letter-spacing: 0.1em;
-    }
-
-    .cal-cell {
-      background: white;
-      min-height: 110px;
-      padding: 0.5rem;
-      cursor: pointer;
-      position: relative;
-      transition: all 0.2s ease;
-      overflow: hidden;
-    }
-    .cal-cell:hover { background: var(--teal-xlight); transform: scale(1.01); z-index: 2; }
-    .cal-cell.empty { background: var(--beige-dark); cursor: default; }
-    .cal-cell.today { background: var(--gold-xlight) !important; }
-    .cal-cell.today .cal-date-num { color: var(--gold); }
-    .cal-cell.has-data { border-left: 3px solid var(--teal); }
-    .cal-cell.sunday .cal-date-num { color: var(--red); }
-
-    .cal-date-num {
-      font-family: 'Playfair Display', serif;
-      font-size: 1.4rem;
-      font-weight: 900;
-      color: var(--teal-dark);
-      line-height: 1;
-    }
-
-    .cal-preview {
-      margin-top: 0.35rem;
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-    }
-    .cal-preview-item {
-      font-size: 0.7rem;
-      color: var(--teal-dark);
-      background: var(--teal-xlight);
-      border-radius: 3px;
-      padding: 1px 5px;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      border-left: 2px solid var(--teal);
-    }
-    .cal-preview-item.done {
-      text-decoration: line-through;
-      opacity: 0.5;
-    }
-    .cal-preview-more {
-      font-size: 0.65rem;
-      color: var(--gray-med);
-      font-style: italic;
-    }
-
-    /* =====================================================
-       MONTH VIEW
-    ===================================================== */
-    #view-month .tab-bar {
-      display: flex;
-      gap: 0;
-      border-bottom: 2px solid var(--gray-light);
-      margin-bottom: 2rem;
-    }
-    .month-tab {
-      padding: 0.85rem 1.8rem;
-      font-weight: 600;
-      font-size: 0.9rem;
-      cursor: pointer;
-      color: var(--gray-med);
-      border-bottom: 3px solid transparent;
-      margin-bottom: -2px;
-      transition: all 0.2s;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-    }
-    .month-tab:hover { color: var(--teal); }
-    .month-tab.active { color: var(--teal-dark); border-bottom-color: var(--teal); }
-
-    .month-panel { display: none; }
-    .month-panel.active { display: block; }
-
-    /* Reference System */
-    .ref-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
-
-    /* Master Task List */
-    .mtask-item {
-      display: grid;
-      grid-template-columns: 40px 80px 1fr 115px 36px;
-      gap: 0.75rem;
-      align-items: center;
-      padding: 0.75rem 0.5rem;
-      border-bottom: 1.5px solid var(--gray-xlight);
-      transition: background 0.2s;
-    }
-    .mtask-due-input { font-family: 'IBM Plex Mono', monospace; font-size: 0.9rem; }
-    .mtask-item:hover { background: var(--beige); border-radius: 8px; }
-    .mtask-num {
-      font-weight: 700;
-      color: var(--teal);
-      font-family: 'IBM Plex Mono', monospace;
-      text-align: center;
-      font-size: 0.9rem;
-    }
-
-    /* Monthly Index */
-    .idx-item {
-      display: grid;
-      grid-template-columns: 50px 1fr 100px 60px;
-      gap: 1rem;
-      align-items: center;
-      padding: 0.7rem 0.5rem;
-      border-bottom: 1.5px solid var(--gray-xlight);
-      transition: background 0.2s;
-    }
-    .idx-item:hover { background: var(--beige); border-radius: 8px; }
-    .idx-day-num {
-      font-family: 'IBM Plex Mono', monospace; font-weight: 700; color: var(--teal);
-      font-size: 1rem; text-align: center;
-      background: none; border: none; cursor: pointer; padding: 0.4rem;
-    }
-    .idx-day-num:hover { text-decoration: underline; }
-
-    /* =====================================================
-       DAY PLANNER VIEW
-    ===================================================== */
-    #view-day .day-nav {
-      display: flex;
-      align-items: center;
-      gap: 1rem;
-      flex-wrap: wrap;
-    }
-    .day-nav-btn {
-      background: white;
-      border: 2px solid var(--teal);
-      color: var(--teal);
-      padding: 0.55rem 1rem;
-      border-radius: 8px;
-      font-size: 1rem;
-      cursor: pointer;
-      transition: all 0.2s;
-    }
-    .day-nav-btn:hover { background: var(--teal); color: white; }
-
-    .day-title {
-      font-family: 'Playfair Display', serif;
-      font-size: 1.8rem;
-      font-weight: 900;
-      color: var(--teal-dark);
-    }
-    .day-title.date-clickable { cursor: pointer; }
-
-    .day-planner-grid {
-      display: grid;
-      grid-template-columns: 1fr 1.6fr;
-      gap: 2rem;
-      margin-top: 2rem;
-    }
-
-    .day-number-big {
-      font-family: 'Playfair Display', serif;
-      font-size: 6rem;
-      font-weight: 900;
-      color: var(--teal);
-      line-height: 1;
-      text-shadow: 4px 4px 0 rgba(196,154,43,0.2);
-    }
-    .day-number-big.date-clickable { cursor: pointer; }
-
-    .date-display-row {
-      display: grid;
-      grid-template-columns: auto 1fr;
-      gap: 1.5rem;
-      align-items: center;
-      margin-bottom: 1.5rem;
-    }
-
-    .legend-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 0.5rem;
-      padding: 1rem;
-      background: var(--beige);
-      border-radius: 8px;
-      font-size: 0.85rem;
-    }
-    .legend-item { display: flex; align-items: center; gap: 0.4rem; }
-    .legend-sym { font-weight: 700; color: var(--teal); font-size: 1rem; }
-
-    .mission-box {
-      background: linear-gradient(135deg, rgba(0,153,153,0.08) 0%, rgba(196,154,43,0.08) 100%);
-      border: 2.5px solid var(--teal);
-      border-radius: 10px;
-      padding: 1.2rem;
-    }
-    .mission-label {
-      font-size: 0.8rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.1em;
-      color: var(--teal-dark);
-      margin-bottom: 0.5rem;
-    }
-
-    .task-row {
-      display: grid;
-      grid-template-columns: 36px 70px 1fr 150px;
-      gap: 0.6rem;
-      align-items: center;
-      padding: 0.65rem 0.5rem;
-      background: var(--cream);
-      border-radius: 8px;
-      border: 2px solid transparent;
-      transition: all 0.2s;
-      margin-bottom: 0.4rem;
-    }
-    .task-row:hover { background: white; border-color: var(--teal-light); transform: translateX(3px); }
-    .task-row-num { font-weight: 700; color: var(--teal); text-align: center; font-family: 'IBM Plex Mono', monospace; }
-    .date-link-btn {
-      background: none; border: none; color: var(--teal); cursor: pointer; padding: 0.25rem;
-      font-size: 1rem; line-height: 1; opacity: 0.7;
-    }
-    .date-link-btn:hover { opacity: 1; }
-    .date-with-link { display: flex; gap: 0.25rem; align-items: center; }
-    .date-with-link input { flex: 1; min-width: 0; }
-    .mtask-due-wrap { display: flex; gap: 0.25rem; align-items: center; }
-    .mtask-due-wrap input { flex: 1; min-width: 0; }
-
-    select.priority-sel {
-      padding: 0.4rem 0.5rem;
-      border: 2px solid var(--gray-light);
-      border-radius: 6px;
-      font-size: 0.85rem;
-      font-weight: 700;
-      cursor: pointer;
-      background: white;
-      font-family: 'IBM Plex Mono', monospace;
-    }
-
-    .checkbox-inp {
-      width: 22px; height: 22px;
-      cursor: pointer;
-      accent-color: var(--teal);
-    }
-
-    .time-row {
-      display: grid;
-      grid-template-columns: 100px 1fr 36px;
-      gap: 0.75rem;
-      align-items: center;
-      padding: 0.65rem 0.5rem;
-      border-bottom: 2px solid var(--gray-xlight);
-      transition: all 0.2s;
-    }
-    .time-row:hover { background: var(--cream); border-bottom-color: var(--teal); }
-    .time-lbl {
-      font-weight: 600;
-      color: var(--teal-dark);
-      font-size: 1rem;
-      font-family: 'IBM Plex Mono', monospace;
-    }
-    .time-lbl.hour { font-size: 1.15rem; color: var(--teal); }
-
-    .notes-ta {
-      background: var(--cream);
-      border: 2px solid var(--gray-light);
-      border-radius: 8px;
-      padding: 1rem;
-      min-height: 180px;
-      font-family: 'IBM Plex Sans', sans-serif;
-      line-height: 1.8;
-      font-size: 0.95rem;
-    }
-
-    .day-actions {
-      display: flex;
-      gap: 1rem;
-      margin-top: 2rem;
-      flex-wrap: wrap;
-    }
-
-    /* =====================================================
-       RESPONSIVE
-    ===================================================== */
-    @media (max-width: 900px) {
-      .day-planner-grid { grid-template-columns: 1fr; }
-      .ref-grid { grid-template-columns: 1fr; }
-      .mtask-item { grid-template-columns: 36px 70px 1fr 36px; }
-      .mtask-item .mtask-due-wrap { display: none; }
-      .page-content { padding: 1.2rem 1rem; }
-      .page-hero { padding: 1.5rem 1.2rem; }
-      .page-hero h2 { font-size: 1.7rem; }
-      .cal-cell { min-height: 70px; }
-      .cal-date-num { font-size: 1.1rem; }
-    }
-
-    @media (max-width: 600px) {
-      .cal-grid { grid-template-columns: repeat(7, 1fr); }
-      .cal-cell { min-height: 50px; padding: 0.25rem; }
-      .cal-preview { display: none; }
-    }
-
-    /* ===== MODAL ===== */
-    .modal-overlay {
-      position: fixed; inset: 0;
-      background: rgba(0,0,0,0.5);
-      z-index: 1800;
-      display: none;
-      align-items: center;
-      justify-content: center;
-      padding: 1rem;
-    }
-    .modal-overlay.open { display: flex; }
-    .modal {
-      background: white;
-      border-radius: 16px;
-      max-width: 520px;
-      width: 100%;
-      box-shadow: 0 20px 60px rgba(0,0,0,0.4);
-      overflow: hidden;
-      animation: modalIn 0.3s cubic-bezier(0.34,1.56,0.64,1);
-    }
-    @keyframes modalIn { from { transform: scale(0.85); opacity: 0; } to { transform: scale(1); opacity: 1; } }
-    .modal-header {
-      background: linear-gradient(135deg, var(--teal-dark), var(--teal));
-      padding: 1.2rem 1.5rem;
-      color: white;
-      font-family: 'Playfair Display', serif;
-      font-size: 1.3rem;
-      font-weight: 700;
-      border-bottom: 3px solid var(--gold);
-    }
-    .modal-body { padding: 1.5rem; }
-    .modal-footer { padding: 1rem 1.5rem; background: var(--beige); display: flex; justify-content: flex-end; gap: 0.75rem; }
-
-    /* ===== STAT PILLS ===== */
-    .stat-row {
-      display: flex;
-      gap: 1rem;
-      flex-wrap: wrap;
-      margin-bottom: 1.5rem;
-    }
-    .stat-pill {
-      background: white;
-      border: 2px solid var(--gray-light);
-      border-radius: 30px;
-      padding: 0.5rem 1.2rem;
-      font-size: 0.85rem;
-      font-weight: 600;
-      color: var(--gray-med);
-      display: flex;
-      align-items: center;
-      gap: 0.4rem;
-    }
-    .stat-pill strong { color: var(--teal-dark); font-family: 'IBM Plex Mono', monospace; }
-
-    .task-row.done-row input[type="text"] { text-decoration: line-through; opacity: 0.55; }
-    .task-status-sel { font-size: 0.8rem; padding: 0.35rem 0.4rem; }
-
-    .month-main-nav {
-      display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem;
-    }
-    .month-main-nav select { max-width: 200px; }
-
-    /* ===== GOVERNING VALUES PYRAMID ===== */
-    #view-values .page-content { max-width: 560px; margin-left: auto; margin-right: auto; }
-    .values-pyramid-wrapper {
-      display: flex;
-      justify-content: center;
-      margin: 2.5rem 0;
-    }
-    .values-pyramid-svg {
-      width: 100%;
-      max-width: 420px;
-      height: auto;
-    }
-    .values-pyramid-svg .tier {
-      fill: white;
-      stroke: #2C2C2C;
-      stroke-width: 2;
-    }
-    .values-pyramid-svg text {
-      font-family: 'IBM Plex Sans', sans-serif;
-      font-weight: 700;
-      font-size: 11px;
-      fill: #2C2C2C;
-      text-anchor: middle;
-    }
-    .values-def-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-      gap: 1.25rem;
-    }
-    .value-item label.value-label {
-      display: block;
-      font-weight: 700;
-      color: var(--teal-dark);
-      margin-bottom: 0.4rem;
-      font-size: 1rem;
-    }
-    .value-item .value-def {
-      width: 100%;
-      min-height: 3.5rem;
-      padding: 0.6rem 0.8rem;
-      font-size: 0.9rem;
-      border: 2px solid var(--gray-light);
-      border-radius: 8px;
-      font-family: 'IBM Plex Sans', sans-serif;
-      resize: vertical;
-    }
-    .value-item .value-def:focus {
-      outline: none;
-      border-color: var(--teal);
-      box-shadow: 0 0 0 2px rgba(0,153,153,0.12);
-    }
-    /* ===== SETTING GOALS / SMART DIAGRAM ===== */
-    #view-goals .page-content { max-width: 580px; margin-left: auto; margin-right: auto; }
-    .smart-diagram-wrapper { display: flex; justify-content: center; margin: 2rem 0; }
-    .smart-diagram-svg { width: 100%; max-width: 500px; height: auto; }
-    .smart-diagram-svg text { font-family: 'IBM Plex Sans', sans-serif; }
-    /* ===== KEEPNOTES (Google Keep style) ===== */
-    #view-notes .page-content { max-width: 1200px; padding-bottom: 5rem; }
-    .keep-takenote {
-      background: white;
-      border-radius: 8px;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.12);
-      padding: 0.75rem 1rem;
-      margin-bottom: 1.5rem;
-      display: flex;
-      gap: 0.5rem;
-      align-items: flex-start;
-      border: 1px solid var(--gray-light);
-    }
-    .keep-takenote input, .keep-takenote textarea {
-      border: none;
-      outline: none;
-      font-family: 'IBM Plex Sans', sans-serif;
-      font-size: 0.95rem;
-      flex: 1;
-      resize: none;
-      background: transparent;
-    }
-    .keep-takenote input { font-weight: 600; }
-    .keep-takenote textarea { min-height: 24px; }
-    .keep-takenote input::placeholder, .keep-takenote textarea::placeholder { color: #9e9e9e; }
-    .keep-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-      gap: 1rem;
-      grid-auto-rows: minmax(120px, auto);
-    }
-    .keep-note {
-      border-radius: 8px;
-      padding: 1rem;
-      min-height: 100px;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.12);
-      display: flex;
-      flex-direction: column;
-      transition: box-shadow 0.2s;
-      border: none;
-      position: relative;
-    }
-    .keep-note:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.18); }
-    .keep-note.pinned { border-left: 4px solid var(--gold); }
-    .keep-note-color-yellow { background: #FEF9C3; }
-    .keep-note-color-pink { background: #FCE7F3; }
-    .keep-note-color-blue { background: #DBEAFE; }
-    .keep-note-color-green { background: #D1FAE5; }
-    .keep-note-color-purple { background: #EDE9FE; }
-    .keep-note-color-white { background: #FFFFFF; border: 1px solid #E5E7EB; }
-    .keep-note-title { font-weight: 600; font-size: 0.95rem; margin-bottom: 0.4rem; word-break: break-word; }
-    .keep-note-body { font-size: 0.9rem; color: #374151; line-height: 1.5; white-space: pre-wrap; word-break: break-word; flex: 1; }
-    .keep-note-actions {
-      display: flex;
-      gap: 0.25rem;
-      margin-top: 0.75rem;
-      opacity: 0.7;
-    }
-    .keep-note-actions:hover { opacity: 1; }
-    .keep-note-btn {
-      background: none;
-      border: none;
-      cursor: pointer;
-      padding: 0.25rem;
-      font-size: 1rem;
-      color: #5A5A5A;
-      border-radius: 4px;
-    }
-    .keep-note-btn:hover { background: rgba(0,0,0,0.06); color: #2C2C2C; }
-    .keep-fab {
-      position: fixed;
-      bottom: 2rem;
-      right: 2rem;
-      width: 56px;
-      height: 56px;
-      border-radius: 50%;
-      background: linear-gradient(135deg, var(--teal) 0%, var(--teal-dark) 100%);
-      color: white;
-      border: none;
-      font-size: 1.8rem;
-      cursor: pointer;
-      box-shadow: 0 4px 12px rgba(0,122,122,0.4);
-      z-index: 1000;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      line-height: 1;
-      transition: transform 0.2s, box-shadow 0.2s;
-    }
-    .keep-fab:hover { transform: scale(1.05); box-shadow: 0 6px 20px rgba(0,122,122,0.5); }
-    #view-notes .keep-fab { display: flex !important; }
-    .date-link, .date-link-inline {
-      color: var(--teal-dark);
-      text-decoration: underline;
-      cursor: pointer;
-      font-weight: 600;
-    }
-    .date-link:hover, .date-link-inline:hover { color: var(--teal); }
-    .date-link-inline {
-      display: inline-block;
-      padding: 0.2rem 0.5rem;
-      background: var(--teal-xlight);
-      border-radius: 6px;
-      font-size: 0.85rem;
-      text-decoration: none;
-    }
-
-    @media print {
-      .top-nav, .day-actions, .toast, .modal-overlay, #autosaveIndicator { display: none !important; }
-      .view { display: block !important; }
-      #view-calendar, #view-month, #view-values, #view-goals, #view-notes { display: none !important; }
-      #view-day { display: block !important; }
-      .card { box-shadow: none; }
-    }
-  </style>
-</head>
-<body>
-
-<!-- ===== TOP NAV ===== -->
-<nav class="top-nav">
-  <div class="nav-brand" onclick="showView('calendar')">📖 Daniel Planner</div>
-  <div class="nav-tab active" id="nav-calendar" onclick="showView('calendar')">📅 Calendar</div>
-  <div class="nav-tab" id="nav-month" onclick="showView('month')">📚 Monthly System</div>
-  <div class="nav-tab" id="nav-day" onclick="showView('day')">📝 Day Planner</div>
-  <div class="nav-tab" id="nav-values" onclick="showView('values')">⚖️ Governing Values</div>
-  <div class="nav-tab" id="nav-goals" onclick="showView('goals')">🎯 Setting Goals</div>
-  <div class="nav-tab" id="nav-notes" onclick="showView('notes')">📌 KeepNotes</div>
-  <div class="nav-actions">
-    <button class="btn btn-teal btn-sm" onclick="saveAllCurrent()">💾 Save</button>
-    <button class="btn btn-gold btn-sm" onclick="exportPlanner()">⬇ Export</button>
-    <button class="btn btn-gold btn-sm" onclick="importPlanner()">⬆ Import</button>
-    <button class="btn btn-ghost btn-sm" onclick="openCloudSyncModal()" id="cloudSyncBtn" title="Cloud Sync">☁ Sync</button>
-    <button class="btn btn-red btn-sm" onclick="resetPlanner()">⚠ Reset</button>
-  </div>
-</nav>
-
-<!-- ===== TOAST & AUTOSAVE ===== -->
-<div class="toast" id="toast"></div>
-<div id="autosaveIndicator">✓ Auto-Saved</div>
-
-<!-- ===== MODAL ===== -->
-<div class="modal-overlay" id="modalOverlay">
-  <div class="modal">
-    <div class="modal-header" id="modalTitle">Confirm</div>
-    <div class="modal-body" id="modalBody"></div>
-    <div class="modal-footer">
-      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
-      <button class="btn btn-teal" id="modalConfirmBtn">Confirm</button>
-    </div>
-  </div>
-</div>
-
-<!-- ===== CLOUD SYNC MODAL ===== -->
-<div class="modal-overlay" id="cloudSyncOverlay">
-  <div class="modal" style="max-width:560px;">
-    <div class="modal-header">☁ Cloud Sync</div>
-    <div class="modal-body">
-      <p style="color:var(--gray-med);font-size:0.9rem;margin-bottom:1rem;">Sync your planner across devices. Use <strong>Firebase Realtime Database</strong> (free tier).</p>
-      <div style="margin-bottom:1rem;">
-        <label style="display:block;font-weight:600;margin-bottom:0.4rem;font-size:0.85rem;">Sync ID (share this to sync with other devices)</label>
-        <div style="display:flex;gap:0.5rem;">
-          <input type="text" id="syncIdInput" placeholder="e.g. my-planner-2025" style="flex:1;" />
-          <button class="btn btn-teal btn-sm" onclick="generateSyncId()">Generate</button>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Personalized Fitness System</title>
+    <meta name="description" content="A lightweight personalized fitness system: profile intake, plan generator, workout + bodyweight logging, and progress charts." />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="app">
+      <header class="topbar">
+        <div class="brand">
+          <div class="title">Personalized Fitness System</div>
+          <div class="subtitle">Profile → Plan → Log → Progress (stored locally)</div>
         </div>
-      </div>
-      <div style="margin-bottom:1rem;">
-        <label style="display:block;font-weight:600;margin-bottom:0.4rem;font-size:0.85rem;">Firebase Database URL</label>
-        <input type="text" id="firebaseUrlInput" placeholder="https://YOUR-PROJECT.firebaseio.com" style="width:100%;" />
-      </div>
-      <div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:1rem;">
-        <input type="checkbox" id="cloudSyncEnabled" onchange="toggleCloudSync(this.checked)" />
-        <label for="cloudSyncEnabled" style="font-weight:600;">Enable cloud sync</label>
-      </div>
-      <p style="font-size:0.8rem;color:var(--gray-med);">Create a free project at <a href="https://console.firebase.google.com" target="_blank" rel="noopener">Firebase Console</a> → Realtime Database → copy the URL.</p>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-ghost" onclick="closeCloudSyncModal()">Close</button>
-      <button class="btn btn-teal" onclick="saveCloudSyncConfig()">Save</button>
-    </div>
-  </div>
-</div>
+        <nav class="nav" aria-label="Primary">
+          <button class="tab" id="tab-profile" type="button">Profile</button>
+          <button class="tab" id="tab-plan" type="button">Plan</button>
+          <button class="tab" id="tab-log" type="button">Log</button>
+          <button class="tab" id="tab-progress" type="button">Progress</button>
+          <button class="tab" id="tab-settings" type="button">Settings</button>
+        </nav>
+      </header>
 
-<!-- ===============================================================
-     VIEW: CALENDAR
-=============================================================== -->
-<div class="view active" id="view-calendar">
-  <div class="page-hero">
-    <h2>📅 Daniel Planner — Calendar <span class="hero-gold" id="calHeroTitle">2025</span></h2>
-    <p>Click any day to open its Daniel Day Planner • First Things First</p>
-    <p class="hero-quote">"There is no chance, no destiny, no fate, that can circumvent or hinder or control the firm resolve of a determined soul."</p>
-  </div>
-  <div class="page-content">
-    <div class="calendar-nav">
-      <button class="cal-nav-btn" onclick="changeCalYear(-1)">&#9664;&#9664;</button>
-      <button class="cal-nav-btn" onclick="changeCalMonth(-1)">&#9664;</button>
-      <div class="cal-month-title" id="calMonthTitle">January 2025</div>
-      <button class="cal-nav-btn" onclick="changeCalMonth(1)">&#9654;</button>
-      <button class="cal-nav-btn" onclick="changeCalYear(1)">&#9654;&#9654;</button>
-      <button class="btn btn-gold btn-sm" onclick="showView('month')">📚 Monthly System</button>
-      <button class="btn btn-teal btn-sm" onclick="goToToday()">⬤ Today</button>
-    </div>
-    <div class="cal-grid" id="calGrid"></div>
-    <div style="margin-top:1rem; display:flex; align-items:center; gap:1.5rem; font-size:0.82rem; color:var(--gray-med); flex-wrap:wrap;">
-      <span style="display:flex;align-items:center;gap:6px;"><span style="width:12px;height:12px;background:var(--teal);border-radius:2px;display:inline-block;"></span> Has entries</span>
-      <span style="display:flex;align-items:center;gap:6px;"><span style="width:12px;height:12px;background:var(--gold-xlight);border:2px solid var(--gold);border-radius:2px;display:inline-block;"></span> Today</span>
-      <span style="color:var(--red);">■</span> Sunday
-      <span style="margin-left:auto; font-style:italic;">Click any date to open Day Planner</span>
-    </div>
-  </div>
-</div>
+      <section class="hero" aria-live="polite">
+        <h1 id="heroTitle">Your Personalized Fitness System</h1>
+        <p>
+          A practical, rules-based coach to generate a weekly plan from your profile, then track workouts and progress over time.
+          Data stays in your browser unless you export it.
+        </p>
+        <div class="pillrow">
+          <div class="pill" id="pillPlan"><strong>Plan</strong> —</div>
+          <div class="pill" id="pillUpdated"><strong>Updated</strong> —</div>
+          <div class="pill" id="pillDays"><strong>—</strong> days/week</div>
+          <div class="pill" id="pillGoal"><strong>Goal</strong> —</div>
+        </div>
+      </section>
 
-<!-- ===============================================================
-     VIEW: MONTHLY SYSTEM
-=============================================================== -->
-<div class="view" id="view-month">
-  <div class="page-hero">
-    <h2>📚 Monthly System — <span class="hero-gold" id="monthHeroTitle">January 2025</span></h2>
-    <p>Monthly Reference Guide • Master Task List • Monthly Index</p>
-  </div>
-  <div class="page-content">
-    <div class="month-main-nav">
-      <button class="cal-nav-btn" onclick="changeMonthView(-1)">&#9664;</button>
-      <div style="font-family:'Playfair Display',serif; font-size:1.5rem; font-weight:900; color:var(--teal-dark); min-width:200px;" id="monthViewLabel">January 2025</div>
-      <button class="cal-nav-btn" onclick="changeMonthView(1)">&#9654;</button>
-      <div style="flex:1;"></div>
-      <button class="btn btn-teal btn-sm" onclick="saveMonthData()">💾 Save Month</button>
-    </div>
-
-    <div class="tab-bar">
-      <div class="month-tab active" onclick="switchMonthTab('ref', this)">📖 Reference Guide</div>
-      <div class="month-tab" onclick="switchMonthTab('tasks', this)">✅ Master Task List</div>
-      <div class="month-tab" onclick="switchMonthTab('index', this)">🗂️ Monthly Index</div>
-    </div>
-
-    <!-- REFERENCE GUIDE -->
-    <div class="month-panel active" id="mpanel-ref">
-      <p style="font-size:0.9rem; color:var(--gray-med); margin-bottom:1.5rem; font-style:italic;">
-        Your monthly reference system — key goals, important information, contacts, and guides for this month.
-      </p>
-      <div class="ref-grid">
-        <div class="card">
-          <div class="card-header">🎯 Monthly Goals &amp; Mission</div>
-          <div class="card-body">
-            <textarea id="ref-mission" class="notes-ta" rows="5" placeholder="What are your primary goals and mission for this month?" oninput="scheduleMonthSave()"></textarea>
-          </div>
-        </div>
-        <div class="card">
-          <div class="card-header">📋 Key Roles &amp; Responsibilities</div>
-          <div class="card-body">
-            <textarea id="ref-roles" class="notes-ta" rows="5" placeholder="List your key roles this month (e.g., Manager, Parent, Project Lead)..." oninput="scheduleMonthSave()"></textarea>
-          </div>
-        </div>
-        <div class="card">
-          <div class="card-header gold">💰 Budget &amp; Financial Notes</div>
-          <div class="card-body">
-            <textarea id="ref-budget" class="notes-ta" rows="5" placeholder="Monthly budget, financial targets, expenses to track..." oninput="scheduleMonthSave()"></textarea>
-          </div>
-        </div>
-        <div class="card">
-          <div class="card-header gold">📞 Key Contacts &amp; Numbers</div>
-          <div class="card-body">
-            <textarea id="ref-contacts" class="notes-ta" rows="5" placeholder="Important phone numbers, emails, or contacts for this month..." oninput="scheduleMonthSave()"></textarea>
-          </div>
-        </div>
-        <div class="card">
-          <div class="card-header navy">🏥 Health &amp; Wellness Goals</div>
-          <div class="card-body">
-            <textarea id="ref-health" class="notes-ta" rows="4" placeholder="Health goals, appointments, exercise targets..." oninput="scheduleMonthSave()"></textarea>
-          </div>
-        </div>
-        <div class="card">
-          <div class="card-header navy">📅 Key Dates &amp; Deadlines</div>
-          <div class="card-body">
-            <textarea id="ref-dates" class="notes-ta" rows="4" placeholder="Birthdays, anniversaries, deadlines, events..." oninput="scheduleMonthSave()"></textarea>
-          </div>
-        </div>
-      </div>
-      <div class="card" style="margin-top:1.5rem;">
-        <div class="card-header">📝 Monthly Notes &amp; Reference Information</div>
-        <div class="card-body">
-          <textarea id="ref-notes" class="notes-ta" rows="6" placeholder="Any other reference information, quotes, reminders, or notes you want accessible all month..." oninput="scheduleMonthSave()"></textarea>
-        </div>
-      </div>
-    </div>
-
-    <!-- MASTER TASK LIST -->
-    <div class="month-panel" id="mpanel-tasks">
-      <p style="font-size:0.9rem; color:var(--gray-med); margin-bottom:1.5rem; font-style:italic;">
-        All tasks for this month. Prioritize A (must do), B (should do), C (could do). Mark status as tasks are completed or moved.
-      </p>
-      <div class="stat-row" id="mtaskStats"></div>
-      <div class="card">
-        <div class="card-header">✅ Master Task List — <span id="mtaskMonthLabel">January 2025</span></div>
-        <div class="card-body" style="padding:1rem 0.5rem;">
-          <div style="display:grid; grid-template-columns:40px 80px 1fr 115px 36px; gap:0.75rem; padding:0.5rem; font-size:0.75rem; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; color:var(--gray-med); border-bottom:2px solid var(--teal);">
-            <span style="text-align:center;">#</span>
-            <span>Priority</span>
-            <span>Task</span>
-            <span>Due (dd-mm-yyyy)</span>
-            <span style="text-align:center;">✓</span>
-          </div>
-          <div id="masterTaskList"></div>
-        </div>
-      </div>
-      <button class="btn btn-ghost btn-sm" style="margin-top:1rem;" onclick="addMasterTaskRow()">+ Add Task Row</button>
-    </div>
-
-    <!-- MONTHLY INDEX -->
-    <div class="month-panel" id="mpanel-index">
-      <p style="font-size:0.9rem; color:var(--gray-med); margin-bottom:1.5rem; font-style:italic;">
-        A reference index of what happened each day this month — your monthly record and log.
-      </p>
-      <div class="card">
-        <div class="card-header">🗂️ Monthly Index — <span id="midxMonthLabel">January 2025</span></div>
-        <div class="card-body" style="padding:1rem 0.5rem;">
-          <div style="display:grid; grid-template-columns:50px 1fr 100px 60px; gap:1rem; padding:0.5rem; font-size:0.75rem; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; color:var(--gray-med); border-bottom:2px solid var(--teal);">
-            <span style="text-align:center;">Day</span>
-            <span>Entry / Summary</span>
-            <span>Category</span>
-            <span style="text-align:center;">🔗</span>
-          </div>
-          <div id="monthlyIndex"></div>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- ===============================================================
-     VIEW: DAY PLANNER
-=============================================================== -->
-<div class="view" id="view-day">
-  <div class="page-hero">
-    <h2>📝 Daniel Day Planner — <span class="hero-gold" id="dayHeroTitle">Today</span></h2>
-    <p>First Things First • Begin with the End in Mind</p>
-  </div>
-  <div class="page-content" style="max-width:1400px;">
-    <div style="display:flex; align-items:center; gap:1rem; margin-bottom:1.5rem; flex-wrap:wrap;">
-      <div class="day-nav">
-        <button class="day-nav-btn" onclick="changeDayView(-1)">&#9664; Prev</button>
-        <div class="day-title date-clickable" id="dayViewTitle" onclick="(function(){var i=document.getElementById('dayDateInput');i.showPicker?.();i.focus();})()" title="Change date">Monday, Jan 13</div>
-        <button class="day-nav-btn" onclick="changeDayView(1)">Next &#9654;</button>
-      </div>
-      <button class="btn btn-gold btn-sm" onclick="goToDayToday()">⬤ Today</button>
-      <button class="btn btn-ghost btn-sm" onclick="showView('calendar')">📅 Calendar</button>
-    </div>
-
-    <div class="day-planner-grid">
-      <!-- LEFT COLUMN -->
-      <div style="display:flex; flex-direction:column; gap:1.5rem;">
-        <div class="card">
-          <div class="card-header gold">Today</div>
-          <div class="card-body">
-            <div class="date-display-row">
-              <div class="day-number-big date-clickable" id="dayBigNum" onclick="(function(){var i=document.getElementById('dayDateInput');i.showPicker?.();i.focus();})()" title="Change date">13</div>
-              <div style="display:flex; flex-direction:column; gap:0.6rem;">
-                <div class="date-with-link">
-                  <input type="date" id="dayDateInput" title="Select date — change navigates to that day" />
-                  <button type="button" class="date-link-btn" onclick="showView('calendar')" title="Open Calendar">📅</button>
-                </div>
-                <input type="text" id="dayDayName" readonly style="font-weight:600; color:var(--teal-dark);" />
+      <!-- ===================== VIEW: PROFILE ===================== -->
+      <section class="view" id="view-profile">
+        <div class="grid two">
+          <div class="card">
+            <div class="head">
+              <div class="h">Your profile</div>
+              <div class="actions">
+                <button class="btn small" type="button" id="btnSaveProfile">Save profile</button>
+                <button class="btn small primary" type="button" id="btnGenerate">Generate plan</button>
               </div>
             </div>
-            <div class="legend-grid">
-              <div class="legend-item"><span class="legend-sym">✓</span> Completed</div>
-              <div class="legend-item"><span class="legend-sym">→</span> Rescheduled</div>
-              <div class="legend-item"><span class="legend-sym">✗</span> Delegated</div>
-              <div class="legend-item"><span class="legend-sym">◯</span> In Process</div>
+            <div class="body">
+              <div class="form two">
+                <div class="field">
+                  <label for="p_name">Name (optional)</label>
+                  <input id="p_name" type="text" placeholder="e.g. Alex" autocomplete="name" />
+                </div>
+                <div class="field">
+                  <label for="p_sex">Sex (for BMR estimate)</label>
+                  <select id="p_sex">
+                    <option value="male">Male</option>
+                    <option value="female">Female</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="form three" style="margin-top:12px;">
+                <div class="field">
+                  <label for="p_age">Age</label>
+                  <input id="p_age" type="number" inputmode="numeric" min="10" max="120" placeholder="e.g. 32" />
+                </div>
+                <div class="field">
+                  <label for="p_height">Height (cm)</label>
+                  <input id="p_height" type="number" inputmode="decimal" min="120" max="230" placeholder="e.g. 178" />
+                </div>
+                <div class="field">
+                  <label for="p_weight">Weight (kg)</label>
+                  <input id="p_weight" type="number" inputmode="decimal" min="35" max="250" placeholder="e.g. 82" />
+                </div>
+              </div>
+
+              <div class="form three" style="margin-top:12px;">
+                <div class="field">
+                  <label for="p_goal">Primary goal</label>
+                  <select id="p_goal">
+                    <option value="general">General health</option>
+                    <option value="fat_loss">Fat loss</option>
+                    <option value="muscle_gain">Muscle gain</option>
+                    <option value="endurance">Endurance</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label for="p_exp">Experience</label>
+                  <select id="p_exp">
+                    <option value="beginner">Beginner</option>
+                    <option value="intermediate">Intermediate</option>
+                    <option value="advanced">Advanced</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label for="p_activity">Baseline activity</label>
+                  <select id="p_activity">
+                    <option value="sedentary">Sedentary</option>
+                    <option value="light">Light</option>
+                    <option value="moderate">Moderate</option>
+                    <option value="high">High</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="form three" style="margin-top:12px;">
+                <div class="field">
+                  <label for="p_days">Days/week</label>
+                  <select id="p_days">
+                    <option value="2">2</option>
+                    <option value="3">3</option>
+                    <option value="4">4</option>
+                    <option value="5">5</option>
+                    <option value="6">6</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label for="p_minutes">Session length (minutes)</label>
+                  <select id="p_minutes">
+                    <option value="30">30</option>
+                    <option value="45">45</option>
+                    <option value="60">60</option>
+                    <option value="75">75</option>
+                    <option value="90">90</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label for="p_eq">Equipment</label>
+                  <select id="p_eq">
+                    <option value="none">None (bodyweight)</option>
+                    <option value="dumbbells">Dumbbells</option>
+                    <option value="full_gym">Full gym</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="form two" style="margin-top:12px;">
+                <div class="field">
+                  <label for="p_injuries">Injuries / constraints (optional)</label>
+                  <textarea id="p_injuries" placeholder="e.g. lower-back sensitive, avoid heavy hinging"></textarea>
+                </div>
+                <div class="field">
+                  <label for="p_prefs">Preferences (optional)</label>
+                  <textarea id="p_prefs" placeholder="e.g. prefer full-body workouts, extra focus on glutes + posture"></textarea>
+                </div>
+              </div>
+
+              <div class="hint">
+                Plan quality improves with age/height/weight. If you’re unsure, leave blanks and focus on training consistency first.
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="head">
+              <div class="h">Quick estimates</div>
+            </div>
+            <div class="body">
+              <div class="kpi" id="profileSummary"></div>
+              <div class="hint" style="margin-top:10px;">
+                These are estimates, not medical advice. If you have a condition, pain, or are pregnant, consult a professional.
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===================== VIEW: PLAN ===================== -->
+      <section class="view" id="view-plan">
+        <div class="grid two">
+          <div class="card">
+            <div class="head">
+              <div class="h">Your plan</div>
+              <div class="actions">
+                <button class="btn small" type="button" id="btnGenerate2">Regenerate</button>
+              </div>
+            </div>
+            <div class="body" id="planWrap"></div>
+          </div>
+
+          <div class="card">
+            <div class="head">
+              <div class="h">How to use it</div>
+            </div>
+            <div class="body">
+              <div class="list">
+                <div class="item">
+                  <div class="meta">
+                    <div class="t">Train consistently</div>
+                    <div class="d">Hit your weekly days. If you miss a day, resume—don’t “make up” with double sessions.</div>
+                  </div>
+                </div>
+                <div class="item">
+                  <div class="meta">
+                    <div class="t">Progress slowly</div>
+                    <div class="d">Add a little weight or reps only when sets feel solid with ~2–3 reps in reserve.</div>
+                  </div>
+                </div>
+                <div class="item">
+                  <div class="meta">
+                    <div class="t">Track the basics</div>
+                    <div class="d">Log workouts and bodyweight weekly. Small trends matter more than single-day spikes.</div>
+                  </div>
+                </div>
+                <div class="item">
+                  <div class="meta">
+                    <div class="t">Adjust with data</div>
+                    <div class="d">If weight is flat for 2–3 weeks, change calories by ~150–250/day or add steps.</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===================== VIEW: LOG ===================== -->
+      <section class="view" id="view-log">
+        <div class="grid two">
+          <div class="card">
+            <div class="head">
+              <div class="h">Log workout</div>
+            </div>
+            <div class="body">
+              <div class="form two">
+                <div class="field">
+                  <label for="w_date">Date</label>
+                  <input id="w_date" type="date" />
+                </div>
+                <div class="field">
+                  <label for="w_type">Type</label>
+                  <select id="w_type">
+                    <option value="strength">Strength</option>
+                    <option value="cardio">Cardio</option>
+                    <option value="mobility">Mobility</option>
+                  </select>
+                </div>
+              </div>
+              <div class="form two" style="margin-top:12px;">
+                <div class="field">
+                  <label for="w_title">Title (optional)</label>
+                  <input id="w_title" type="text" placeholder="e.g. Full Body A" />
+                </div>
+                <div class="field">
+                  <label for="w_minutes">Duration (minutes)</label>
+                  <input id="w_minutes" type="number" inputmode="numeric" min="5" max="300" placeholder="e.g. 45" />
+                </div>
+              </div>
+              <div class="form two" style="margin-top:12px;">
+                <div class="field">
+                  <label for="w_rpe">RPE (optional)</label>
+                  <input id="w_rpe" type="number" inputmode="numeric" min="1" max="10" placeholder="1–10" />
+                </div>
+                <div class="field">
+                  <label>&nbsp;</label>
+                  <button class="btn primary" type="button" id="btnAddWorkout">Add workout</button>
+                </div>
+              </div>
+              <div class="field" style="margin-top:12px;">
+                <label for="w_notes">Notes (optional)</label>
+                <textarea id="w_notes" placeholder="e.g. felt strong, increased squat by +2.5kg"></textarea>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="head">
+              <div class="h">Log body metrics</div>
+            </div>
+            <div class="body">
+              <div class="form two">
+                <div class="field">
+                  <label for="b_date">Date</label>
+                  <input id="b_date" type="date" />
+                </div>
+                <div class="field">
+                  <label for="b_weight">Weight (kg)</label>
+                  <input id="b_weight" type="number" inputmode="decimal" min="30" max="250" placeholder="e.g. 82.4" />
+                </div>
+              </div>
+              <div class="form two" style="margin-top:12px;">
+                <div class="field">
+                  <label for="b_waist">Waist (cm) (optional)</label>
+                  <input id="b_waist" type="number" inputmode="decimal" min="40" max="180" placeholder="e.g. 86" />
+                </div>
+                <div class="field">
+                  <label>&nbsp;</label>
+                  <button class="btn primary" type="button" id="btnAddBody">Add entry</button>
+                </div>
+              </div>
+              <div class="field" style="margin-top:12px;">
+                <label for="b_notes">Notes (optional)</label>
+                <textarea id="b_notes" placeholder="e.g. morning weigh-in, after rest day"></textarea>
+              </div>
             </div>
           </div>
         </div>
 
-        <div class="card">
-          <div class="card-header">🎯 Daily Mission</div>
-          <div class="card-body">
-            <div class="mission-box">
-              <div class="mission-label">What matters most today?</div>
-              <textarea id="dayMission" class="notes-ta" rows="3" placeholder="Your focus and intention for today..." oninput="scheduleDaySave()"></textarea>
+        <div class="grid two">
+          <div class="card">
+            <div class="head">
+              <div class="h">Recent workouts</div>
+            </div>
+            <div class="body" id="workoutList"></div>
+          </div>
+          <div class="card">
+            <div class="head">
+              <div class="h">Recent body entries</div>
+            </div>
+            <div class="body" id="bodyList"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===================== VIEW: PROGRESS ===================== -->
+      <section class="view" id="view-progress">
+        <div class="grid two">
+          <div class="card">
+            <div class="head">
+              <div class="h">Weight trend</div>
+            </div>
+            <div class="body">
+              <div class="canvaswrap">
+                <canvas id="weightChart"></canvas>
+              </div>
+              <div class="hint">Tip: log weight 3–7x/week, then focus on weekly averages.</div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="head">
+              <div class="h">Workout consistency</div>
+            </div>
+            <div class="body">
+              <div class="canvaswrap">
+                <canvas id="workoutChart"></canvas>
+              </div>
+              <div class="hint">Consistency is the #1 predictor of results. Aim for your planned weekly frequency.</div>
             </div>
           </div>
         </div>
+      </section>
 
-        <div class="card">
-          <div class="card-header">✅ Priority Tasks</div>
-          <div class="card-body" style="padding:1rem 1rem;">
-            <div id="dayTaskList"></div>
+      <!-- ===================== VIEW: SETTINGS ===================== -->
+      <section class="view" id="view-settings">
+        <div class="grid two">
+          <div class="card">
+            <div class="head">
+              <div class="h">Backup & data</div>
+            </div>
+            <div class="body">
+              <div class="actions">
+                <button class="btn" type="button" id="btnExport">Export backup</button>
+                <button class="btn" type="button" id="btnImport">Import backup</button>
+                <button class="btn danger" type="button" id="btnReset">Reset everything</button>
+              </div>
+              <div class="hint" style="margin-top:10px;">
+                Export creates a JSON file with your profile, plan, and logs. Import replaces current data with the file content.
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="head">
+              <div class="h">About this MVP</div>
+            </div>
+            <div class="body">
+              <div class="hint">
+                This is a rules-based generator (not AI coaching). It’s designed to be safe-by-default and easy to extend.
+                Next steps could include exercise libraries, progression tracking per lift, and meal planning templates.
+              </div>
+              <div class="footer">
+                <div><strong>Privacy:</strong> stored in your browser `localStorage`.</div>
+                <div><strong>Disclaimer:</strong> educational only; not medical advice.</div>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
+      </section>
 
-      <!-- RIGHT COLUMN -->
-      <div style="display:flex; flex-direction:column; gap:1.5rem;">
-        <div class="card">
-          <div class="card-header">⏰ Appointment Schedule</div>
-          <div class="card-body" style="padding:0.75rem;">
-            <div id="daySchedule"></div>
-          </div>
-        </div>
+      <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-        <div class="card">
-          <div class="card-header navy">📝 Notes &amp; Reflections</div>
-          <div class="card-body">
-            <textarea id="dayNotes" class="notes-ta" rows="10" placeholder="Daily tracker, expenses, thoughts, learnings, gratitude..." oninput="scheduleDaySave()"></textarea>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="day-actions">
-      <button class="btn btn-teal" onclick="saveDayPlanner()">💾 Save Day</button>
-      <button class="btn btn-gold" onclick="loadDayPlanner()">📂 Reload</button>
-      <button class="btn btn-ghost" onclick="clearDayPlanner()">🗑️ Clear</button>
-      <button class="btn btn-ghost" onclick="window.print()">🖨️ Print</button>
-    </div>
-  </div>
-</div>
-
-<!-- ===============================================================
-     VIEW: GOVERNING VALUES
-=============================================================== -->
-<div class="view" id="view-values">
-  <div class="page-hero">
-    <h2>⚖️ Governing Values</h2>
-    <p>Your hierarchy of purpose — from daily tasks to the values that guide everything</p>
-  </div>
-  <div class="page-content">
-    <div class="values-pyramid-wrapper">
-      <svg class="values-pyramid-svg" viewBox="0 0 400 320" xmlns="http://www.w3.org/2000/svg">
-        <defs>
-          <style>.tier{fill:white;stroke:#2C2C2C;stroke-width:2}</style>
-        </defs>
-        <!-- Bottom: GOVERNING VALUES -->
-        <path class="tier" d="M 20 280 L 380 280 L 340 220 L 60 220 Z"/>
-        <text x="200" y="256">GOVERNING VALUES</text>
-        <!-- Third: LONG-RANGE GOALS -->
-        <path class="tier" d="M 60 220 L 340 220 L 300 160 L 100 160 Z"/>
-        <text x="200" y="196">LONG-RANGE GOALS</text>
-        <!-- Second: INTERMEDIATE GOALS -->
-        <path class="tier" d="M 100 160 L 300 160 L 260 100 L 140 100 Z"/>
-        <text x="200" y="136">INTERMEDIATE GOALS</text>
-        <!-- Top: DAILY TASKS -->
-        <path class="tier" d="M 140 100 L 260 100 L 200 40 Z"/>
-        <text x="200" y="82">DAILY TASKS</text>
-      </svg>
-    </div>
-    <p style="text-align:center; color:var(--gray-med); font-style:italic; font-size:0.95rem; margin-top:1.5rem;">
-      Build from the base up. Let your values govern your goals, and your goals shape your daily tasks.
-    </p>
-    <div class="card" style="margin-top:2.5rem;">
-      <div class="card-header gold">My Governing Values — Define What They Mean to You</div>
-      <div class="card-body">
-        <div class="values-def-grid">
-          <div class="value-item">
-            <label class="value-label">Love</label>
-            <textarea class="value-def" id="val-love" placeholder="Your definition..." rows="2" oninput="scheduleValuesSave()"></textarea>
-          </div>
-          <div class="value-item">
-            <label class="value-label">Joy</label>
-            <textarea class="value-def" id="val-joy" placeholder="Your definition..." rows="2" oninput="scheduleValuesSave()"></textarea>
-          </div>
-          <div class="value-item">
-            <label class="value-label">Peace</label>
-            <textarea class="value-def" id="val-peace" placeholder="Your definition..." rows="2" oninput="scheduleValuesSave()"></textarea>
-          </div>
-          <div class="value-item">
-            <label class="value-label">Longsuffering</label>
-            <textarea class="value-def" id="val-longsuffering" placeholder="Your definition..." rows="2" oninput="scheduleValuesSave()"></textarea>
-          </div>
-          <div class="value-item">
-            <label class="value-label">Kindness</label>
-            <textarea class="value-def" id="val-kindness" placeholder="Your definition..." rows="2" oninput="scheduleValuesSave()"></textarea>
-          </div>
-          <div class="value-item">
-            <label class="value-label">Goodness</label>
-            <textarea class="value-def" id="val-goodness" placeholder="Your definition..." rows="2" oninput="scheduleValuesSave()"></textarea>
-          </div>
-          <div class="value-item">
-            <label class="value-label">Faithfulness</label>
-            <textarea class="value-def" id="val-faithfulness" placeholder="Your definition..." rows="2" oninput="scheduleValuesSave()"></textarea>
-          </div>
-          <div class="value-item">
-            <label class="value-label">Gentleness</label>
-            <textarea class="value-def" id="val-gentleness" placeholder="Your definition..." rows="2" oninput="scheduleValuesSave()"></textarea>
-          </div>
-          <div class="value-item">
-            <label class="value-label">Self-control</label>
-            <textarea class="value-def" id="val-selfcontrol" placeholder="Your definition..." rows="2" oninput="scheduleValuesSave()"></textarea>
-          </div>
-          <div class="value-item">
-            <label class="value-label">Personal Health and Fitness</label>
-            <textarea class="value-def" id="val-personalhealthfitness" placeholder="Your definition..." rows="2" oninput="scheduleValuesSave()"></textarea>
-          </div>
-          <div class="value-item">
-            <label class="value-label">Financial Independence</label>
-            <textarea class="value-def" id="val-financialindependence" placeholder="Your definition..." rows="2" oninput="scheduleValuesSave()"></textarea>
-          </div>
-          <div class="value-item">
-            <label class="value-label">Value Time</label>
-            <textarea class="value-def" id="val-valuetime" placeholder="Your definition..." rows="2" oninput="scheduleValuesSave()"></textarea>
+      <!-- Modal -->
+      <div class="modalOverlay" id="modalOverlay" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+        <div class="modal">
+          <div class="mhead" id="modalTitle">Confirm</div>
+          <div class="mbody" id="modalBody"></div>
+          <div class="mfoot">
+            <button class="btn" type="button" id="modalCancel">Cancel</button>
+            <button class="btn danger" type="button" id="modalConfirm">Confirm</button>
           </div>
         </div>
       </div>
     </div>
-  </div>
-</div>
 
-<!-- ===============================================================
-     VIEW: SETTING GOALS
-=============================================================== -->
-<div class="view" id="view-goals">
-  <div class="page-hero">
-    <h2>🎯 Setting Goals</h2>
-    <p>Use the SMART framework to create goals that work</p>
-  </div>
-  <div class="page-content">
-    <div class="smart-diagram-wrapper">
-      <svg class="smart-diagram-svg" viewBox="0 0 500 420" xmlns="http://www.w3.org/2000/svg">
-        <defs>
-          <style>.smart-connector{fill:none;stroke:#2C2C2C;stroke-width:1.5}</style>
-        </defs>
-        <!-- Curved connectors between elements -->
-        <path class="smart-connector" d="M 140 80 Q 250 30 360 80"/>
-        <path class="smart-connector" d="M 360 80 Q 430 140 400 200"/>
-        <path class="smart-connector" d="M 400 200 Q 350 270 300 320"/>
-        <path class="smart-connector" d="M 300 320 Q 250 370 140 320"/>
-        <path class="smart-connector" d="M 140 320 Q 70 270 100 200"/>
-        <path class="smart-connector" d="M 100 200 Q 130 140 140 80"/>
-        <!-- SPECIFIC - top-left -->
-        <rect x="20" y="50" width="140" height="70" rx="8" fill="white" stroke="#2C2C2C" stroke-width="2"/>
-        <text x="90" y="75" text-anchor="middle" font-weight="700" font-size="14">S — SPECIFIC</text>
-        <text x="90" y="95" text-anchor="middle" font-size="11" fill="#5A5A5A">states exactly what will be accomplished</text>
-        <!-- MEASURABLE - top-center -->
-        <rect x="250" y="50" width="140" height="70" rx="8" fill="white" stroke="#2C2C2C" stroke-width="2"/>
-        <text x="320" y="75" text-anchor="middle" font-weight="700" font-size="14">M — MEASURABLE</text>
-        <text x="320" y="95" text-anchor="middle" font-size="11" fill="#5A5A5A">milestone event and date given</text>
-        <!-- ACTION-ORIENTED - top-right -->
-        <rect x="340" y="170" width="150" height="70" rx="8" fill="white" stroke="#2C2C2C" stroke-width="2"/>
-        <text x="415" y="195" text-anchor="middle" font-weight="700" font-size="14">A — ACTION-ORIENTED</text>
-        <text x="415" y="215" text-anchor="middle" font-size="11" fill="#5A5A5A">sets up things to be done</text>
-        <!-- REALISTIC - bottom-right -->
-        <rect x="300" y="280" width="150" height="85" rx="8" fill="white" stroke="#2C2C2C" stroke-width="2"/>
-        <text x="375" y="310" text-anchor="middle" font-weight="700" font-size="14">R — REALISTIC</text>
-        <text x="375" y="328" text-anchor="middle" font-size="10" fill="#5A5A5A">achievable within geographic</text>
-        <text x="375" y="342" text-anchor="middle" font-size="10" fill="#5A5A5A">and other constraints</text>
-        <!-- TIMELY - bottom-left -->
-        <rect x="50" y="290" width="140" height="70" rx="8" fill="white" stroke="#2C2C2C" stroke-width="2"/>
-        <text x="120" y="315" text-anchor="middle" font-weight="700" font-size="14">T — TIMELY</text>
-        <text x="120" y="335" text-anchor="middle" font-size="11" fill="#5A5A5A">time allowed is reasonable, but not too long</text>
-        <!-- Center circle (empty - no example) -->
-        <circle cx="250" cy="210" r="60" fill="var(--teal-xlight)" stroke="var(--teal)" stroke-width="2"/>
-        <text x="250" y="205" text-anchor="middle" font-size="11" font-weight="600" fill="var(--teal-dark)">Your SMART</text>
-        <text x="250" y="222" text-anchor="middle" font-size="11" font-weight="600" fill="var(--teal-dark)">Goal</text>
-      </svg>
-    </div>
-    <p style="text-align:center; color:var(--gray-med); font-style:italic; font-size:0.95rem; margin-top:1.5rem;">
-      Write goals that are Specific, Measurable, Action-oriented, Realistic, and Timely.
-    </p>
-  </div>
-</div>
-
-<!-- ===============================================================
-     VIEW: KEEPNOTES
-=============================================================== -->
-<div class="view" id="view-notes">
-  <div class="page-hero">
-    <h2>📌 KeepNotes</h2>
-    <p>Quick notes and reminders — like Google Keep</p>
-  </div>
-  <div class="page-content">
-    <div class="keep-takenote">
-      <div style="display:flex; flex-direction:column; flex:1; gap:0.4rem;">
-        <input type="text" id="keepNewTitle" placeholder="Take a note..." maxlength="200" />
-        <textarea id="keepNewBody" placeholder="Add a note or list..." rows="1" style="min-height:24px;"></textarea>
-      </div>
-      <button class="btn btn-teal btn-sm" onclick="addKeepNote()">Add</button>
-    </div>
-    <div class="keep-grid" id="keepNotesGrid"></div>
-    <button class="keep-fab" onclick="focusKeepNewNote()" title="Add note">+</button>
-  </div>
-</div>
-
-<script>
-/* ================================================================
-   CONSTANTS & STATE
-================================================================ */
-const STORAGE_PREFIX = "danielPlanner-v4-";
-const TODAY = new Date();
-TODAY.setHours(0,0,0,0);
-
-let calYear  = TODAY.getFullYear();
-let calMonth = TODAY.getMonth();
-let monthViewYear  = TODAY.getFullYear();
-let monthViewMonth = TODAY.getMonth();
-let dayViewDate = new Date(TODAY);
-
-const MONTHS = ['January','February','March','April','May','June','July',
-                'August','September','October','November','December'];
-const DAYS   = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
-
-let _dayUIBuilt = false;
-let _dayLoading = false;
-let _daySaveTimer = null;
-let _monthSaveTimer = null;
-let _valuesSaveTimer = null;
-let _modalCb = null;
-let _pendingSave = false;
-
-const GOVERNING_VALUES_KEYS = ['love','joy','peace','longsuffering','kindness','goodness','faithfulness','gentleness','selfcontrol','personalhealthfitness','financialindependence','valuetime'];
-const SYNC_CONFIG_KEY = STORAGE_PREFIX + 'sync-config';
-let _cloudPollTimer = null;
-let _cloudLastPayload = '';
-let _cloudSyncLastError = '';
-
-/* ================================================================
-   DATE KEY HELPERS
-================================================================ */
-function dateKey(d) {
-  const dt = (typeof d === 'string') ? new Date(d + 'T00:00:00') : d;
-  return dt.getFullYear() + '-' + String(dt.getMonth()+1).padStart(2,'0') + '-' + String(dt.getDate()).padStart(2,'0');
-}
-function monthKey(y, m) {
-  return y + '-' + String(m+1).padStart(2,'0');
-}
-
-/* dd-mm-yyyy ↔ yyyy-mm-dd */
-function parseDdmmyyyy(str) {
-  if (!str || !str.trim()) return '';
-  const m = str.trim().match(/^(\d{1,2})-(\d{1,2})-(\d{4})$|^(\d{4})-(\d{1,2})-(\d{1,2})$/);
-  if (m) {
-    if (m[4]) return m[4] + '-' + m[5].padStart(2,'0') + '-' + m[6].padStart(2,'0');
-    return m[3] + '-' + m[2].padStart(2,'0') + '-' + m[1].padStart(2,'0');
-  }
-  return '';
-}
-function formatToDdmmyyyy(iso) {
-  if (!iso || !iso.match(/^\d{4}-\d{2}-\d{2}$/)) return '';
-  const [y, m, d] = iso.split('-');
-  return d + '-' + m + '-' + y;
-}
-function goToDateFromMtask(dueInput) {
-  const raw = dueInput.value.trim();
-  const iso = parseDdmmyyyy(raw);
-  if (iso) {
-    dayViewDate = new Date(iso + 'T00:00:00');
-    showView('day');
-    showToast('Opened ' + formatToDdmmyyyy(iso));
-  } else {
-    showToast('Enter date as dd-mm-yyyy first');
-  }
-}
-
-/* Parse date from text - returns ISO yyyy-mm-dd or '' */
-function parseDateFromText(str) {
-  if (!str || typeof str !== 'string') return '';
-  const s = str.trim();
-  let m = s.match(/^(\d{1,2})[-\/.](\d{1,2})[-\/.](\d{4})$/);
-  if (m) return m[3] + '-' + m[2].padStart(2,'0') + '-' + m[1].padStart(2,'0');
-  m = s.match(/^(\d{4})[-\/.](\d{1,2})[-\/.](\d{1,2})$/);
-  if (m) return m[1] + '-' + m[2].padStart(2,'0') + '-' + m[3].padStart(2,'0');
-  m = s.match(/^(\d{1,2})[-\/.](\d{1,2})[-\/.](\d{2})$/);
-  if (m) return '20' + m[3] + '-' + m[2].padStart(2,'0') + '-' + m[1].padStart(2,'0');
-  const months = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
-  m = s.match(new RegExp('(\\d{1,2})\\s+(' + months.join('|') + ')[a-z]*\\s+(\\d{4})', 'i'));
-  if (m) return m[3] + '-' + String(months.indexOf(m[2].toLowerCase().slice(0,3)) + 1).padStart(2,'0') + '-' + m[1].padStart(2,'0');
-  m = s.match(new RegExp('(' + months.join('|') + ')[a-z]*\\s+(\\d{1,2})\\s+(\\d{4})', 'i'));
-  if (m) return m[3] + '-' + String(months.indexOf(m[1].toLowerCase().slice(0,3)) + 1).padStart(2,'0') + '-' + m[2].padStart(2,'0');
-  return '';
-}
-
-/* Find all date-like substrings in text, return [{match, iso}, ...] */
-function findDatesInText(text) {
-  if (!text || typeof text !== 'string') return [];
-  const re = /(\d{1,2}[-\/.]\d{1,2}[-\/.]\d{4}|\d{4}[-\/.]\d{1,2}[-\/.]\d{1,2}|\d{1,2}[-\/.]\d{1,2}[-\/.]\d{2}|\d{1,2}\s+(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\s+\d{4}|(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\s+\d{1,2}\s+\d{4})/gi;
-  const results = [];
-  let match;
-  while ((match = re.exec(text)) !== null) {
-    const iso = parseDateFromText(match[1]);
-    if (iso && !results.some(r => r.match === match[1])) results.push({ match: match[1], iso });
-  }
-  return results;
-}
-
-function linkifyText(text) {
-  if (!text) return '';
-  let s = esc(text);
-  findDatesInText(text).forEach(({ match, iso }) => {
-    const span = '<span class="date-link" contenteditable="false" data-date-iso="' + iso + '" onclick="goToDateFromLink(\'' + iso + '\')" title="Go to this date">' + esc(match) + '</span>';
-    while (s.indexOf(match) >= 0) s = s.replace(match, span);
-  });
-  return s;
-}
-function goToDateFromLink(isoOrEvent) {
-  const iso = typeof isoOrEvent === 'string' ? isoOrEvent : (isoOrEvent.target?.closest?.('[data-date-iso]')?.getAttribute?.('data-date-iso') || isoOrEvent.target?.getAttribute?.('data-date-iso'));
-  if (!iso || !iso.match(/^\d{4}-\d{2}-\d{2}$/)) return;
-  dayViewDate = new Date(iso + 'T00:00:00');
-  showView('day');
-  renderDayView();
-  showToast('📅 Opened ' + formatToDdmmyyyy(iso));
-}
-
-/* Linkify dates in contenteditable - run on blur. Wraps date strings in clickable spans. */
-function linkifyDatesInContentEditable(el) {
-  if (!el || !el.textContent) return;
-  const dates = findDatesInText(el.textContent);
-  if (dates.length === 0) return;
-  let s = el.textContent;
-  dates.forEach(({ match, iso }) => {
-    const span = '<span class="date-link" contenteditable="false" data-date-iso="' + iso + '" onclick="goToDateFromLink(\'' + iso + '\')" title="Go to this date">' + esc(match) + '</span>';
-    while (s.indexOf(match) >= 0) s = s.replace(match, span);
-  });
-  el.innerHTML = s;
-}
-
-/* Strip linkify spans back to plain text (for editing) */
-function getPlainTextFromLinkified(el) {
-  if (!el) return '';
-  return (el.textContent || '').trim();
-}
-
-/* Update or create date-links row for input/textarea */
-function updateDateLinksForField(field) {
-  if (!field) return;
-  let row = field.nextElementSibling;
-  if (!row || !row.classList.contains('date-links-row')) {
-    row = document.createElement('div');
-    row.className = 'date-links-row';
-    row.style.width = '100%';
-    field.parentNode.insertBefore(row, field.nextSibling);
-  }
-  const dates = findDatesInText(field.value || '');
-  if (dates.length === 0) {
-    row.innerHTML = '';
-    row.style.display = 'none';
-    return;
-  }
-  row.style.display = 'flex';
-  row.style.gap = '0.5rem';
-  row.style.flexWrap = 'wrap';
-  row.style.marginTop = '0.35rem';
-  row.style.marginBottom = '0.5rem';
-  row.innerHTML = dates.map(d => '<span class="date-link-inline" data-date-iso="' + d.iso + '" onclick="goToDateFromLink(\'' + d.iso + '\')">📅 ' + esc(d.match) + '</span>').join('');
-}
-function setupDateLinkifyForView(viewId) {
-  const view = document.getElementById(viewId);
-  if (!view) return;
-  if (!view.dataset.dateLinkifySetup) {
-    view.dataset.dateLinkifySetup = '1';
-    view.addEventListener('input', e => { if (e.target.matches('input[type="text"], input[type="date"], textarea')) updateDateLinksForField(e.target); });
-    view.addEventListener('change', e => { if (e.target.matches('input[type="text"], input[type="date"], textarea')) updateDateLinksForField(e.target); });
-  }
-  view.querySelectorAll('input[type="text"], input[type="date"], textarea').forEach(updateDateLinksForField);
-}
-
-/* ================================================================
-   STORAGE — localStorage + optional Firebase cloud sync
-================================================================ */
-function getSyncConfig() {
-  try {
-    const raw = localStorage.getItem(SYNC_CONFIG_KEY);
-    if (!raw) return null;
-    const c = JSON.parse(raw);
-    if (c && c.syncId && c.databaseURL) return {
-      syncId: c.syncId,
-      databaseURL: c.databaseURL,
-      enabled: !!c.enabled
-    };
-    return null;
-  } catch { return null; }
-}
-
-function cloudEnabled() {
-  const cfg = getSyncConfig();
-  return !!(cfg && cfg.enabled);
-}
-
-function cloudBaseUrl() {
-  const cfg = getSyncConfig();
-  if (!cfg || !cfg.enabled || !cfg.syncId || !cfg.databaseURL) return '';
-  return cfg.databaseURL.replace(/\/+$/, '') + '/planner/' + encodeURIComponent(cfg.syncId);
-}
-
-function cloudKeyUrl(fullKey) {
-  const base = cloudBaseUrl();
-  if (!base) return '';
-  return base + '/' + encodeURIComponent(fullKey) + '.json';
-}
-
-async function cloudPut(fullKey, value) {
-  const url = cloudKeyUrl(fullKey);
-  if (!url) return false;
-  const r = await fetch(url, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(value)
-  });
-  if (!r.ok) throw new Error('Cloud write failed (' + r.status + ')');
-  return true;
-}
-
-async function cloudGet(fullKey) {
-  const url = cloudKeyUrl(fullKey);
-  if (!url) return null;
-  const r = await fetch(url);
-  if (!r.ok) throw new Error('Cloud read failed (' + r.status + ')');
-  return await r.json();
-}
-
-function stopCloudPolling() {
-  if (_cloudPollTimer) clearInterval(_cloudPollTimer);
-  _cloudPollTimer = null;
-}
-
-function refreshActiveViewAfterCloudSync() {
-  const view = document.querySelector('.view.active');
-  if (!view) return;
-  if (view.id === 'view-calendar') buildCalGrid();
-  else if (view.id === 'view-month') loadMonthData();
-  else if (view.id === 'view-day') loadDayData(dateKey(dayViewDate));
-  else if (view.id === 'view-values') loadValuesData();
-  else if (view.id === 'view-notes') renderKeepNotes();
-}
-
-async function pollCloudUpdates() {
-  const base = cloudBaseUrl();
-  if (!base) return;
-  try {
-    const r = await fetch(base + '.json');
-    if (!r.ok) throw new Error('Cloud poll failed (' + r.status + ')');
-    const data = await r.json();
-    const payload = JSON.stringify(data || {});
-    if (payload === _cloudLastPayload) return;
-    _cloudLastPayload = payload;
-
-    let changed = false;
-    if (data && typeof data === 'object') {
-      for (const remoteKey in data) {
-        let fullKey = remoteKey;
-        try { fullKey = decodeURIComponent(remoteKey); } catch {}
-        const value = data[remoteKey];
-        if (fullKey.startsWith(STORAGE_PREFIX) && typeof value === 'string') {
-          const current = localStorage.getItem(fullKey);
-          if (current !== value) {
-            localStorage.setItem(fullKey, value);
-            changed = true;
-          }
-        }
-      }
-    }
-    if (changed) {
-      showToast('☁ Synced from cloud');
-      refreshActiveViewAfterCloudSync();
-    }
-    _cloudSyncLastError = '';
-  } catch (e) {
-    _cloudSyncLastError = e?.message || 'Cloud poll failed';
-    console.warn('Cloud polling failed:', e);
-  }
-}
-
-function startCloudPolling() {
-  stopCloudPolling();
-  if (!cloudEnabled()) return;
-  pollCloudUpdates();
-  _cloudPollTimer = setInterval(pollCloudUpdates, 5000);
-}
-
-async function storageSave(key, obj) {
-  try {
-    const fullKey = STORAGE_PREFIX + key;
-    const payload = { savedAt: new Date().toISOString(), data: obj };
-    const json = JSON.stringify(payload);
-    localStorage.setItem(fullKey, json);
-    if (cloudEnabled()) {
-      try {
-        await cloudPut(fullKey, json);
-      } catch (e) {
-        _cloudSyncLastError = e?.message || 'Cloud sync write failed';
-        console.warn('Cloud sync write failed:', e);
-      }
-    }
-    _pendingSave = false;
-    showAutoSaveIndicator();
-    return true;
-  } catch (e) {
-    if (e.name === 'QuotaExceededError') {
-      showToast('⚠️ Storage full. Try exporting a backup and resetting.');
-    } else {
-      showToast('⚠️ Could not save: ' + (e.message || 'Unknown error'));
-    }
-    return false;
-  }
-}
-
-async function storageLoad(key) {
-  try {
-    const fullKey = STORAGE_PREFIX + key;
-    if (cloudEnabled()) {
-      try {
-        const cloudVal = await cloudGet(fullKey);
-        if (typeof cloudVal === 'string') {
-          const parsed = JSON.parse(cloudVal);
-          const data = parsed.data != null ? parsed.data : parsed;
-          localStorage.setItem(fullKey, cloudVal);
-          _cloudSyncLastError = '';
-          return data;
-        }
-      } catch (e) {
-        _cloudSyncLastError = e?.message || 'Cloud sync read failed';
-        console.warn('Cloud sync read failed:', e);
-      }
-    }
-    const raw = localStorage.getItem(fullKey);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw);
-    return parsed.data != null ? parsed.data : parsed;
-  } catch {
-    return null;
-  }
-}
-
-function openCloudSyncModal() {
-  const cfg = getSyncConfig();
-  document.getElementById('syncIdInput').value = cfg ? cfg.syncId : '';
-  document.getElementById('firebaseUrlInput').value = cfg ? cfg.databaseURL : '';
-  document.getElementById('cloudSyncEnabled').checked = cfg ? cfg.enabled : false;
-  document.getElementById('cloudSyncOverlay').classList.add('open');
-}
-function closeCloudSyncModal() {
-  document.getElementById('cloudSyncOverlay').classList.remove('open');
-}
-function toggleCloudSync(enabled) {
-  document.getElementById('cloudSyncEnabled').checked = enabled;
-}
-function generateSyncId() {
-  document.getElementById('syncIdInput').value = 'planner-' + Date.now();
-}
-async function saveCloudSyncConfig() {
-  const syncId = (document.getElementById('syncIdInput').value || '').trim().replace(/[^a-zA-Z0-9_-]/g, '-') || ('planner-' + Date.now());
-  const databaseURL = (document.getElementById('firebaseUrlInput').value || '').trim().replace(/\/+$/, '');
-  const enabled = document.getElementById('cloudSyncEnabled').checked;
-  if (!databaseURL && enabled) {
-    showToast('Enter Firebase Database URL');
-    return;
-  }
-  if (enabled && !/^https:\/\/.+(\.firebaseio\.com|\.firebasedatabase\.app)$/.test(databaseURL)) {
-    showToast('Use full Firebase Realtime Database URL');
-    return;
-  }
-  const cfg = { syncId, databaseURL, enabled };
-  localStorage.setItem(SYNC_CONFIG_KEY, JSON.stringify(cfg));
-  document.getElementById('cloudSyncBtn').classList.toggle('btn-teal', enabled);
-  document.getElementById('cloudSyncBtn').classList.toggle('btn-ghost', !enabled);
-  if (cfg.enabled) {
-    _cloudSyncLastError = '';
-    try {
-      await cloudPut('__sync_probe__', JSON.stringify({ ok: 1, at: Date.now() }));
-      const probe = await cloudGet('__sync_probe__');
-      if (typeof probe !== 'string') throw new Error('Probe failed');
-      await cloudPut('__sync_probe__', null);
-    } catch (e) {
-      _cloudSyncLastError = e?.message || 'Check URL/network';
-      localStorage.setItem(SYNC_CONFIG_KEY, JSON.stringify({ syncId, databaseURL, enabled: false }));
-      document.getElementById('cloudSyncEnabled').checked = false;
-      document.getElementById('cloudSyncBtn').classList.remove('btn-teal');
-      document.getElementById('cloudSyncBtn').classList.add('btn-ghost');
-      showToast('Cloud sync failed: ' + (_cloudSyncLastError || 'Check URL/network'));
-      return;
-    }
-    closeCloudSyncModal();
-    let uploaded = 0;
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (key.startsWith(STORAGE_PREFIX) && key !== SYNC_CONFIG_KEY) {
-        try { await cloudPut(key, localStorage.getItem(key)); uploaded++; } catch {}
-      }
-    }
-    startCloudPolling();
-    showToast('☁ Cloud sync enabled (' + uploaded + ' items)');
-  } else {
-    stopCloudPolling();
-    _cloudLastPayload = '';
-    closeCloudSyncModal();
-    showToast('Cloud sync disabled');
-  }
-}
-
-/* ================================================================
-   TOAST, MODAL, AUTOSAVE
-================================================================ */
-function showToast(msg, bg) {
-  const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.style.background = bg || '';
-  t.classList.add('show');
-  clearTimeout(t._timer);
-  t._timer = setTimeout(() => t.classList.remove('show'), 3200);
-}
-
-function showAutoSaveIndicator() {
-  const el = document.getElementById('autosaveIndicator');
-  el.style.opacity = '1';
-  clearTimeout(el._t);
-  el._t = setTimeout(() => { el.style.opacity = '0'; }, 1800);
-}
-
-function showModal(title, body, confirmText, cb) {
-  document.getElementById('modalTitle').textContent = title;
-  document.getElementById('modalBody').innerHTML = body;
-  document.getElementById('modalConfirmBtn').textContent = confirmText || 'Confirm';
-  _modalCb = cb;
-  document.getElementById('modalOverlay').classList.add('open');
-}
-function closeModal() {
-  document.getElementById('modalOverlay').classList.remove('open');
-}
-document.getElementById('modalConfirmBtn').addEventListener('click', () => {
-  closeModal();
-  if (_modalCb) _modalCb();
-});
-
-/* ================================================================
-   EXPORT / IMPORT / RESET
-================================================================ */
-function exportPlanner() {
-  const allData = {};
-  for (let i = 0; i < localStorage.length; i++) {
-    const key = localStorage.key(i);
-    if (key.startsWith(STORAGE_PREFIX)) {
-      allData[key] = localStorage.getItem(key);
-    }
-  }
-  const blob = new Blob([JSON.stringify(allData, null, 2)], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = 'daniel-planner-backup-' + new Date().toISOString().slice(0, 10) + '.json';
-  a.click();
-  URL.revokeObjectURL(url);
-  showToast('✅ Backup exported!');
-}
-
-function importPlanner() {
-  const input = document.createElement('input');
-  input.type = 'file';
-  input.accept = 'application/json,.json';
-  input.onchange = e => {
-    const file = e.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = function(evt) {
-      try {
-        const data = JSON.parse(evt.target.result);
-        if (typeof data !== 'object') throw new Error('Invalid format');
-        let count = 0;
-        for (const k of Object.keys(data)) {
-          if (k.startsWith(STORAGE_PREFIX) && typeof data[k] === 'string') {
-            localStorage.setItem(k, data[k]);
-            count++;
-          }
-        }
-        showToast('✅ Restored ' + count + ' item(s)!');
-        setTimeout(() => location.reload(), 1200);
-      } catch {
-        showToast('Invalid backup file.');
-      }
-    };
-    reader.readAsText(file);
-  };
-  input.click();
-}
-
-function resetPlanner() {
-  showModal(
-    'Reset Planner',
-    '<p style="color:var(--gray-med);">Delete ALL planner data permanently? This cannot be undone.</p>',
-    'Delete All',
-    () => {
-      const keys = Object.keys(localStorage).filter(k => k.startsWith(STORAGE_PREFIX));
-      keys.forEach(k => localStorage.removeItem(k));
-      showToast('Planner reset.');
-      setTimeout(() => location.reload(), 1000);
-    }
-  );
-}
-
-function saveAllCurrent() {
-  const view = document.querySelector('.view.active');
-  if (view && view.id === 'view-day') saveDayPlanner();
-  else if (view && view.id === 'view-month') saveMonthData();
-  else if (view && view.id === 'view-values') { saveValuesData(); showToast('✅ Values saved!'); }
-  else if (view && view.id === 'view-notes') { saveKeepNotes(); showToast('✅ Notes saved!'); }
-  else showToast('Save from Day Planner, Monthly System, Governing Values, or KeepNotes.');
-}
-
-/* ================================================================
-   VIEW SWITCHING
-================================================================ */
-function showView(name) {
-  const current = document.querySelector('.view.active');
-  if (current) {
-    if (current.id === 'view-day') {
-      clearTimeout(_daySaveTimer);
-      _daySaveTimer = null;
-      saveDayPlanner();
-    } else if (current.id === 'view-month') {
-      clearTimeout(_monthSaveTimer);
-      _monthSaveTimer = null;
-      saveMonthData();
-    } else if (current.id === 'view-values') {
-      clearTimeout(_valuesSaveTimer);
-      _valuesSaveTimer = null;
-      saveValuesData();
-    }
-  }
-  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
-  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
-  document.getElementById('view-' + name).classList.add('active');
-  document.getElementById('nav-'  + name).classList.add('active');
-  if (name === 'calendar') renderCalendar();
-  if (name === 'month')    renderMonthView();
-  if (name === 'day')      renderDayView();
-  if (name === 'values')   loadValuesData();
-  if (name === 'notes')    renderKeepNotes();
-  if (name === 'values')   setupDateLinkifyForView('view-values');
-}
-
-/* ================================================================
-   CALENDAR VIEW
-================================================================ */
-function renderCalendar() {
-  const label = MONTHS[calMonth] + ' ' + calYear;
-  document.getElementById('calMonthTitle').textContent = label;
-  document.getElementById('calHeroTitle').textContent  = calYear;
-  document.title = 'Daniel Planner — ' + label;
-  buildCalGrid();
-}
-
-async function buildCalGrid() {
-  const grid = document.getElementById('calGrid');
-  grid.innerHTML = '';
-
-  ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].forEach(d => {
-    const el = document.createElement('div');
-    el.className = 'cal-day-label';
-    el.textContent = d;
-    grid.appendChild(el);
-  });
-
-  const firstDay = new Date(calYear, calMonth, 1).getDay();
-  const daysInMonth = new Date(calYear, calMonth+1, 0).getDate();
-
-  for (let i = 0; i < firstDay; i++) {
-    const el = document.createElement('div');
-    el.className = 'cal-cell empty';
-    grid.appendChild(el);
-  }
-
-  const keys = [];
-  for (let d = 1; d <= daysInMonth; d++) {
-    keys.push(dateKey(new Date(calYear, calMonth, d)));
-  }
-  const dataMap = {};
-  await Promise.all(keys.map(async k => {
-    const d = await storageLoad('day-' + k);
-    if (d) dataMap[k] = d;
-  }));
-
-  for (let d = 1; d <= daysInMonth; d++) {
-    const dt  = new Date(calYear, calMonth, d);
-    const dk  = dateKey(dt);
-    const isToday   = (dk === dateKey(TODAY));
-    const isSunday  = (dt.getDay() === 0);
-    const dayData   = dataMap[dk];
-    const hasData   = dayData && (
-      (dayData.mission && dayData.mission.trim()) ||
-      (dayData.tasks && dayData.tasks.some(t => t.text)) ||
-      (dayData.schedule && dayData.schedule.some(s => s.text))
-    );
-
-    const cell = document.createElement('div');
-    cell.className = 'cal-cell' + (isToday ? ' today' : '') + (isSunday ? ' sunday' : '') + (hasData ? ' has-data' : '');
-
-    const num = document.createElement('div');
-    num.className = 'cal-date-num';
-    num.textContent = d;
-    cell.appendChild(num);
-
-    if (hasData) {
-      const preview = document.createElement('div');
-      preview.className = 'cal-preview';
-      let shown = 0;
-      const addItem = (text, done) => {
-        if (shown >= 3) return;
-        const item = document.createElement('div');
-        item.className = 'cal-preview-item' + (done ? ' done' : '');
-        item.textContent = text;
-        preview.appendChild(item);
-        shown++;
-      };
-      (dayData.tasks || []).forEach(t => t.text && addItem((t.priority ? '['+t.priority+'] ':'') + t.text, t.status === 'completed' || t.done));
-      (dayData.schedule || []).forEach(s => s.text && addItem('⏰ ' + s.text, s.done));
-      const total = (dayData.tasks||[]).filter(t=>t.text).length + (dayData.schedule||[]).filter(s=>s.text).length;
-      if (total > shown) {
-        const more = document.createElement('div');
-        more.className = 'cal-preview-more';
-        more.textContent = '+' + (total - shown) + ' more…';
-        preview.appendChild(more);
-      }
-      cell.appendChild(preview);
-    }
-
-    cell.addEventListener('click', () => {
-      dayViewDate = new Date(calYear, calMonth, d);
-      showView('day');
-    });
-    grid.appendChild(cell);
-  }
-}
-
-function changeCalMonth(delta) {
-  calMonth += delta;
-  if (calMonth > 11) { calMonth = 0; calYear++; }
-  if (calMonth < 0) { calMonth = 11; calYear--; }
-  renderCalendar();
-}
-function changeCalYear(delta) { calYear += delta; renderCalendar(); }
-function goToToday() {
-  calYear = TODAY.getFullYear();
-  calMonth = TODAY.getMonth();
-  renderCalendar();
-}
-
-/* ================================================================
-   MONTH VIEW
-================================================================ */
-function renderMonthView() {
-  const label = MONTHS[monthViewMonth] + ' ' + monthViewYear;
-  document.getElementById('monthHeroTitle').textContent = label;
-  document.getElementById('monthViewLabel').textContent = label;
-  document.getElementById('mtaskMonthLabel').textContent = label;
-  document.getElementById('midxMonthLabel').textContent = label;
-  loadMonthData();
-}
-
-function changeMonthView(delta) {
-  monthViewMonth += delta;
-  if (monthViewMonth > 11) { monthViewMonth = 0; monthViewYear++; }
-  if (monthViewMonth < 0) { monthViewMonth = 11; monthViewYear--; }
-  renderMonthView();
-}
-
-async function loadMonthData() {
-  const data = await storageLoad('month-' + monthKey(monthViewYear, monthViewMonth));
-  const d = data || {};
-  document.getElementById('ref-mission').value = d.mission || '';
-  document.getElementById('ref-roles').value = d.roles || '';
-  document.getElementById('ref-budget').value = d.budget || '';
-  document.getElementById('ref-contacts').value = d.contacts || '';
-  document.getElementById('ref-health').value = d.health || '';
-  document.getElementById('ref-dates').value = d.keyDates || '';
-  document.getElementById('ref-notes').value = d.notes || '';
-  buildMasterTaskList(d.tasks || []);
-  buildMonthlyIndex(d.index || []);
-  updateMtaskStats();
-  setupDateLinkifyForView('view-month');
-}
-
-async function saveMonthData() {
-  const obj = {
-    mission: document.getElementById('ref-mission').value,
-    roles: document.getElementById('ref-roles').value,
-    budget: document.getElementById('ref-budget').value,
-    contacts: document.getElementById('ref-contacts').value,
-    health: document.getElementById('ref-health').value,
-    keyDates: document.getElementById('ref-dates').value,
-    notes: document.getElementById('ref-notes').value,
-    tasks: collectMasterTasks(),
-    index: collectMonthIndex()
-  };
-  const ok = await storageSave('month-' + monthKey(monthViewYear, monthViewMonth), obj);
-  if (ok) showToast('✅ Monthly data saved!');
-  updateMtaskStats();
-}
-
-function buildMasterTaskList(tasks) {
-  const container = document.getElementById('masterTaskList');
-  container.innerHTML = '';
-  const count = Math.max(20, tasks.length + 5);
-  for (let i = 0; i < count; i++) {
-    const t = tasks[i] || {};
-    const dueDisplay = t.due ? (t.due.match(/^\d{4}-\d{2}-\d{2}$/) ? formatToDdmmyyyy(t.due) : t.due) : '';
-    const row = document.createElement('div');
-    row.className = 'mtask-item';
-    row.innerHTML = `
-      <div class="mtask-num">${i+1}</div>
-      <select class="priority-sel" style="width:100%;" onchange="updateMtaskStats(); scheduleMonthSave()">
-        <option value="">—</option>
-        <option value="A" ${t.priority==='A'?'selected':''}>A — Vital</option>
-        <option value="B" ${t.priority==='B'?'selected':''}>B — Important</option>
-        <option value="C" ${t.priority==='C'?'selected':''}>C — Nice</option>
-      </select>
-      <input type="text" placeholder="Task description..." value="${esc(t.text||'')}" oninput="scheduleMonthSave()" />
-      <div class="mtask-due-wrap">
-        <input type="text" class="mtask-due mtask-due-input" placeholder="dd-mm-yyyy" value="${esc(dueDisplay)}" oninput="scheduleMonthSave()" maxlength="10" />
-        <button type="button" class="date-link-btn" onclick="goToDateFromMtask(this.previousElementSibling)" title="Open this day in Day Planner">📅</button>
-      </div>
-      <input type="checkbox" class="checkbox-inp" ${t.done?'checked':''} onchange="updateMtaskStats(); scheduleMonthSave()" />
-    `;
-    container.appendChild(row);
-  }
-  updateMtaskStats();
-}
-
-function addMasterTaskRow() {
-  const tasks = collectMasterTasks();
-  tasks.push({ priority:'', text:'', due:'', done:false });
-  buildMasterTaskList(tasks);
-  showToast('+ Row added');
-}
-
-function collectMasterTasks() {
-  const tasks = [];
-  document.querySelectorAll('.mtask-item').forEach(row => {
-    const dueEl = row.querySelector('.mtask-due');
-    const dueRaw = dueEl ? dueEl.value : '';
-    const dueIso = parseDdmmyyyy(dueRaw) || dueRaw;
-    tasks.push({
-      priority: row.querySelector('select').value,
-      text: row.querySelector('input[type="text"]:not(.mtask-due)').value,
-      due: dueIso,
-      done: row.querySelector('input[type="checkbox"]').checked
-    });
-  });
-  return tasks;
-}
-
-function updateMtaskStats() {
-  let total=0, done=0, a=0, b=0, c=0;
-  document.querySelectorAll('.mtask-item').forEach(row => {
-    const text = row.querySelector('input[type="text"]').value.trim();
-    if (!text) return;
-    total++;
-    if (row.querySelector('input[type="checkbox"]').checked) done++;
-    const p = row.querySelector('select').value;
-    if (p==='A') a++; else if (p==='B') b++; else if (p==='C') c++;
-  });
-  document.getElementById('mtaskStats').innerHTML = `
-    <div class="stat-pill">Total <strong>${total}</strong></div>
-    <div class="stat-pill">Done <strong>${done}</strong></div>
-    <div class="stat-pill">Left <strong>${total-done}</strong></div>
-    <div class="stat-pill"><span class="badge badge-A">A</span> <strong>${a}</strong></div>
-    <div class="stat-pill"><span class="badge badge-B">B</span> <strong>${b}</strong></div>
-    <div class="stat-pill"><span class="badge badge-C">C</span> <strong>${c}</strong></div>
-  `;
-}
-
-function buildMonthlyIndex(entries) {
-  const container = document.getElementById('monthlyIndex');
-  container.innerHTML = '';
-  const daysInMonth = new Date(monthViewYear, monthViewMonth+1, 0).getDate();
-  for (let d = 1; d <= daysInMonth; d++) {
-    const e = (entries && entries[d-1]) ? entries[d-1] : {};
-    const row = document.createElement('div');
-    row.className = 'idx-item';
-    row.innerHTML = `
-      <button type="button" class="idx-day-num" onclick="openDayFromIndex(${d})" title="Open Day Planner for ${String(d).padStart(2,'0')}-${String(monthViewMonth+1).padStart(2,'0')}-${monthViewYear}">${d}</button>
-      <input type="text" placeholder="Summary of the day..." value="${esc(e.summary||'')}" oninput="scheduleMonthSave()" />
-      <input type="text" placeholder="Category" value="${esc(e.category||'')}" oninput="scheduleMonthSave()" />
-      <button class="btn btn-teal btn-xs" onclick="openDayFromIndex(${d})" title="Open Day Planner">📝</button>
-    `;
-    container.appendChild(row);
-  }
-}
-
-function openDayFromIndex(day) {
-  dayViewDate = new Date(monthViewYear, monthViewMonth, day);
-  showView('day');
-}
-
-function collectMonthIndex() {
-  const entries = [];
-  document.querySelectorAll('.idx-item').forEach(row => {
-    const inputs = row.querySelectorAll('input[type="text"]');
-    entries.push({ summary: inputs[0].value, category: inputs[1].value });
-  });
-  return entries;
-}
-
-function switchMonthTab(name, el) {
-  document.querySelectorAll('.month-tab').forEach(t => t.classList.remove('active'));
-  document.querySelectorAll('.month-panel').forEach(p => p.classList.remove('active'));
-  el.classList.add('active');
-  document.getElementById('mpanel-' + name).classList.add('active');
-}
-
-function scheduleMonthSave() {
-  clearTimeout(_monthSaveTimer);
-  _monthSaveTimer = setTimeout(saveMonthData, 1400);
-}
-
-/* ================================================================
-   GOVERNING VALUES
-================================================================ */
-async function loadValuesData() {
-  const data = await storageLoad('governing-values');
-  if (!data) return;
-  GOVERNING_VALUES_KEYS.forEach(k => {
-    const el = document.getElementById('val-' + k);
-    if (el && data[k] != null) el.value = data[k];
-  });
-}
-async function saveValuesData() {
-  const obj = {};
-  GOVERNING_VALUES_KEYS.forEach(k => {
-    const el = document.getElementById('val-' + k);
-    if (el) obj[k] = el.value || '';
-  });
-  await storageSave('governing-values', obj);
-  showAutoSaveIndicator();
-}
-function scheduleValuesSave() {
-  clearTimeout(_valuesSaveTimer);
-  _valuesSaveTimer = setTimeout(saveValuesData, 1200);
-}
-
-/* ================================================================
-   KEEPNOTES
-================================================================ */
-const KEEP_COLORS = ['yellow','pink','blue','green','purple','white'];
-let _keepNotes = [];
-let _keepSaveTimer = null;
-
-async function loadKeepNotes() {
-  const data = await storageLoad('keep-notes');
-  _keepNotes = Array.isArray(data) ? data : [];
-  return _keepNotes;
-}
-async function saveKeepNotes() {
-  await storageSave('keep-notes', _keepNotes);
-  showAutoSaveIndicator();
-}
-function scheduleKeepSave() {
-  clearTimeout(_keepSaveTimer);
-  _keepSaveTimer = setTimeout(saveKeepNotes, 800);
-}
-function focusKeepNewNote() {
-  document.getElementById('keepNewTitle').focus();
-}
-function addKeepNote() {
-  const title = (document.getElementById('keepNewTitle').value || '').trim();
-  const body = (document.getElementById('keepNewBody').value || '').trim();
-  if (!title && !body) { showToast('Add some text'); return; }
-  _keepNotes.push({
-    id: Date.now(),
-    title,
-    body,
-    color: 'yellow',
-    pinned: false,
-    createdAt: new Date().toISOString()
-  });
-  document.getElementById('keepNewTitle').value = '';
-  document.getElementById('keepNewBody').value = '';
-  renderKeepNotes();
-  scheduleKeepSave();
-  showToast('Note added');
-}
-function deleteKeepNote(id) {
-  _keepNotes = _keepNotes.filter(n => n.id !== id);
-  renderKeepNotes();
-  scheduleKeepSave();
-  showToast('Note deleted');
-}
-function togglePinKeepNote(id) {
-  const n = _keepNotes.find(nn => nn.id === id);
-  if (n) { n.pinned = !n.pinned; renderKeepNotes(); scheduleKeepSave(); }
-}
-function changeKeepNoteColor(id) {
-  const n = _keepNotes.find(nn => nn.id === id);
-  if (!n) return;
-  const idx = KEEP_COLORS.indexOf(n.color || 'yellow');
-  n.color = KEEP_COLORS[(idx + 1) % KEEP_COLORS.length];
-  renderKeepNotes();
-  scheduleKeepSave();
-}
-function updateKeepNote(id, title, body) {
-  const n = _keepNotes.find(nn => nn.id === id);
-  if (n) { n.title = title; n.body = body; n.updatedAt = new Date().toISOString(); scheduleKeepSave(); }
-}
-async function renderKeepNotes() {
-  await loadKeepNotes();
-  const grid = document.getElementById('keepNotesGrid');
-  if (!grid) return;
-  const sorted = [..._keepNotes].sort((a,b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0) || (b.id - a.id));
-  grid.innerHTML = sorted.map(n => {
-    const colorClass = 'keep-note-color-' + (n.color || 'yellow');
-    const pinClass = n.pinned ? ' pinned' : '';
-    return `<div class="keep-note ${colorClass}${pinClass}" data-id="${n.id}">
-      <div class="keep-note-title" contenteditable="true" onblur="updateKeepNoteFromCard(${n.id});linkifyDatesInContentEditable(this)">${linkifyText(n.title || '')}</div>
-      <div class="keep-note-body" contenteditable="true" onblur="updateKeepNoteFromCard(${n.id});linkifyDatesInContentEditable(this)">${linkifyText(n.body || '')}</div>
-      <div class="keep-note-actions">
-        <button class="keep-note-btn" onclick="togglePinKeepNote(${n.id})" title="Pin">📌</button>
-        <button class="keep-note-btn" onclick="changeKeepNoteColor(${n.id})" title="Change color">🎨</button>
-        <button class="keep-note-btn" onclick="deleteKeepNote(${n.id})" title="Delete">🗑</button>
-      </div>
-    </div>`;
-  }).join('');
-  setupDateLinkifyForView('view-notes');
-}
-function updateKeepNoteFromCard(id) {
-  const card = document.querySelector('.keep-note[data-id="' + id + '"]');
-  if (!card) return;
-  const titleEl = card.querySelector('.keep-note-title');
-  const bodyEl = card.querySelector('.keep-note-body');
-  if (titleEl && bodyEl) updateKeepNote(id, titleEl.textContent.trim(), bodyEl.textContent.trim());
-}
-
-/* ================================================================
-   DAY PLANNER
-================================================================ */
-function buildDayUI() {
-  if (_dayUIBuilt) return;
-  _dayUIBuilt = true;
-
-  const taskList = document.getElementById('dayTaskList');
-  taskList.innerHTML = '';
-  for (let i = 1; i <= 10; i++) {
-    const row = document.createElement('div');
-    row.className = 'task-row';
-    row.id = 'dt-row-' + i;
-    row.innerHTML = `
-      <div class="task-row-num">${i}</div>
-      <select class="priority-sel" id="dt-pri-${i}" onchange="applyPriStyle(${i}); scheduleDaySave()">
-        <option value="">—</option>
-        <option value="A">A</option>
-        <option value="B">B</option>
-        <option value="C">C</option>
-      </select>
-      <input type="text" id="dt-txt-${i}" placeholder="Task description..." oninput="scheduleDaySave()" />
-      <select class="task-status-sel" id="dt-status-${i}" onchange="toggleStatusRow(${i}); scheduleDaySave()">
-        <option value="">—</option>
-        <option value="completed">✓ Completed</option>
-        <option value="rescheduled">→ Rescheduled</option>
-        <option value="delegated">✗ Delegated</option>
-        <option value="inprocess">◯ In Process</option>
-      </select>
-    `;
-    taskList.appendChild(row);
-  }
-
-  const sched = document.getElementById('daySchedule');
-  sched.innerHTML = '';
-  for (let h = 6; h <= 21; h++) {
-    const lbl = h === 12 ? '12:00 PM' : h > 12 ? (h-12) + ':00 PM' : h + ':00 AM';
-    const row = document.createElement('div');
-    row.className = 'time-row';
-    row.innerHTML = `
-      <div class="time-lbl hour">${lbl}</div>
-      <input type="text" id="ds-txt-${h}" placeholder="Appointment or event..." oninput="scheduleDaySave()" />
-      <input type="checkbox" class="checkbox-inp" id="ds-chk-${h}" onchange="scheduleDaySave()" />
-    `;
-    sched.appendChild(row);
-  }
-}
-
-function applyPriStyle(i) {
-  const sel = document.getElementById('dt-pri-' + i);
-  if (!sel) return;
-  const v = sel.value;
-  sel.style.color = v==='A' ? '#C62828' : v==='B' ? '#E65100' : v==='C' ? '#1565C0' : '';
-  sel.style.borderColor = v==='A' ? '#C62828' : v==='B' ? '#E65100' : v==='C' ? '#1565C0' : '';
-}
-
-function toggleStatusRow(i) {
-  const row = document.getElementById('dt-row-' + i);
-  const sel = document.getElementById('dt-status-' + i);
-  if (!row || !sel) return;
-  row.classList.toggle('done-row', sel.value === 'completed');
-}
-
-function renderDayView() {
-  buildDayUI();
-
-  const dk = dateKey(dayViewDate);
-  const dayNum = dayViewDate.getDate();
-  const dayName = DAYS[dayViewDate.getDay()];
-  const monthNm = MONTHS[dayViewDate.getMonth()];
-  const fullDate = dayName + ', ' + monthNm + ' ' + dayNum + ', ' + dayViewDate.getFullYear();
-
-  document.getElementById('dayHeroTitle').textContent = fullDate;
-  document.getElementById('dayViewTitle').textContent = fullDate;
-  document.getElementById('dayBigNum').textContent = dayNum;
-  document.getElementById('dayDateInput').value = dk;
-  document.getElementById('dayDayName').value = dayName;
-
-  _dayLoading = true;
-  clearTimeout(_daySaveTimer);
-  clearDayFields();
-  loadDayData(dk).then(() => { _dayLoading = false; setupDateLinkifyForView('view-day'); });
-}
-
-function clearDayFields() {
-  document.getElementById('dayMission').value = '';
-  document.getElementById('dayNotes').value = '';
-  for (let i = 1; i <= 10; i++) {
-    const pri = document.getElementById('dt-pri-' + i); if (pri) { pri.value=''; pri.style.color=''; pri.style.borderColor=''; }
-    const txt = document.getElementById('dt-txt-' + i); if (txt) txt.value = '';
-    const status = document.getElementById('dt-status-' + i); if (status) status.value = '';
-    const row = document.getElementById('dt-row-' + i); if (row) row.classList.remove('done-row');
-  }
-  for (let h = 6; h <= 21; h++) {
-    const txt = document.getElementById('ds-txt-' + h); if (txt) txt.value = '';
-    const chk = document.getElementById('ds-chk-' + h); if (chk) chk.checked = false;
-  }
-}
-
-async function loadDayData(dk) {
-  const data = await storageLoad('day-' + dk);
-  if (!data) return;
-
-  document.getElementById('dayMission').value = data.mission || '';
-  document.getElementById('dayNotes').value = data.notes || '';
-
-  if (data.tasks) {
-    data.tasks.forEach((t, idx) => {
-      const i = idx + 1;
-      const pri = document.getElementById('dt-pri-' + i); if (pri) { pri.value = t.priority || ''; applyPriStyle(i); }
-      const txt = document.getElementById('dt-txt-' + i); if (txt) txt.value = t.text || '';
-      const status = document.getElementById('dt-status-' + i);
-      if (status) {
-        status.value = t.status || (t.done ? 'completed' : '');
-        toggleStatusRow(i);
-      }
-    });
-  }
-
-  if (data.schedule) {
-    data.schedule.forEach((s, idx) => {
-      const h = 6 + idx;
-      const txt = document.getElementById('ds-txt-' + h); if (txt) txt.value = s.text || '';
-      const chk = document.getElementById('ds-chk-' + h); if (chk) chk.checked = !!s.done;
-    });
-  }
-}
-
-async function saveDayPlanner() {
-  const dk = dateKey(dayViewDate);
-  const tasks = [];
-  for (let i = 1; i <= 10; i++) {
-    const status = (document.getElementById('dt-status-' + i) || {}).value || '';
-    tasks.push({
-      priority: (document.getElementById('dt-pri-' + i) || {}).value || '',
-      text: (document.getElementById('dt-txt-' + i) || {}).value || '',
-      status,
-      done: status === 'completed'
-    });
-  }
-  const schedule = [];
-  for (let h = 6; h <= 21; h++) {
-    schedule.push({
-      hour: h,
-      text: (document.getElementById('ds-txt-' + h) || {}).value || '',
-      done: !!(document.getElementById('ds-chk-' + h) || {}).checked
-    });
-  }
-  const obj = {
-    date: dk,
-    mission: document.getElementById('dayMission').value,
-    notes: document.getElementById('dayNotes').value,
-    tasks,
-    schedule,
-    savedAt: new Date().toISOString()
-  };
-  const ok = await storageSave('day-' + dk, obj);
-  if (ok) {
-    showToast('✅ Saved — ' + dk);
-    syncIndexFromDay(dayViewDate, obj);
-  }
-}
-
-function scheduleDaySave() {
-  if (_dayLoading) return;
-  _pendingSave = true;
-  clearTimeout(_daySaveTimer);
-  _daySaveTimer = setTimeout(saveDayPlanner, 1500);
-}
-
-async function loadDayPlanner() {
-  _dayLoading = true;
-  clearTimeout(_daySaveTimer);
-  clearDayFields();
-  await loadDayData(dateKey(dayViewDate));
-  _dayLoading = false;
-  showToast('📂 Day planner loaded!');
-}
-
-function clearDayPlanner() {
-  showModal(
-    'Clear Day Planner',
-    '<p style="color:var(--gray-med);">Clear all fields? Saved data is not deleted.</p>',
-    'Clear',
-    () => { clearDayFields(); showToast('🗑️ Fields cleared'); }
-  );
-}
-
-function changeDayView(delta) {
-  const d = new Date(dayViewDate);
-  d.setDate(d.getDate() + delta);
-  dayViewDate = d;
-  renderDayView();
-}
-function goToDayToday() { dayViewDate = new Date(TODAY); renderDayView(); }
-
-document.getElementById('dayDateInput').addEventListener('change', function() {
-  dayViewDate = new Date(this.value + 'T00:00:00');
-  renderDayView();
-});
-
-async function syncIndexFromDay(dt, dayData) {
-  const mk = monthKey(dt.getFullYear(), dt.getMonth());
-  const prev = await storageLoad('month-' + mk) || {};
-  const days = new Date(dt.getFullYear(), dt.getMonth()+1, 0).getDate();
-  const index = Array.from({ length: days }, (_, i) => {
-    return (prev.index && prev.index[i]) ? Object.assign({}, prev.index[i]) : {};
-  });
-  const d = dt.getDate() - 1;
-  let summary = '';
-  if (dayData.mission && dayData.mission.trim()) {
-    summary = dayData.mission.substring(0, 60);
-  } else {
-    const ft = (dayData.tasks || []).find(t => t.text);
-    if (ft) summary = (ft.priority ? '['+ft.priority+'] ' : '') + ft.text.substring(0, 50);
-  }
-  if (summary) {
-    index[d].summary = summary;
-    prev.index = index;
-    if (!prev.tasks) prev.tasks = [];
-    await storageSave('month-' + mk, prev);
-  }
-}
-
-/* ================================================================
-   UTILITIES
-================================================================ */
-function esc(s) {
-  return (s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-}
-
-window.addEventListener('beforeunload', function(e) {
-  if (_pendingSave) {
-    e.preventDefault();
-    e.returnValue = 'You have unsaved changes.';
-  }
-});
-
-/* ================================================================
-   INIT
-================================================================ */
-window.addEventListener('DOMContentLoaded', () => {
-  buildDayUI();
-  renderCalendar();
-  const cfg = getSyncConfig();
-  if (cfg && cfg.enabled) {
-    document.getElementById('cloudSyncBtn').classList.add('btn-teal');
-    document.getElementById('cloudSyncBtn').classList.remove('btn-ghost');
-    startCloudPolling();
-    showToast('☁ Cloud sync connected');
-  }
-});
-</script>
-</body>
+    <script src="./engine.js"></script>
+    <script src="./app.js"></script>
+    <script>
+      // Secondary regenerate button lives in Plan view; wire it here so app.js stays simple.
+      window.addEventListener("DOMContentLoaded", () => {
+        const btn = document.getElementById("btnGenerate2");
+        if (btn) btn.addEventListener("click", () => document.getElementById("btnGenerate")?.click());
+      });
+    </script>
+  </body>
 </html>
+
