@@ -1,0 +1,974 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Vocal Training Tracker</title>
+    <meta name="description" content="Track your vocal training: practice sessions, exercises, range/sustain metrics, and progress charts. Stored locally with export/import." />
+    <style>
+      *, *::before, *::after { box-sizing: border-box; }
+      :root{
+        --bg: #0b1220;
+        --panel: rgba(255,255,255,0.06);
+        --panel2: rgba(255,255,255,0.10);
+        --border: rgba(255,255,255,0.14);
+        --text: rgba(255,255,255,0.92);
+        --muted: rgba(255,255,255,0.72);
+        --faint: rgba(255,255,255,0.55);
+        --accent: #39d98a;
+        --accent2: #58a6ff;
+        --warn: #ffb020;
+        --danger: #ff4d4f;
+        --shadow: 0 18px 60px rgba(0,0,0,0.45);
+        --radius: 14px;
+      }
+      html, body { height: 100%; }
+      body{
+        margin: 0;
+        font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+        color: var(--text);
+        background:
+          radial-gradient(1200px 800px at 15% 10%, rgba(88,166,255,0.24), transparent 60%),
+          radial-gradient(1000px 700px at 85% 15%, rgba(57,217,138,0.18), transparent 55%),
+          radial-gradient(900px 700px at 50% 110%, rgba(255,176,32,0.10), transparent 60%),
+          var(--bg);
+      }
+      button, input, select, textarea { font: inherit; color: inherit; }
+      a { color: inherit; }
+
+      .app{ max-width: 1200px; margin: 0 auto; padding: 22px 18px 48px; }
+      .topbar{
+        display:flex; align-items:center; justify-content: space-between; gap: 14px; flex-wrap: wrap;
+        padding: 16px 18px; border: 1px solid var(--border); border-radius: var(--radius);
+        background: rgba(0,0,0,0.20); box-shadow: var(--shadow);
+        position: sticky; top: 12px; z-index: 50; backdrop-filter: blur(10px);
+      }
+      .brand{ display:flex; flex-direction: column; gap: 2px; min-width: 240px; }
+      .brand .title{ font-weight: 900; letter-spacing:-0.02em; font-size: 1.05rem; }
+      .brand .sub{ color: var(--muted); font-size: 0.82rem; }
+
+      .nav{ display:flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+      .tab{
+        border: 1px solid transparent; background: transparent; color: var(--muted);
+        padding: 10px 12px; border-radius: 12px; cursor: pointer;
+        transition: transform 120ms ease, background 120ms ease, border-color 120ms ease, color 120ms ease;
+        user-select: none;
+      }
+      .tab:hover{ transform: translateY(-1px); background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.10); color: var(--text); }
+      .tab.active{ background: rgba(88,166,255,0.12); border-color: rgba(88,166,255,0.35); color: var(--text); }
+
+      .actions{ display:flex; gap: 10px; flex-wrap: wrap; justify-content: flex-end; }
+      .btn{
+        padding: 10px 12px; border-radius: 12px;
+        border: 1px solid var(--border); background: rgba(255,255,255,0.06);
+        cursor: pointer; transition: transform 120ms ease, background 120ms ease, border-color 120ms ease;
+      }
+      .btn:hover{ transform: translateY(-1px); background: rgba(255,255,255,0.09); border-color: rgba(255,255,255,0.18); }
+      .btn.primary{ background: rgba(57,217,138,0.12); border-color: rgba(57,217,138,0.38); }
+      .btn.danger{ background: rgba(255,77,79,0.12); border-color: rgba(255,77,79,0.38); }
+      .btn.small{ padding: 8px 10px; border-radius: 10px; font-size: 0.92rem; }
+
+      .hero{
+        margin-top: 18px; padding: 18px; border-radius: var(--radius); border: 1px solid var(--border);
+        background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(0,0,0,0.12));
+      }
+      .hero h1{ margin: 0 0 8px; font-size: 1.55rem; letter-spacing:-0.02em; }
+      .hero p{ margin: 0; color: var(--muted); line-height: 1.5; }
+      .pillrow{ margin-top: 12px; display:flex; gap: 10px; flex-wrap: wrap; }
+      .pill{
+        padding: 8px 10px; border-radius: 999px; border: 1px solid var(--border);
+        background: rgba(255,255,255,0.05); color: var(--muted); font-size: 0.9rem;
+      }
+      .pill strong{ color: var(--text); font-weight: 900; }
+
+      .view{ display:none; }
+      .view.active{ display:block; }
+      .grid{ margin-top: 18px; display:grid; grid-template-columns: 1fr; gap: 14px; }
+      @media (min-width: 980px){ .grid.two{ grid-template-columns: 1fr 1fr; } .grid.three{ grid-template-columns: 1.05fr 1fr 1fr; } }
+      .card{
+        border-radius: var(--radius); border: 1px solid var(--border);
+        background: rgba(255,255,255,0.04);
+        box-shadow: 0 12px 40px rgba(0,0,0,0.25);
+        overflow:hidden;
+      }
+      .card .head{
+        padding: 14px 16px; display:flex; align-items:center; justify-content: space-between; gap: 12px;
+        background: rgba(0,0,0,0.20); border-bottom: 1px solid rgba(255,255,255,0.08);
+      }
+      .card .head .h{ font-weight: 900; letter-spacing:-0.01em; }
+      .card .body{ padding: 16px; }
+
+      .form{ display:grid; grid-template-columns: 1fr; gap: 12px; }
+      @media (min-width: 720px){ .form.two{ grid-template-columns: 1fr 1fr; } .form.three{ grid-template-columns: 1fr 1fr 1fr; } }
+      .field label{ display:block; font-size: 0.88rem; color: var(--muted); margin-bottom: 6px; }
+      .field input, .field select, .field textarea{
+        width: 100%; border-radius: 12px; border: 1px solid rgba(255,255,255,0.14);
+        background: rgba(0,0,0,0.20); padding: 10px 12px; outline: none;
+      }
+      .field input:focus, .field select:focus, .field textarea:focus{
+        border-color: rgba(88,166,255,0.55);
+        box-shadow: 0 0 0 4px rgba(88,166,255,0.14);
+      }
+      .field textarea{ min-height: 92px; resize: vertical; line-height: 1.45; }
+      .hint{ margin-top: 8px; color: var(--faint); font-size: 0.88rem; line-height: 1.45; }
+
+      .list{ display:flex; flex-direction: column; gap: 10px; }
+      .item{
+        border: 1px solid rgba(255,255,255,0.12);
+        border-radius: 14px;
+        background: rgba(255,255,255,0.04);
+        padding: 12px;
+        display:flex; align-items:flex-start; justify-content: space-between; gap: 12px;
+      }
+      .item .meta{ display:flex; flex-direction: column; gap: 4px; }
+      .item .meta .t{ font-weight: 900; }
+      .item .meta .d{ color: var(--muted); font-size: 0.88rem; }
+      .item .meta .n{ color: var(--faint); font-size: 0.88rem; white-space: pre-wrap; }
+      .item .right{ display:flex; gap: 8px; align-items:center; }
+
+      .canvaswrap{
+        border: 1px solid rgba(255,255,255,0.12);
+        border-radius: 14px;
+        background: rgba(0,0,0,0.18);
+        padding: 12px;
+      }
+      canvas{ width: 100%; height: 220px; display:block; }
+
+      .toast{
+        position: fixed; bottom: 16px; right: 16px;
+        background: rgba(0,0,0,0.70); border: 1px solid rgba(255,255,255,0.16);
+        color: var(--text); padding: 10px 12px; border-radius: 12px; box-shadow: var(--shadow);
+        opacity: 0; transform: translateY(12px);
+        transition: opacity 160ms ease, transform 160ms ease;
+        z-index: 100; max-width: 520px;
+      }
+      .toast.show{ opacity:1; transform: translateY(0); }
+
+      .mono{ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+      .neg{ color: rgba(255,77,79,0.95); font-weight: 900; }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <header class="topbar">
+        <div class="brand">
+          <div class="title">Vocal Training Tracker</div>
+          <div class="sub">Log sessions • Track range & sustain • See progress</div>
+        </div>
+        <nav class="nav" aria-label="Primary">
+          <button class="tab" id="tab-dashboard" type="button">Dashboard</button>
+          <button class="tab" id="tab-log" type="button">Log Session</button>
+          <button class="tab" id="tab-exercises" type="button">Exercises</button>
+          <button class="tab" id="tab-progress" type="button">Progress</button>
+          <button class="tab" id="tab-settings" type="button">Settings</button>
+        </nav>
+        <div class="actions">
+          <button class="btn small" type="button" id="btnExport">Export</button>
+          <button class="btn small" type="button" id="btnImport">Import</button>
+          <button class="btn small danger" type="button" id="btnReset">Reset</button>
+        </div>
+      </header>
+
+      <section class="hero" aria-live="polite">
+        <h1 id="heroTitle">Your Vocal Training System</h1>
+        <p>Keep practice consistent, measure what matters, and review trends weekly.</p>
+        <div class="pillrow">
+          <div class="pill" id="pillSessions"><strong>Sessions</strong> —</div>
+          <div class="pill" id="pillWeek"><strong>This week</strong> —</div>
+          <div class="pill" id="pillRange"><strong>Best range</strong> —</div>
+          <div class="pill" id="pillUpdated"><strong>Updated</strong> —</div>
+        </div>
+      </section>
+
+      <!-- VIEW: DASHBOARD -->
+      <section class="view" id="view-dashboard">
+        <div class="grid two">
+          <div class="card">
+            <div class="head"><div class="h">Quick log</div></div>
+            <div class="body">
+              <div class="form two">
+                <div class="field">
+                  <label for="q_date">Date</label>
+                  <input id="q_date" type="date" />
+                </div>
+                <div class="field">
+                  <label for="q_minutes">Minutes</label>
+                  <input id="q_minutes" type="number" min="0" max="300" placeholder="e.g. 25" />
+                </div>
+              </div>
+              <div class="form two" style="margin-top:12px;">
+                <div class="field">
+                  <label for="q_low">Lowest note (optional)</label>
+                  <input id="q_low" type="text" placeholder="e.g. E2" />
+                </div>
+                <div class="field">
+                  <label for="q_high">Highest note (optional)</label>
+                  <input id="q_high" type="text" placeholder="e.g. A4" />
+                </div>
+              </div>
+              <div class="form two" style="margin-top:12px;">
+                <div class="field">
+                  <label for="q_sustain">Best sustain (seconds) (optional)</label>
+                  <input id="q_sustain" type="number" min="0" max="120" placeholder="e.g. 18" />
+                </div>
+                <div class="field">
+                  <label for="q_rating">Session rating (1–10)</label>
+                  <input id="q_rating" type="number" min="1" max="10" placeholder="e.g. 7" />
+                </div>
+              </div>
+              <div class="field" style="margin-top:12px;">
+                <label for="q_notes">Notes</label>
+                <textarea id="q_notes" placeholder="What improved? What felt tight? What to focus on next time?"></textarea>
+              </div>
+              <div style="display:flex; gap: 10px; flex-wrap: wrap; margin-top: 12px;">
+                <button class="btn primary" type="button" id="btnQuickAdd">Add session</button>
+                <button class="btn" type="button" id="btnGoLog">Open full logger</button>
+              </div>
+              <div class="hint">Notes support formats like C4, F#3, Bb2. Range tracking is optional.</div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="head"><div class="h">Recent sessions</div></div>
+            <div class="body" id="recentSessions"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- VIEW: LOG -->
+      <section class="view" id="view-log">
+        <div class="grid two">
+          <div class="card">
+            <div class="head">
+              <div class="h">Log a session</div>
+              <div class="actions">
+                <button class="btn small" type="button" id="btnStartTimer">Start timer</button>
+                <button class="btn small" type="button" id="btnStopTimer">Stop</button>
+              </div>
+            </div>
+            <div class="body">
+              <div class="form two">
+                <div class="field">
+                  <label for="s_date">Date</label>
+                  <input id="s_date" type="date" />
+                </div>
+                <div class="field">
+                  <label for="s_minutes">Total minutes</label>
+                  <input id="s_minutes" type="number" min="0" max="300" placeholder="e.g. 45" />
+                </div>
+              </div>
+              <div class="form three" style="margin-top:12px;">
+                <div class="field">
+                  <label for="s_low">Lowest note (optional)</label>
+                  <input id="s_low" type="text" placeholder="e.g. E2" />
+                </div>
+                <div class="field">
+                  <label for="s_high">Highest note (optional)</label>
+                  <input id="s_high" type="text" placeholder="e.g. A4" />
+                </div>
+                <div class="field">
+                  <label for="s_sustain">Best sustain (seconds) (optional)</label>
+                  <input id="s_sustain" type="number" min="0" max="120" placeholder="e.g. 20" />
+                </div>
+              </div>
+              <div class="form two" style="margin-top:12px;">
+                <div class="field">
+                  <label for="s_focus">Focus (optional)</label>
+                  <input id="s_focus" type="text" placeholder="e.g. breath support, mix, resonance" />
+                </div>
+                <div class="field">
+                  <label for="s_rating">Session rating (1–10)</label>
+                  <input id="s_rating" type="number" min="1" max="10" placeholder="e.g. 8" />
+                </div>
+              </div>
+              <div class="field" style="margin-top:12px;">
+                <label for="s_exercises">Exercises performed (one per line)</label>
+                <textarea id="s_exercises" placeholder="e.g.&#10;SOVT straw (5m)&#10;Lip trills sirens (8m)&#10;Major scale 1-3-5-8 (10m)&#10;Song: chorus x3"></textarea>
+              </div>
+              <div class="field" style="margin-top:12px;">
+                <label for="s_notes">Notes</label>
+                <textarea id="s_notes" placeholder="What improved? Any tension? What to do next time?"></textarea>
+              </div>
+              <div style="display:flex; gap: 10px; flex-wrap: wrap; margin-top: 12px;">
+                <button class="btn primary" type="button" id="btnAddSession">Save session</button>
+                <button class="btn" type="button" id="btnClearSession">Clear</button>
+              </div>
+              <div class="hint">
+                Tip: Keep it simple. Minutes + a focus note + one metric (range OR sustain) is enough to see progress over time.
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="head"><div class="h">Session library</div></div>
+            <div class="body" id="sessionList"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- VIEW: EXERCISES -->
+      <section class="view" id="view-exercises">
+        <div class="grid two">
+          <div class="card">
+            <div class="head"><div class="h">Exercise templates</div></div>
+            <div class="body">
+              <div class="hint">Use these as quick copy/paste into your session. Customize anytime.</div>
+              <div class="list" id="exerciseTemplates"></div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="head"><div class="h">Your goals</div></div>
+            <div class="body">
+              <div class="field">
+                <label for="g_goal">Main goal</label>
+                <input id="g_goal" type="text" placeholder="e.g. Increase range to C5, improve stamina, reduce tension" />
+              </div>
+              <div class="form two" style="margin-top:12px;">
+                <div class="field">
+                  <label for="g_voiceType">Voice type (optional)</label>
+                  <select id="g_voiceType">
+                    <option value="">—</option>
+                    <option value="soprano">Soprano</option>
+                    <option value="mezzo">Mezzo-soprano</option>
+                    <option value="alto">Alto</option>
+                    <option value="tenor">Tenor</option>
+                    <option value="baritone">Baritone</option>
+                    <option value="bass">Bass</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label for="g_targetDays">Target days/week</label>
+                  <select id="g_targetDays">
+                    <option value="2">2</option>
+                    <option value="3">3</option>
+                    <option value="4">4</option>
+                    <option value="5">5</option>
+                    <option value="6">6</option>
+                    <option value="7">7</option>
+                  </select>
+                </div>
+              </div>
+              <div class="field" style="margin-top:12px;">
+                <label for="g_notes">Constraints / reminders</label>
+                <textarea id="g_notes" placeholder="e.g. Avoid pushing high notes; keep jaw loose; hydrate; warm-up first"></textarea>
+              </div>
+              <div style="display:flex; gap: 10px; flex-wrap: wrap; margin-top: 12px;">
+                <button class="btn primary" type="button" id="btnSaveGoals">Save goals</button>
+              </div>
+              <div class="hint">Saved locally. Export if you want a backup.</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- VIEW: PROGRESS -->
+      <section class="view" id="view-progress">
+        <div class="grid two">
+          <div class="card">
+            <div class="head"><div class="h">Minutes over time</div></div>
+            <div class="body">
+              <div class="canvaswrap"><canvas id="chartMinutes"></canvas></div>
+              <div class="hint">Trend is based on your logged sessions.</div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="head"><div class="h">Range over time (optional)</div></div>
+            <div class="body">
+              <div class="canvaswrap"><canvas id="chartRange"></canvas></div>
+              <div class="hint">Log lowest & highest notes to see range changes.</div>
+            </div>
+          </div>
+        </div>
+        <div class="grid two">
+          <div class="card">
+            <div class="head"><div class="h">Sustain over time (optional)</div></div>
+            <div class="body">
+              <div class="canvaswrap"><canvas id="chartSustain"></canvas></div>
+              <div class="hint">Use a timer and log best seconds per session.</div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="head"><div class="h">Weekly consistency</div></div>
+            <div class="body">
+              <div class="canvaswrap"><canvas id="chartWeeks"></canvas></div>
+              <div class="hint">Counts sessions per week.</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- VIEW: SETTINGS -->
+      <section class="view" id="view-settings">
+        <div class="grid two">
+          <div class="card">
+            <div class="head"><div class="h">Data</div></div>
+            <div class="body">
+              <div class="hint">Everything is stored locally in your browser. Use Export for backups.</div>
+              <div style="display:flex; gap: 10px; flex-wrap: wrap; margin-top: 12px;">
+                <button class="btn" type="button" id="btnExport2">Export</button>
+                <button class="btn" type="button" id="btnImport2">Import</button>
+                <button class="btn danger" type="button" id="btnReset2">Reset</button>
+              </div>
+              <div class="hint" style="margin-top:12px;">
+                If you want a public link, put this file in your GitHub Pages branch and open it at:
+                <span class="mono">/vocal_training_tracker.html</span>.
+              </div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="head"><div class="h">About</div></div>
+            <div class="body">
+              <div class="hint">
+                This tracker is intentionally simple. Next upgrades could include: a repertoire list, practice streaks,
+                and in-browser pitch detection (WebAudio).
+              </div>
+              <div class="hint" style="margin-top:12px;"><strong>Disclaimer:</strong> educational only; not medical advice.</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    </div>
+
+    <script>
+      const KEY = "vocalTracker-v1";
+
+      const $ = (sel) => document.querySelector(sel);
+      const $$ = (sel) => Array.from(document.querySelectorAll(sel));
+
+      function isoToday() {
+        const d = new Date();
+        d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+        return d.toISOString().slice(0, 10);
+      }
+
+      function safeParse(s){ try { return JSON.parse(s); } catch { return null; } }
+      function save(){ state.updatedAt = new Date().toISOString(); localStorage.setItem(KEY, JSON.stringify(state)); }
+      function load(){
+        const raw = localStorage.getItem(KEY);
+        const parsed = raw ? safeParse(raw) : null;
+        return normalizeState(parsed);
+      }
+      function normalizeState(s){
+        const base = {
+          version: 1,
+          updatedAt: new Date().toISOString(),
+          goals: { goal: "", voiceType: "", targetDays: 4, notes: "" },
+          sessions: [],
+        };
+        const out = Object.assign({}, base, (s && typeof s === "object" ? s : {}));
+        out.goals = Object.assign({}, base.goals, out.goals || {});
+        out.sessions = Array.isArray(out.sessions) ? out.sessions : [];
+        return out;
+      }
+
+      function toast(msg){
+        const t = $("#toast");
+        t.textContent = msg;
+        t.classList.add("show");
+        clearTimeout(toast._t);
+        toast._t = setTimeout(() => t.classList.remove("show"), 2600);
+      }
+
+      // Note parsing: C4, F#3, Bb2 -> MIDI
+      const NOTE_RE = /^([A-Ga-g])\s*([#b♯♭]?){0,1}\s*(-?\d{1,2})$/;
+      const SEMI = { C:0, D:2, E:4, F:5, G:7, A:9, B:11 };
+      function noteToMidi(note){
+        const s = String(note || "").trim().replace("♯","#").replace("♭","b");
+        const m = s.match(NOTE_RE);
+        if (!m) return null;
+        const letter = m[1].toUpperCase();
+        const acc = m[2] || "";
+        const oct = Number(m[3]);
+        let n = SEMI[letter];
+        if (acc === "#") n += 1;
+        if (acc === "b") n -= 1;
+        return (oct + 1) * 12 + n; // MIDI: C-1 = 0
+      }
+      function midiToNote(midi){
+        if (!Number.isFinite(midi)) return "—";
+        const names = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
+        const n = Math.round(midi);
+        const oct = Math.floor(n/12) - 1;
+        return names[(n%12+12)%12] + String(oct);
+      }
+
+      function setView(name){
+        $$(".view").forEach(v => v.classList.remove("active"));
+        $$(".tab").forEach(t => t.classList.remove("active"));
+        $("#view-" + name).classList.add("active");
+        $("#tab-" + name).classList.add("active");
+        render();
+      }
+
+      function weekKey(isoDate) {
+        const d = new Date(isoDate + "T00:00:00Z");
+        if (Number.isNaN(d.getTime())) return null;
+        const day = (d.getUTCDay() + 6) % 7; // Mon=0..Sun=6
+        d.setUTCDate(d.getUTCDate() - day + 3);
+        const firstThursday = new Date(Date.UTC(d.getUTCFullYear(), 0, 4));
+        const firstDay = (firstThursday.getUTCDay() + 6) % 7;
+        firstThursday.setUTCDate(firstThursday.getUTCDate() - firstDay + 3);
+        const week = 1 + Math.round((d - firstThursday) / (7 * 24 * 3600 * 1000));
+        return `${d.getUTCFullYear()}-W${String(week).padStart(2, "0")}`;
+      }
+
+      function fmtRange(low, high){
+        const lo = noteToMidi(low);
+        const hi = noteToMidi(high);
+        if (lo == null || hi == null) return "—";
+        return `${midiToNote(lo)} → ${midiToNote(hi)} (${Math.max(0, hi-lo)} semitones)`;
+      }
+
+      function renderHero(){
+        const sessions = state.sessions.length;
+        const updated = state.updatedAt ? new Date(state.updatedAt) : null;
+
+        $("#heroTitle").textContent = state.goals.goal ? `Vocal Training — ${state.goals.goal}` : "Your Vocal Training System";
+        $("#pillSessions").innerHTML = `<strong>Sessions</strong> ${sessions}`;
+        $("#pillUpdated").innerHTML = `<strong>Updated</strong> ${updated ? updated.toLocaleString() : "—"}`;
+
+        // this week session count
+        const wk = weekKey(isoToday());
+        const weekCount = state.sessions.filter(s => weekKey(s.date) === wk).length;
+        $("#pillWeek").innerHTML = `<strong>This week</strong> ${weekCount}`;
+
+        // best range
+        let best = null;
+        for (const s of state.sessions){
+          const lo = noteToMidi(s.low);
+          const hi = noteToMidi(s.high);
+          if (lo == null || hi == null) continue;
+          const span = hi - lo;
+          if (!best || span > best.span) best = { lo, hi, span };
+        }
+        $("#pillRange").innerHTML = `<strong>Best range</strong> ${best ? `${midiToNote(best.lo)}→${midiToNote(best.hi)}` : "—"}`;
+      }
+
+      function escapeHtml(x){
+        return String(x || "").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;");
+      }
+
+      function renderRecent(){
+        const el = $("#recentSessions");
+        const items = state.sessions.slice(0, 8);
+        if (!items.length){
+          el.innerHTML = `<div class="hint">No sessions yet. Add one from Dashboard or Log Session.</div>`;
+          return;
+        }
+        el.innerHTML = items.map(s => {
+          const range = fmtRange(s.low, s.high);
+          const sustain = s.sustain ? `${s.sustain}s` : "—";
+          const rating = s.rating ? `• Rating ${s.rating}/10` : "";
+          const focus = s.focus ? `• Focus: ${escapeHtml(s.focus)}` : "";
+          return `
+            <div class="item">
+              <div class="meta">
+                <div class="t">${escapeHtml(s.date)} • ${escapeHtml(s.minutes || 0)} min ${rating}</div>
+                <div class="d">Range: ${escapeHtml(range)} • Sustain: ${escapeHtml(sustain)} ${focus}</div>
+                ${s.notes ? `<div class="n">${escapeHtml(s.notes)}</div>` : ""}
+              </div>
+              <div class="right">
+                <button class="btn small danger" type="button" data-del="${escapeHtml(s.id)}">Delete</button>
+              </div>
+            </div>
+          `;
+        }).join("");
+      }
+
+      function renderSessionList(){
+        const el = $("#sessionList");
+        const items = state.sessions.slice(0, 30);
+        if (!items.length){
+          el.innerHTML = `<div class="hint">No sessions yet.</div>`;
+          return;
+        }
+        el.innerHTML = items.map(s => {
+          const ex = (s.exercises || "").trim();
+          const range = fmtRange(s.low, s.high);
+          return `
+            <div class="item">
+              <div class="meta">
+                <div class="t">${escapeHtml(s.date)} • ${escapeHtml(s.minutes || 0)} min</div>
+                <div class="d">Range: ${escapeHtml(range)} • Sustain: ${escapeHtml(s.sustain ? s.sustain + "s" : "—")} • Focus: ${escapeHtml(s.focus || "—")}</div>
+                ${ex ? `<div class="n">${escapeHtml(ex)}</div>` : ""}
+                ${s.notes ? `<div class="n">${escapeHtml(s.notes)}</div>` : ""}
+              </div>
+              <div class="right">
+                <button class="btn small danger" type="button" data-del="${escapeHtml(s.id)}">Delete</button>
+              </div>
+            </div>
+          `;
+        }).join("");
+      }
+
+      function defaultTemplates(){
+        return [
+          { title: "Warm-up (10–12 min)", lines: ["SOVT straw / lip trills (3–5m)", "Gentle sirens (3m)", "Humming / NG resonance (3–4m)"] },
+          { title: "Pitch & agility (12–15 min)", lines: ["Major scale 1-3-5-8-5-3-1", "Arpeggios 1-3-5-8", "Octave slides on 'gee' or 'nay'"] },
+          { title: "Support & sustain (8–12 min)", lines: ["Breath cycles: 4 in / 8 out", "Sustain vowels: 'ah/ee/oo' (3–5 reps)", "Light staccato pulses (avoid strain)"] },
+          { title: "Repertoire (10–20 min)", lines: ["Song sections at 70–80% intensity", "Record a take", "Note one fix for next session"] },
+        ];
+      }
+
+      function renderTemplates(){
+        const el = $("#exerciseTemplates");
+        const items = defaultTemplates();
+        el.innerHTML = items.map(t => {
+          const txt = t.lines.join("\\n");
+          return `
+            <div class="item">
+              <div class="meta">
+                <div class="t">${escapeHtml(t.title)}</div>
+                <div class="n">${escapeHtml(txt)}</div>
+              </div>
+              <div class="right">
+                <button class="btn small" type="button" data-copy="${escapeHtml(txt)}">Copy</button>
+              </div>
+            </div>
+          `;
+        }).join("");
+      }
+
+      function drawAxes(ctx, w, h) {
+        ctx.strokeStyle = "rgba(255,255,255,0.12)";
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(36, 12);
+        ctx.lineTo(36, h - 26);
+        ctx.lineTo(w - 12, h - 26);
+        ctx.stroke();
+      }
+
+      function setupCanvas(canvas){
+        const ctx = canvas.getContext("2d");
+        const w = (canvas.width = canvas.clientWidth * devicePixelRatio);
+        const h = (canvas.height = canvas.clientHeight * devicePixelRatio);
+        ctx.clearRect(0, 0, w, h);
+        drawAxes(ctx, w, h);
+        return { ctx, w, h };
+      }
+
+      function drawLineChart(canvas, label, points, color){
+        if (!canvas) return;
+        const { ctx, w, h } = setupCanvas(canvas);
+        ctx.fillStyle = "rgba(255,255,255,0.70)";
+        ctx.font = `${12 * devicePixelRatio}px ui-sans-serif, system-ui`;
+        ctx.fillText(label, 12 * devicePixelRatio, 16 * devicePixelRatio);
+
+        if (points.length < 2){
+          ctx.fillStyle = "rgba(255,255,255,0.55)";
+          ctx.fillText("Log at least 2 entries to see a trend.", 12 * devicePixelRatio, 36 * devicePixelRatio);
+          return;
+        }
+        const ys = points.map(p => p.y);
+        const minY = Math.min(...ys);
+        const maxY = Math.max(...ys);
+        const pad = Math.max(1e-6, (maxY-minY)*0.12);
+        const y0 = minY - pad;
+        const y1 = maxY + pad;
+        const xLeft = 36 * devicePixelRatio;
+        const xRight = w - 12 * devicePixelRatio;
+        const yTop = 12 * devicePixelRatio;
+        const yBottom = h - 26 * devicePixelRatio;
+        const xFor = (i) => xLeft + (i/(points.length-1))*(xRight-xLeft);
+        const yFor = (val) => yBottom - ((val-y0)/(y1-y0))*(yBottom-yTop);
+
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 2 * devicePixelRatio;
+        ctx.beginPath();
+        points.forEach((p,i)=>{
+          const x = xFor(i);
+          const y = yFor(p.y);
+          if (i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+        });
+        ctx.stroke();
+        ctx.fillStyle = color;
+        points.forEach((p,i)=>{
+          const x = xFor(i);
+          const y = yFor(p.y);
+          ctx.beginPath();
+          ctx.arc(x,y,3.2*devicePixelRatio,0,Math.PI*2);
+          ctx.fill();
+        });
+      }
+
+      function drawWeeksChart(canvas){
+        if (!canvas) return;
+        const { ctx, w, h } = setupCanvas(canvas);
+        ctx.fillStyle = "rgba(255,255,255,0.70)";
+        ctx.font = `${12 * devicePixelRatio}px ui-sans-serif, system-ui`;
+        ctx.fillText("Sessions/week", 12 * devicePixelRatio, 16 * devicePixelRatio);
+
+        const map = new Map();
+        state.sessions.forEach(s => {
+          const k = weekKey(s.date);
+          if (!k) return;
+          map.set(k, (map.get(k) || 0) + 1);
+        });
+        const keys = Array.from(map.keys()).sort();
+        if (keys.length < 2){
+          ctx.fillStyle = "rgba(255,255,255,0.55)";
+          ctx.fillText("Log sessions across 2+ weeks to see a trend.", 12 * devicePixelRatio, 36 * devicePixelRatio);
+          return;
+        }
+        const vals = keys.map(k => map.get(k));
+        const maxV = Math.max(...vals, 1);
+        const xLeft = 36 * devicePixelRatio;
+        const xRight = w - 12 * devicePixelRatio;
+        const yTop = 12 * devicePixelRatio;
+        const yBottom = h - 26 * devicePixelRatio;
+        const xFor = (i) => xLeft + (i/(keys.length-1))*(xRight-xLeft);
+        const yFor = (val) => yBottom - (val/maxV)*(yBottom-yTop);
+
+        ctx.strokeStyle = "rgba(255,176,32,0.85)";
+        ctx.lineWidth = 2 * devicePixelRatio;
+        ctx.beginPath();
+        vals.forEach((v,i)=>{
+          const x = xFor(i), y = yFor(v);
+          if (i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+        });
+        ctx.stroke();
+        ctx.fillStyle = "rgba(255,176,32,0.95)";
+        vals.forEach((v,i)=>{
+          const x = xFor(i), y = yFor(v);
+          ctx.beginPath(); ctx.arc(x,y,3.2*devicePixelRatio,0,Math.PI*2); ctx.fill();
+        });
+      }
+
+      function renderCharts(){
+        const sess = [...state.sessions].sort((a,b)=>a.date.localeCompare(b.date));
+        const minutesPts = sess.filter(s => Number.isFinite(+s.minutes)).map(s => ({ x: s.date, y: +s.minutes }));
+        const sustainPts = sess.filter(s => Number.isFinite(+s.sustain)).map(s => ({ x: s.date, y: +s.sustain }));
+        const rangePts = sess.map(s => {
+          const lo = noteToMidi(s.low);
+          const hi = noteToMidi(s.high);
+          if (lo == null || hi == null) return null;
+          return { x: s.date, y: (hi-lo) };
+        }).filter(Boolean);
+
+        drawLineChart($("#chartMinutes"), "Minutes/session", minutesPts, "rgba(57,217,138,0.90)");
+        drawLineChart($("#chartSustain"), "Best sustain (seconds)", sustainPts, "rgba(88,166,255,0.90)");
+        drawLineChart($("#chartRange"), "Range span (semitones)", rangePts, "rgba(200,160,255,0.90)");
+        drawWeeksChart($("#chartWeeks"));
+      }
+
+      function parseIntSafe(x){ const n = Number(x); return Number.isFinite(n) ? n : 0; }
+
+      function addSession(payload){
+        const s = {
+          id: String(Date.now()),
+          date: payload.date || isoToday(),
+          minutes: parseIntSafe(payload.minutes),
+          low: (payload.low || "").trim(),
+          high: (payload.high || "").trim(),
+          sustain: payload.sustain !== "" && payload.sustain != null ? parseIntSafe(payload.sustain) : null,
+          rating: payload.rating !== "" && payload.rating != null ? parseIntSafe(payload.rating) : null,
+          focus: (payload.focus || "").trim(),
+          exercises: (payload.exercises || "").trim(),
+          notes: (payload.notes || "").trim(),
+          createdAt: new Date().toISOString(),
+        };
+        state.sessions.unshift(s);
+        save();
+      }
+
+      function deleteSession(id){
+        state.sessions = state.sessions.filter(s => s.id !== id);
+        save();
+        toast("Deleted.");
+        render();
+      }
+
+      function exportData(){
+        const blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `vocal-training-backup-${new Date().toISOString().slice(0,10)}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+        toast("Exported.");
+      }
+
+      function importData(){
+        const input = document.createElement("input");
+        input.type = "file";
+        input.accept = "application/json,.json";
+        input.onchange = (e) => {
+          const file = e.target.files[0];
+          if (!file) return;
+          const reader = new FileReader();
+          reader.onload = () => {
+            const parsed = safeParse(reader.result);
+            if (!parsed) { toast("Invalid JSON."); return; }
+            state = normalizeState(parsed);
+            save();
+            toast("Imported.");
+            render();
+          };
+          reader.readAsText(file);
+        };
+        input.click();
+      }
+
+      function resetAll(){
+        if (!confirm("Reset everything? This deletes all saved data in this browser.")) return;
+        localStorage.removeItem(KEY);
+        state = load();
+        toast("Reset complete.");
+        render();
+        setView("dashboard");
+      }
+
+      let _timerStart = null;
+      function startTimer(){
+        _timerStart = Date.now();
+        toast("Timer started.");
+      }
+      function stopTimer(){
+        if (!_timerStart) { toast("Timer not running."); return; }
+        const mins = Math.round((Date.now() - _timerStart) / 60000);
+        _timerStart = null;
+        const el = $("#s_minutes");
+        if (el) el.value = String(mins);
+        toast(`Timer stopped: ${mins} min`);
+      }
+
+      function renderGoalsForm(){
+        $("#g_goal").value = state.goals.goal || "";
+        $("#g_voiceType").value = state.goals.voiceType || "";
+        $("#g_targetDays").value = String(state.goals.targetDays || 4);
+        $("#g_notes").value = state.goals.notes || "";
+      }
+
+      function saveGoals(){
+        state.goals.goal = $("#g_goal").value.trim();
+        state.goals.voiceType = $("#g_voiceType").value;
+        state.goals.targetDays = Number($("#g_targetDays").value);
+        state.goals.notes = $("#g_notes").value.trim();
+        save();
+        toast("Goals saved.");
+        renderHero();
+      }
+
+      function render(){
+        renderHero();
+        renderRecent();
+        renderSessionList();
+        renderTemplates();
+        renderGoalsForm();
+        if ($("#view-progress").classList.contains("active")) renderCharts();
+      }
+
+      function wire(){
+        // tabs
+        ["dashboard","log","exercises","progress","settings"].forEach(name => {
+          $("#tab-" + name).addEventListener("click", () => setView(name));
+        });
+
+        // dashboard quick add
+        $("#q_date").value = isoToday();
+        $("#s_date").value = isoToday();
+        $("#btnGoLog").addEventListener("click", () => setView("log"));
+        $("#btnQuickAdd").addEventListener("click", () => {
+          const minutes = $("#q_minutes").value;
+          if (!minutes || Number(minutes) <= 0) { toast("Add minutes."); return; }
+          addSession({
+            date: $("#q_date").value || isoToday(),
+            minutes,
+            low: $("#q_low").value,
+            high: $("#q_high").value,
+            sustain: $("#q_sustain").value,
+            rating: $("#q_rating").value,
+            notes: $("#q_notes").value,
+          });
+          $("#q_minutes").value = "";
+          $("#q_low").value = "";
+          $("#q_high").value = "";
+          $("#q_sustain").value = "";
+          $("#q_rating").value = "";
+          $("#q_notes").value = "";
+          toast("Session added.");
+          render();
+        });
+
+        // full logger
+        $("#btnAddSession").addEventListener("click", () => {
+          const minutes = $("#s_minutes").value;
+          if (!minutes || Number(minutes) <= 0) { toast("Add total minutes."); return; }
+          addSession({
+            date: $("#s_date").value || isoToday(),
+            minutes,
+            low: $("#s_low").value,
+            high: $("#s_high").value,
+            sustain: $("#s_sustain").value,
+            rating: $("#s_rating").value,
+            focus: $("#s_focus").value,
+            exercises: $("#s_exercises").value,
+            notes: $("#s_notes").value,
+          });
+          toast("Saved.");
+          render();
+          setView("dashboard");
+        });
+        $("#btnClearSession").addEventListener("click", () => {
+          ["s_minutes","s_low","s_high","s_sustain","s_rating","s_focus","s_exercises","s_notes"].forEach(id => { const el = $("#" + id); if (el) el.value = ""; });
+          toast("Cleared.");
+        });
+
+        // delete handlers
+        $("#recentSessions").addEventListener("click", (e) => {
+          const btn = e.target.closest?.("[data-del]");
+          if (!btn) return;
+          deleteSession(btn.getAttribute("data-del"));
+        });
+        $("#sessionList").addEventListener("click", (e) => {
+          const btn = e.target.closest?.("[data-del]");
+          if (!btn) return;
+          deleteSession(btn.getAttribute("data-del"));
+        });
+
+        // copy templates
+        $("#exerciseTemplates").addEventListener("click", async (e) => {
+          const btn = e.target.closest?.("[data-copy]");
+          if (!btn) return;
+          const txt = btn.getAttribute("data-copy") || "";
+          try {
+            await navigator.clipboard.writeText(txt);
+            toast("Copied.");
+          } catch {
+            toast("Copy failed (browser blocked clipboard).");
+          }
+        });
+
+        // charts rerender on resize
+        window.addEventListener("resize", () => {
+          if ($("#view-progress").classList.contains("active")) renderCharts();
+        });
+
+        // timer
+        $("#btnStartTimer").addEventListener("click", startTimer);
+        $("#btnStopTimer").addEventListener("click", stopTimer);
+
+        // goals
+        $("#btnSaveGoals").addEventListener("click", saveGoals);
+
+        // export/import/reset
+        ["btnExport","btnExport2"].forEach(id => $("#" + id).addEventListener("click", exportData));
+        ["btnImport","btnImport2"].forEach(id => $("#" + id).addEventListener("click", importData));
+        ["btnReset","btnReset2"].forEach(id => $("#" + id).addEventListener("click", resetAll));
+      }
+
+      let state = load();
+
+      window.addEventListener("DOMContentLoaded", () => {
+        wire();
+        render();
+        setView("dashboard");
+      });
+    </script>
+  </body>
+</html>
+
