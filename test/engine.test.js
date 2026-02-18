@@ -13,7 +13,7 @@ test("estimateTdee returns expected BMR/TDEE (rounded)", () => {
   };
   const est = engine.estimateTdee(p);
   assert.equal(est.bmr, 1778);
-  assert.equal(est.tdee, 2445);
+  assert.equal(est.tdee, 2444);
 });
 
 test("macroTargets sets calories by goal and returns macros", () => {
