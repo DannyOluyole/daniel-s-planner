@@ -742,6 +742,13 @@
     .smart-diagram-wrapper { display: flex; justify-content: center; margin: 2rem 0; }
     .smart-diagram-svg { width: 100%; max-width: 500px; height: auto; }
     .smart-diagram-svg text { font-family: 'IBM Plex Sans', sans-serif; }
+    .smart-diagram-svg .smart-to-goal { fill:none; stroke: var(--teal); stroke-width: 2.2; opacity: 0.55; }
+    .smart-goal-field { margin-top: 1.5rem; }
+    .smart-goal-field textarea { min-height: 110px; }
+
+    /* ===== SPEECH TO TEXT ===== */
+    #sttBtn.listening { background: linear-gradient(135deg, var(--teal) 0%, var(--teal-dark) 100%); color: white; border-color: rgba(255,255,255,0.22); }
+    #sttBtn[disabled] { opacity: 0.55; cursor: not-allowed; }
     /* ===== KEEPNOTES (Google Keep style) ===== */
     #view-notes .page-content { max-width: 1200px; padding-bottom: 5rem; }
     .keep-takenote {
@@ -873,6 +880,7 @@
     <button class="btn btn-teal btn-sm" onclick="saveAllCurrent()">💾 Save</button>
     <button class="btn btn-gold btn-sm" onclick="exportPlanner()">⬇ Export</button>
     <button class="btn btn-gold btn-sm" onclick="importPlanner()">⬆ Import</button>
+    <button class="btn btn-ghost btn-sm" onclick="toggleSpeechToText()" id="sttBtn" title="Speech to text (dictation)">🎙 Dictate</button>
     <button class="btn btn-ghost btn-sm" onclick="openCloudSyncModal()" id="cloudSyncBtn" title="Cloud Sync">☁ Sync</button>
     <button class="btn btn-red btn-sm" onclick="resetPlanner()">⚠ Reset</button>
   </div>
@@ -1262,13 +1270,12 @@
         <defs>
           <style>.smart-connector{fill:none;stroke:#2C2C2C;stroke-width:1.5}</style>
         </defs>
-        <!-- Curved connectors between elements -->
-        <path class="smart-connector" d="M 140 80 Q 250 30 360 80"/>
-        <path class="smart-connector" d="M 360 80 Q 430 140 400 200"/>
-        <path class="smart-connector" d="M 400 200 Q 350 270 300 320"/>
-        <path class="smart-connector" d="M 300 320 Q 250 370 140 320"/>
-        <path class="smart-connector" d="M 140 320 Q 70 270 100 200"/>
-        <path class="smart-connector" d="M 100 200 Q 130 140 140 80"/>
+        <!-- Connect SMART acronym to the SMART Goal -->
+        <line class="smart-to-goal" x1="90" y1="85" x2="250" y2="210" />
+        <line class="smart-to-goal" x1="320" y1="85" x2="250" y2="210" />
+        <line class="smart-to-goal" x1="415" y1="205" x2="250" y2="210" />
+        <line class="smart-to-goal" x1="375" y1="322.5" x2="250" y2="210" />
+        <line class="smart-to-goal" x1="120" y1="325" x2="250" y2="210" />
         <!-- SPECIFIC - top-left -->
         <rect x="20" y="50" width="140" height="70" rx="8" fill="white" stroke="#2C2C2C" stroke-width="2"/>
         <text x="90" y="75" text-anchor="middle" font-weight="700" font-size="14">S — SPECIFIC</text>
@@ -1295,6 +1302,15 @@
         <text x="250" y="205" text-anchor="middle" font-size="11" font-weight="600" fill="var(--teal-dark)">Your SMART</text>
         <text x="250" y="222" text-anchor="middle" font-size="11" font-weight="600" fill="var(--teal-dark)">Goal</text>
       </svg>
+    </div>
+    <div class="card smart-goal-field">
+      <div class="card-header gold">🧠 Your SMART Goal (editable)</div>
+      <div class="card-body">
+        <textarea id="smartGoalText" class="notes-ta" rows="4" placeholder="Write your SMART goal here…&#10;Example: &quot;By May 31, I will train 4x/week and hit 8–10k steps/day, losing 4kg while keeping protein ≥ 120g/day.&quot;" oninput="scheduleGoalsSave()"></textarea>
+        <div style="margin-top:0.6rem; font-size:0.85rem; color:var(--gray-med); line-height:1.5;">
+          Tip: Make it measurable and time-bound. Use the 🎙 Dictate button to speak your goal into the focused field.
+        </div>
+      </div>
     </div>
     <p style="text-align:center; color:var(--gray-med); font-style:italic; font-size:0.95rem; margin-top:1.5rem;">
       Write goals that are Specific, Measurable, Action-oriented, Realistic, and Timely.
@@ -1346,6 +1362,7 @@ let _dayLoading = false;
 let _daySaveTimer = null;
 let _monthSaveTimer = null;
 let _valuesSaveTimer = null;
+let _goalsSaveTimer = null;
 let _modalCb = null;
 let _pendingSave = false;
 
@@ -1740,6 +1757,137 @@ function showToast(msg, bg) {
   t._timer = setTimeout(() => t.classList.remove('show'), 3200);
 }
 
+/* ================================================================
+  SPEECH TO TEXT (Web Speech API)
+  - Click 🎙 Dictate, then speak into the focused field.
+  - Works best over HTTPS (GitHub Pages). Some browsers block on file://
+================================================================ */
+let _sttRec = null;
+let _sttListening = false;
+let _sttTarget = null;
+
+function speechToTextSupported() {
+  return !!(window.SpeechRecognition || window.webkitSpeechRecognition);
+}
+
+function getActiveTextTarget() {
+  const el = document.activeElement;
+  if (!el) return null;
+  if (el.isContentEditable) return el;
+  const tag = (el.tagName || '').toLowerCase();
+  if (tag === 'textarea') return el;
+  if (tag === 'input') {
+    const type = (el.getAttribute('type') || 'text').toLowerCase();
+    if (type === 'text' || type === 'search' || type === 'email' || type === 'tel' || type === 'url' || type === 'password') return el;
+  }
+  return null;
+}
+
+function insertTextAtCursor(el, text) {
+  if (!el || !text) return;
+  if (el.isContentEditable) {
+    const sel = window.getSelection();
+    if (!sel) { el.textContent = (el.textContent || '') + text; return; }
+    const range = sel.rangeCount ? sel.getRangeAt(0) : document.createRange();
+    range.deleteContents();
+    range.insertNode(document.createTextNode(text));
+    range.collapse(false);
+    sel.removeAllRanges();
+    sel.addRange(range);
+    return;
+  }
+
+  const start = el.selectionStart ?? el.value.length;
+  const end = el.selectionEnd ?? el.value.length;
+  const before = el.value.slice(0, start);
+  const after = el.value.slice(end);
+  const spacer = (before && !before.endsWith(' ') && text && !text.startsWith(' ')) ? ' ' : '';
+  el.value = before + spacer + text + after;
+  const pos = (before + spacer + text).length;
+  el.setSelectionRange(pos, pos);
+  updateDateLinksForField(el);
+}
+
+function setSttButtonState(listening) {
+  const btn = document.getElementById('sttBtn');
+  if (!btn) return;
+  btn.classList.toggle('listening', !!listening);
+  btn.textContent = listening ? '⏺ Stop' : '🎙 Dictate';
+  btn.title = listening ? 'Stop dictation' : 'Speech to text (dictation)';
+}
+
+function stopSpeechToText() {
+  try { _sttRec && _sttRec.stop(); } catch {}
+  _sttListening = false;
+  _sttTarget = null;
+  setSttButtonState(false);
+}
+
+function toggleSpeechToText() {
+  if (_sttListening) { stopSpeechToText(); return; }
+
+  if (!speechToTextSupported()) {
+    showToast('Speech to text not supported in this browser.');
+    return;
+  }
+  if (!window.isSecureContext) {
+    showToast('Speech to text needs HTTPS (file:// may be blocked).');
+    return;
+  }
+
+  const target = getActiveTextTarget();
+  if (!target) {
+    showToast('Click into a text field first, then press Dictate.');
+    return;
+  }
+  _sttTarget = target;
+
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const rec = new SR();
+  _sttRec = rec;
+  rec.lang = (navigator.language || 'en-US');
+  rec.interimResults = true;
+  rec.continuous = false;
+  rec.maxAlternatives = 1;
+
+  let lastInterim = '';
+  rec.onresult = (event) => {
+    let finalText = '';
+    let interim = '';
+    for (let i = event.resultIndex; i < event.results.length; i++) {
+      const res = event.results[i];
+      const t = (res[0] && res[0].transcript) ? res[0].transcript : '';
+      if (res.isFinal) finalText += t;
+      else interim += t;
+    }
+    if (interim && interim !== lastInterim) lastInterim = interim;
+    if (finalText) insertTextAtCursor(_sttTarget, finalText.trim());
+  };
+  rec.onerror = (e) => {
+    const msg =
+      e?.error === 'not-allowed' ? 'Mic permission denied (allow microphone access).' :
+      e?.error === 'no-speech' ? 'No speech detected. Try again.' :
+      e?.error === 'audio-capture' ? 'No microphone found.' :
+      ('Speech to text error' + (e?.error ? ': ' + e.error : ''));
+    showToast(msg);
+    stopSpeechToText();
+  };
+  rec.onend = () => {
+    _sttListening = false;
+    setSttButtonState(false);
+  };
+
+  try {
+    _sttListening = true;
+    setSttButtonState(true);
+    showToast('Listening… speak now.');
+    rec.start();
+  } catch {
+    showToast('Could not start dictation.');
+    stopSpeechToText();
+  }
+}
+
 function showAutoSaveIndicator() {
   const el = document.getElementById('autosaveIndicator');
   el.style.opacity = '1';
@@ -1832,6 +1980,7 @@ function saveAllCurrent() {
   if (view && view.id === 'view-day') saveDayPlanner();
   else if (view && view.id === 'view-month') saveMonthData();
   else if (view && view.id === 'view-values') { saveValuesData(); showToast('✅ Values saved!'); }
+  else if (view && view.id === 'view-goals') { saveGoalsData(); showToast('✅ Goal saved!'); }
   else if (view && view.id === 'view-notes') { saveKeepNotes(); showToast('✅ Notes saved!'); }
   else showToast('Save from Day Planner, Monthly System, Governing Values, or KeepNotes.');
 }
@@ -1854,6 +2003,10 @@ function showView(name) {
       clearTimeout(_valuesSaveTimer);
       _valuesSaveTimer = null;
       saveValuesData();
+    } else if (current.id === 'view-goals') {
+      clearTimeout(_goalsSaveTimer);
+      _goalsSaveTimer = null;
+      saveGoalsData();
     }
   }
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
@@ -1864,6 +2017,7 @@ function showView(name) {
   if (name === 'month')    renderMonthView();
   if (name === 'day')      renderDayView();
   if (name === 'values')   loadValuesData();
+  if (name === 'goals')    loadGoalsData();
   if (name === 'notes')    renderKeepNotes();
   if (name === 'values')   setupDateLinkifyForView('view-values');
 }
@@ -2165,6 +2319,29 @@ async function saveValuesData() {
 function scheduleValuesSave() {
   clearTimeout(_valuesSaveTimer);
   _valuesSaveTimer = setTimeout(saveValuesData, 1200);
+}
+
+/* ================================================================
+  SETTING GOALS — SMART GOAL FIELD
+================================================================ */
+async function loadGoalsData() {
+  const data = await storageLoad('goals');
+  const d = data || {};
+  const el = document.getElementById('smartGoalText');
+  if (el) el.value = d.smartGoal || '';
+  setupDateLinkifyForView('view-goals');
+}
+
+async function saveGoalsData() {
+  const el = document.getElementById('smartGoalText');
+  const obj = { smartGoal: el ? (el.value || '') : '' };
+  await storageSave('goals', obj);
+  showAutoSaveIndicator();
+}
+
+function scheduleGoalsSave() {
+  clearTimeout(_goalsSaveTimer);
+  _goalsSaveTimer = setTimeout(saveGoalsData, 1100);
 }
 
 /* ================================================================
@@ -2508,6 +2685,11 @@ window.addEventListener('DOMContentLoaded', () => {
     document.getElementById('cloudSyncBtn').classList.remove('btn-ghost');
     startCloudPolling();
     showToast('☁ Cloud sync connected');
+  }
+  const sttBtn = document.getElementById('sttBtn');
+  if (sttBtn && !speechToTextSupported()) {
+    sttBtn.disabled = true;
+    sttBtn.title = 'Speech to text not supported in this browser';
   }
 });
 </script>
