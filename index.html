@@ -746,6 +746,24 @@
     .smart-goal-field { margin-top: 1.5rem; }
     .smart-goal-field textarea { min-height: 110px; }
 
+    /* ===== BUDGET ===== */
+    #view-budget .page-content { max-width: 1100px; }
+    .budget-nav { display:flex; align-items:center; gap: 1rem; flex-wrap: wrap; margin-bottom: 1.5rem; }
+    .budget-title { font-family: 'Playfair Display', serif; font-size: 1.6rem; font-weight: 900; color: var(--teal-dark); flex: 1; }
+    .budget-grid { display:grid; grid-template-columns: 1fr; gap: 1.25rem; }
+    @media (min-width: 980px) { .budget-grid { grid-template-columns: 1fr 1fr; } .budget-grid .span2{ grid-column: span 2; } }
+    .budget-row { display:grid; grid-template-columns: 1.6fr 140px 36px; gap: 0.6rem; align-items: center; margin-bottom: 0.5rem; }
+    .budget-row input[type="text"] { width: 100%; }
+    .budget-row input[type="number"] { width: 100%; font-family: 'IBM Plex Mono', monospace; }
+    .budget-row .rm { background: none; border: none; cursor:pointer; font-size: 1.1rem; opacity: 0.7; }
+    .budget-row .rm:hover { opacity: 1; }
+    .budget-summary { display:grid; grid-template-columns: 1fr; gap: 0.6rem; }
+    @media (min-width: 700px){ .budget-summary { grid-template-columns: 1fr 1fr 1fr; } }
+    .budget-kpi { background: var(--cream); border: 2px solid var(--gray-light); border-radius: 10px; padding: 0.9rem 1rem; }
+    .budget-kpi .k { font-size: 0.78rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--gray-med); font-weight: 800; }
+    .budget-kpi .v { margin-top: 0.25rem; font-size: 1.25rem; font-weight: 900; font-family: 'IBM Plex Mono', monospace; color: var(--teal-dark); }
+    .budget-kpi.negative .v { color: var(--red); }
+
     /* ===== SPEECH TO TEXT ===== */
     #sttBtn.listening { background: linear-gradient(135deg, var(--teal) 0%, var(--teal-dark) 100%); color: white; border-color: rgba(255,255,255,0.22); }
     #sttBtn[disabled] { opacity: 0.55; cursor: not-allowed; }
@@ -872,6 +890,7 @@
   <div class="nav-brand" onclick="showView('calendar')">📖 Daniel Planner</div>
   <div class="nav-tab active" id="nav-calendar" onclick="showView('calendar')">📅 Calendar</div>
   <div class="nav-tab" id="nav-month" onclick="showView('month')">📚 Monthly System</div>
+  <div class="nav-tab" id="nav-budget" onclick="showView('budget')">💰 Budget</div>
   <div class="nav-tab" id="nav-day" onclick="showView('day')">📝 Day Planner</div>
   <div class="nav-tab" id="nav-values" onclick="showView('values')">⚖️ Governing Values</div>
   <div class="nav-tab" id="nav-goals" onclick="showView('goals')">🎯 Setting Goals</div>
@@ -1336,6 +1355,80 @@
 </div>
 
 <!-- ===============================================================
+     VIEW: BUDGET
+=============================================================== -->
+<div class="view" id="view-budget">
+  <div class="page-hero">
+    <h2>💰 Budget Template</h2>
+    <p>Plan a month with income, expenses, and savings — with a live summary</p>
+  </div>
+  <div class="page-content">
+    <div class="budget-nav">
+      <button class="cal-nav-btn" onclick="changeBudgetView(-1)">&#9664;</button>
+      <div class="budget-title" id="budgetMonthLabel">Budget — Month</div>
+      <button class="cal-nav-btn" onclick="changeBudgetView(1)">&#9654;</button>
+      <div style="flex:1;"></div>
+      <button class="btn btn-teal btn-sm" onclick="saveBudgetData()">💾 Save Budget</button>
+    </div>
+
+    <div class="card" style="margin-bottom:1.25rem;">
+      <div class="card-header gold">Summary</div>
+      <div class="card-body">
+        <div class="budget-summary">
+          <div class="budget-kpi" id="kpiIncome"><div class="k">Total Income</div><div class="v">$0</div></div>
+          <div class="budget-kpi" id="kpiExpenses"><div class="k">Total Expenses</div><div class="v">$0</div></div>
+          <div class="budget-kpi" id="kpiNet"><div class="k">Net</div><div class="v">$0</div></div>
+        </div>
+        <div style="margin-top:0.75rem; font-size:0.85rem; color:var(--gray-med); line-height:1.5;">
+          Tip: Enter amounts as monthly totals. Use 🎙 Dictate while focused in a description field to speak items quickly.
+        </div>
+      </div>
+    </div>
+
+    <div class="budget-grid">
+      <div class="card">
+        <div class="card-header">💵 Income</div>
+        <div class="card-body">
+          <div id="budgetIncomeList"></div>
+          <button class="btn btn-ghost btn-sm" onclick="addBudgetRow('income')">+ Add income</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">🏠 Fixed Expenses</div>
+        <div class="card-body">
+          <div id="budgetFixedList"></div>
+          <button class="btn btn-ghost btn-sm" onclick="addBudgetRow('fixed')">+ Add fixed expense</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">🛒 Variable Expenses</div>
+        <div class="card-body">
+          <div id="budgetVariableList"></div>
+          <button class="btn btn-ghost btn-sm" onclick="addBudgetRow('variable')">+ Add variable expense</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header navy">🏦 Savings &amp; Debt</div>
+        <div class="card-body">
+          <div id="budgetSavingsList"></div>
+          <button class="btn btn-ghost btn-sm" onclick="addBudgetRow('savings')">+ Add savings/debt</button>
+        </div>
+      </div>
+
+      <div class="card span2">
+        <div class="card-header">📝 Notes</div>
+        <div class="card-body">
+          <textarea id="budgetNotes" class="notes-ta" rows="4" placeholder="Assumptions, upcoming bills, irregular expenses, reminders…" oninput="scheduleBudgetSave()"></textarea>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===============================================================
      VIEW: KEEPNOTES
 =============================================================== -->
 <div class="view" id="view-notes">
@@ -1368,6 +1461,8 @@ let calYear  = TODAY.getFullYear();
 let calMonth = TODAY.getMonth();
 let monthViewYear  = TODAY.getFullYear();
 let monthViewMonth = TODAY.getMonth();
+let budgetViewYear = TODAY.getFullYear();
+let budgetViewMonth = TODAY.getMonth();
 let dayViewDate = new Date(TODAY);
 
 const MONTHS = ['January','February','March','April','May','June','July',
@@ -1380,6 +1475,7 @@ let _daySaveTimer = null;
 let _monthSaveTimer = null;
 let _valuesSaveTimer = null;
 let _goalsSaveTimer = null;
+let _budgetSaveTimer = null;
 let _modalCb = null;
 let _pendingSave = false;
 
@@ -2009,6 +2105,7 @@ function saveAllCurrent() {
   const view = document.querySelector('.view.active');
   if (view && view.id === 'view-day') saveDayPlanner();
   else if (view && view.id === 'view-month') saveMonthData();
+  else if (view && view.id === 'view-budget') { saveBudgetData(); showToast('✅ Budget saved!'); }
   else if (view && view.id === 'view-values') { saveValuesData(); showToast('✅ Values saved!'); }
   else if (view && view.id === 'view-goals') { saveGoalsData(); showToast('✅ Goal saved!'); }
   else if (view && view.id === 'view-notes') { saveKeepNotes(); showToast('✅ Notes saved!'); }
@@ -2029,6 +2126,10 @@ function showView(name) {
       clearTimeout(_monthSaveTimer);
       _monthSaveTimer = null;
       saveMonthData();
+    } else if (current.id === 'view-budget') {
+      clearTimeout(_budgetSaveTimer);
+      _budgetSaveTimer = null;
+      saveBudgetData();
     } else if (current.id === 'view-values') {
       clearTimeout(_valuesSaveTimer);
       _valuesSaveTimer = null;
@@ -2045,6 +2146,7 @@ function showView(name) {
   document.getElementById('nav-'  + name).classList.add('active');
   if (name === 'calendar') renderCalendar();
   if (name === 'month')    renderMonthView();
+  if (name === 'budget')   renderBudgetView();
   if (name === 'day')      renderDayView();
   if (name === 'values')   loadValuesData();
   if (name === 'goals')    loadGoalsData();
@@ -2372,6 +2474,171 @@ async function saveGoalsData() {
 function scheduleGoalsSave() {
   clearTimeout(_goalsSaveTimer);
   _goalsSaveTimer = setTimeout(saveGoalsData, 1100);
+}
+
+/* ================================================================
+  BUDGET TEMPLATE
+================================================================ */
+function budgetKey(y, m) {
+  return 'budget-' + monthKey(y, m);
+}
+
+function formatMoney(n) {
+  const v = Number(n);
+  if (!Number.isFinite(v)) return '$0';
+  return '$' + v.toFixed(2);
+}
+
+function parseMoney(val) {
+  const n = Number(String(val || '').replace(/[^0-9.-]/g, ''));
+  return Number.isFinite(n) ? n : 0;
+}
+
+function renderBudgetView() {
+  const label = MONTHS[budgetViewMonth] + ' ' + budgetViewYear;
+  const el = document.getElementById('budgetMonthLabel');
+  if (el) el.textContent = 'Budget — ' + label;
+  loadBudgetData();
+}
+
+function changeBudgetView(delta) {
+  budgetViewMonth += delta;
+  if (budgetViewMonth > 11) { budgetViewMonth = 0; budgetViewYear++; }
+  if (budgetViewMonth < 0) { budgetViewMonth = 11; budgetViewYear--; }
+  renderBudgetView();
+}
+
+function budgetRowHtml(kind, item) {
+  const name = esc(item?.name || '');
+  const amount = (item?.amount != null && item.amount !== '') ? String(item.amount) : '';
+  return `
+    <div class="budget-row" data-kind="${kind}">
+      <input type="text" placeholder="Description" value="${name}" oninput="scheduleBudgetSave()" />
+      <input type="number" step="0.01" placeholder="0.00" value="${esc(amount)}" oninput="scheduleBudgetSave()" />
+      <button class="rm" type="button" title="Remove" onclick="removeBudgetRow(this)">✕</button>
+    </div>
+  `;
+}
+
+function ensureBudgetDefaults(d) {
+  const data = d || {};
+  const withArr = (x) => Array.isArray(x) ? x : [];
+  return {
+    income: withArr(data.income),
+    fixed: withArr(data.fixed),
+    variable: withArr(data.variable),
+    savings: withArr(data.savings),
+    notes: typeof data.notes === 'string' ? data.notes : ''
+  };
+}
+
+function setBudgetList(kind, items) {
+  const map = {
+    income: 'budgetIncomeList',
+    fixed: 'budgetFixedList',
+    variable: 'budgetVariableList',
+    savings: 'budgetSavingsList'
+  };
+  const el = document.getElementById(map[kind]);
+  if (!el) return;
+  el.innerHTML = (items && items.length ? items : [{ name: '', amount: '' }]).map((it) => budgetRowHtml(kind, it)).join('');
+}
+
+function collectBudgetList(kind) {
+  const map = {
+    income: 'budgetIncomeList',
+    fixed: 'budgetFixedList',
+    variable: 'budgetVariableList',
+    savings: 'budgetSavingsList'
+  };
+  const el = document.getElementById(map[kind]);
+  if (!el) return [];
+  const rows = Array.from(el.querySelectorAll('.budget-row'));
+  return rows.map((r) => {
+    const inputs = r.querySelectorAll('input');
+    const name = inputs[0]?.value || '';
+    const amount = parseMoney(inputs[1]?.value);
+    return { name, amount };
+  }).filter(x => (x.name && x.name.trim()) || (x.amount && x.amount !== 0));
+}
+
+function updateBudgetSummary() {
+  const income = collectBudgetList('income').reduce((sum, x) => sum + (x.amount || 0), 0);
+  const fixed = collectBudgetList('fixed').reduce((sum, x) => sum + (x.amount || 0), 0);
+  const variable = collectBudgetList('variable').reduce((sum, x) => sum + (x.amount || 0), 0);
+  const savings = collectBudgetList('savings').reduce((sum, x) => sum + (x.amount || 0), 0);
+  const expenses = fixed + variable + savings;
+  const net = income - expenses;
+
+  const kIncome = document.querySelector('#kpiIncome .v');
+  const kExpenses = document.querySelector('#kpiExpenses .v');
+  const kNet = document.querySelector('#kpiNet .v');
+  if (kIncome) kIncome.textContent = formatMoney(income);
+  if (kExpenses) kExpenses.textContent = formatMoney(expenses);
+  if (kNet) kNet.textContent = formatMoney(net);
+
+  const kNetWrap = document.getElementById('kpiNet');
+  if (kNetWrap) kNetWrap.classList.toggle('negative', net < 0);
+}
+
+function removeBudgetRow(btn) {
+  const row = btn && btn.closest && btn.closest('.budget-row');
+  if (!row) return;
+  const parent = row.parentElement;
+  row.remove();
+  if (parent && parent.querySelectorAll('.budget-row').length === 0) {
+    const kind = parent.id === 'budgetIncomeList' ? 'income'
+      : parent.id === 'budgetFixedList' ? 'fixed'
+      : parent.id === 'budgetVariableList' ? 'variable'
+      : 'savings';
+    parent.insertAdjacentHTML('beforeend', budgetRowHtml(kind, { name: '', amount: '' }));
+  }
+  scheduleBudgetSave();
+}
+
+function addBudgetRow(kind) {
+  const map = {
+    income: 'budgetIncomeList',
+    fixed: 'budgetFixedList',
+    variable: 'budgetVariableList',
+    savings: 'budgetSavingsList'
+  };
+  const el = document.getElementById(map[kind]);
+  if (!el) return;
+  el.insertAdjacentHTML('beforeend', budgetRowHtml(kind, { name: '', amount: '' }));
+  scheduleBudgetSave();
+}
+
+async function loadBudgetData() {
+  const data = ensureBudgetDefaults(await storageLoad(budgetKey(budgetViewYear, budgetViewMonth)));
+  setBudgetList('income', data.income);
+  setBudgetList('fixed', data.fixed);
+  setBudgetList('variable', data.variable);
+  setBudgetList('savings', data.savings);
+  const notes = document.getElementById('budgetNotes');
+  if (notes) notes.value = data.notes || '';
+  updateBudgetSummary();
+}
+
+async function saveBudgetData() {
+  const notes = document.getElementById('budgetNotes');
+  const obj = {
+    income: collectBudgetList('income'),
+    fixed: collectBudgetList('fixed'),
+    variable: collectBudgetList('variable'),
+    savings: collectBudgetList('savings'),
+    notes: notes ? (notes.value || '') : ''
+  };
+  const ok = await storageSave(budgetKey(budgetViewYear, budgetViewMonth), obj);
+  if (ok) showToast('✅ Budget saved!');
+  updateBudgetSummary();
+}
+
+function scheduleBudgetSave() {
+  clearTimeout(_budgetSaveTimer);
+  _budgetSaveTimer = setTimeout(saveBudgetData, 1200);
+  // keep KPIs feeling "live"
+  try { updateBudgetSummary(); } catch {}
 }
 
 /* ================================================================
