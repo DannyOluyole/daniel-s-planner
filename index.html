@@ -1765,22 +1765,27 @@ function showToast(msg, bg) {
 let _sttRec = null;
 let _sttListening = false;
 let _sttTarget = null;
+let _sttLastTarget = null;
 
 function speechToTextSupported() {
   return !!(window.SpeechRecognition || window.webkitSpeechRecognition);
 }
 
-function getActiveTextTarget() {
-  const el = document.activeElement;
-  if (!el) return null;
-  if (el.isContentEditable) return el;
+function isTextTarget(el) {
+  if (!el) return false;
+  if (el.isContentEditable) return true;
   const tag = (el.tagName || '').toLowerCase();
-  if (tag === 'textarea') return el;
+  if (tag === 'textarea') return true;
   if (tag === 'input') {
     const type = (el.getAttribute('type') || 'text').toLowerCase();
-    if (type === 'text' || type === 'search' || type === 'email' || type === 'tel' || type === 'url' || type === 'password') return el;
+    return type === 'text' || type === 'search' || type === 'email' || type === 'tel' || type === 'url' || type === 'password';
   }
-  return null;
+  return false;
+}
+
+function getActiveTextTarget() {
+  const el = document.activeElement;
+  return isTextTarget(el) ? el : null;
 }
 
 function insertTextAtCursor(el, text) {
@@ -1835,12 +1840,15 @@ function toggleSpeechToText() {
     return;
   }
 
-  const target = getActiveTextTarget();
+  // Clicking the Dictate button moves focus to the button,
+  // so we fall back to the last-focused text field.
+  const target = getActiveTextTarget() || (_sttLastTarget && document.contains(_sttLastTarget) ? _sttLastTarget : null);
   if (!target) {
     showToast('Click into a text field first, then press Dictate.');
     return;
   }
   _sttTarget = target;
+  try { _sttTarget.focus && _sttTarget.focus(); } catch {}
 
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   const rec = new SR();
@@ -1851,6 +1859,7 @@ function toggleSpeechToText() {
   rec.maxAlternatives = 1;
 
   let lastInterim = '';
+  let hadAnyFinal = false;
   rec.onresult = (event) => {
     let finalText = '';
     let interim = '';
@@ -1861,7 +1870,10 @@ function toggleSpeechToText() {
       else interim += t;
     }
     if (interim && interim !== lastInterim) lastInterim = interim;
-    if (finalText) insertTextAtCursor(_sttTarget, finalText.trim());
+    if (finalText) {
+      hadAnyFinal = true;
+      insertTextAtCursor(_sttTarget, finalText.trim());
+    }
   };
   rec.onerror = (e) => {
     const msg =
@@ -1875,6 +1887,7 @@ function toggleSpeechToText() {
   rec.onend = () => {
     _sttListening = false;
     setSttButtonState(false);
+    if (!hadAnyFinal) showToast('Dictation stopped. If nothing was inserted, check microphone permission.');
   };
 
   try {
@@ -2691,6 +2704,12 @@ window.addEventListener('DOMContentLoaded', () => {
     sttBtn.disabled = true;
     sttBtn.title = 'Speech to text not supported in this browser';
   }
+
+  // Remember the last-focused text field for dictation.
+  document.addEventListener('focusin', (e) => {
+    const t = e.target;
+    if (isTextTarget(t)) _sttLastTarget = t;
+  }, true);
 });
 </script>
 </body>
