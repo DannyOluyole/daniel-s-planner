@@ -82,6 +82,18 @@
     .nav-tab:hover { color: white; border-bottom-color: rgba(255,255,255,0.4); }
     .nav-tab.active { color: var(--gold-light); border-bottom-color: var(--gold); }
 
+    .nav-actions {
+      margin-left: auto;
+      display: flex;
+      gap: 0.5rem;
+      padding: 0.5rem 0;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    .nav-actions .btn { font-size: 0.8rem; padding: 0.5rem 1rem; }
+    #sttBtn.listening { background: linear-gradient(135deg, var(--teal) 0%, var(--teal-dark) 100%); color: white; border: 2px solid rgba(255,255,255,0.22); }
+    #sttBtn[disabled] { opacity: 0.55; cursor: not-allowed; }
+
     .toast {
       position: fixed; bottom: 2rem; right: 2rem;
       background: var(--teal-dark); color: white;
@@ -334,6 +346,12 @@
     <div class="nav-tab active" id="nav-library" onclick="showView('library')">My Library</div>
     <div class="nav-tab" id="nav-notes" onclick="showView('notes')">Chapter Notes</div>
     <div class="nav-tab" id="nav-stats" onclick="showView('stats')">Stats</div>
+    <div class="nav-actions">
+      <button type="button" class="btn btn-ghost btn-sm" onclick="toggleSpeechToText()" id="sttBtn" title="Speech to text (dictation)">🎙 Dictate</button>
+      <button type="button" class="btn btn-ghost btn-sm" onclick="openCloudSyncModal()" id="cloudSyncBtn" title="Cloud Sync">☁ Sync</button>
+      <button type="button" class="btn btn-gold btn-sm" onclick="exportBooks()">⬇ Export</button>
+      <button type="button" class="btn btn-gold btn-sm" onclick="importBooks()">⬆ Import</button>
+    </div>
   </nav>
 
   <div id="autosaveIndicator">✓ Saved</div>
@@ -457,8 +475,47 @@
     </div>
   </div>
 
+  <!-- CLOUD SYNC MODAL -->
+  <div id="cloudSyncOverlay" class="overlay" onclick="if(event.target===this) closeCloudSyncModal()">
+    <div class="modal" style="max-width:560px;">
+      <div class="modal-header">☁ Cloud Sync</div>
+      <div class="modal-body">
+        <p style="color:var(--gray-med);font-size:0.9rem;margin-bottom:1rem;">
+          Sync your Book Tracker across devices using <strong>Firebase Realtime Database</strong> (free tier).
+        </p>
+        <div class="form-row">
+          <label for="syncIdInput">Sync ID (share this to sync other devices)</label>
+          <div style="display:flex; gap:0.5rem; align-items:center;">
+            <input type="text" id="syncIdInput" placeholder="e.g. my-books-2026" style="flex:1;" />
+            <button type="button" class="btn btn-teal btn-sm" onclick="generateSyncId()">Generate</button>
+          </div>
+        </div>
+        <div class="form-row">
+          <label for="firebaseUrlInput">Firebase Database URL</label>
+          <input type="text" id="firebaseUrlInput" placeholder="https://YOUR-PROJECT.firebaseio.com" />
+        </div>
+        <div class="form-row" style="display:flex; align-items:center; gap:0.75rem;">
+          <input type="checkbox" id="cloudSyncEnabled" />
+          <label for="cloudSyncEnabled" style="margin:0; text-transform:none; letter-spacing:0; font-weight:700;">Enable cloud sync</label>
+        </div>
+        <p style="font-size:0.8rem;color:var(--gray-med); line-height:1.5;">
+          Create a free project at <a href="https://console.firebase.google.com" target="_blank" rel="noopener">Firebase Console</a>
+          → Realtime Database → copy the database URL.
+        </p>
+        <p style="font-size:0.8rem;color:var(--gray-med); line-height:1.5; margin-top:0.5rem;">
+          Note: Dictation works best over HTTPS (GitHub Pages). Some browsers block speech-to-text on <code>file://</code>.
+        </p>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-ghost btn-sm" onclick="closeCloudSyncModal()">Close</button>
+          <button type="button" class="btn btn-teal btn-sm" onclick="saveCloudSyncConfig()">Save</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script>
     const STORAGE_KEY = 'booktracker-books';
+    const SYNC_CONFIG_KEY = 'booktracker-sync-config';
     let books = [];
 
     function showToast(msg) {
@@ -475,6 +532,207 @@
       el.style.opacity = '1';
       clearTimeout(el._t);
       el._t = setTimeout(function() { el.style.opacity = '0'; }, 1500);
+    }
+
+    /* ================================================================
+      EXPORT / IMPORT (backup)
+    ================================================================ */
+    function exportBooks() {
+      try {
+        const payload = {
+          exportedAt: new Date().toISOString(),
+          books: books
+        };
+        const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'book-tracker-backup-' + new Date().toISOString().slice(0, 10) + '.json';
+        a.click();
+        URL.revokeObjectURL(url);
+        showToast('✅ Exported');
+      } catch (e) {
+        showToast('Export failed');
+      }
+    }
+
+    function importBooks() {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = 'application/json,.json';
+      input.onchange = function(e) {
+        const file = e.target.files && e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function(evt) {
+          try {
+            const parsed = JSON.parse(evt.target.result);
+            const arr = Array.isArray(parsed) ? parsed : (Array.isArray(parsed.books) ? parsed.books : null);
+            if (!arr) throw new Error('Invalid');
+            books = arr;
+            books.forEach(function(b) { if (!Array.isArray(b.chapters)) b.chapters = []; });
+            saveBooks();
+            renderBookList();
+            fillNotesBookSelect();
+            showToast('✅ Imported');
+          } catch {
+            showToast('Invalid backup file');
+          }
+        };
+        reader.readAsText(file);
+      };
+      input.click();
+    }
+
+    /* ================================================================
+      CLOUD SYNC — Firebase Realtime Database (REST)
+    ================================================================ */
+    let _cloudPollTimer = null;
+    let _cloudLastPayload = '';
+    let _cloudSyncLastError = '';
+
+    function getSyncConfig() {
+      try {
+        const raw = localStorage.getItem(SYNC_CONFIG_KEY);
+        if (!raw) return null;
+        const c = JSON.parse(raw);
+        if (c && c.syncId && c.databaseURL) return {
+          syncId: c.syncId,
+          databaseURL: c.databaseURL,
+          enabled: !!c.enabled
+        };
+        return null;
+      } catch { return null; }
+    }
+
+    function cloudEnabled() {
+      const cfg = getSyncConfig();
+      return !!(cfg && cfg.enabled);
+    }
+
+    function cloudBaseUrl() {
+      const cfg = getSyncConfig();
+      if (!cfg || !cfg.enabled || !cfg.syncId || !cfg.databaseURL) return '';
+      return cfg.databaseURL.replace(/\/+$/, '') + '/booktracker/' + encodeURIComponent(cfg.syncId);
+    }
+
+    function cloudBooksUrl() {
+      const base = cloudBaseUrl();
+      if (!base) return '';
+      return base + '/books.json';
+    }
+
+    async function cloudPutBooks(value) {
+      const url = cloudBooksUrl();
+      if (!url) return false;
+      const r = await fetch(url, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(value)
+      });
+      if (!r.ok) throw new Error('Cloud write failed (' + r.status + ')');
+      return true;
+    }
+
+    async function cloudGetBooks() {
+      const url = cloudBooksUrl();
+      if (!url) return null;
+      const r = await fetch(url);
+      if (!r.ok) throw new Error('Cloud read failed (' + r.status + ')');
+      return await r.json();
+    }
+
+    function stopCloudPolling() {
+      if (_cloudPollTimer) clearInterval(_cloudPollTimer);
+      _cloudPollTimer = null;
+    }
+
+    async function pollCloudUpdates() {
+      if (!cloudEnabled()) return;
+      try {
+        const remote = await cloudGetBooks();
+        const payload = JSON.stringify(remote || []);
+        if (payload === _cloudLastPayload) return;
+        _cloudLastPayload = payload;
+        if (Array.isArray(remote)) {
+          books = remote;
+          books.forEach(function(b) { if (!Array.isArray(b.chapters)) b.chapters = []; });
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(books));
+          renderBookList();
+          fillNotesBookSelect();
+          renderStats();
+          showToast('☁ Synced from cloud');
+        }
+        _cloudSyncLastError = '';
+      } catch (e) {
+        _cloudSyncLastError = e && e.message ? e.message : 'Cloud poll failed';
+      }
+    }
+
+    function startCloudPolling() {
+      stopCloudPolling();
+      if (!cloudEnabled()) return;
+      pollCloudUpdates();
+      _cloudPollTimer = setInterval(pollCloudUpdates, 5000);
+    }
+
+    function openCloudSyncModal() {
+      const cfg = getSyncConfig();
+      document.getElementById('syncIdInput').value = cfg ? cfg.syncId : '';
+      document.getElementById('firebaseUrlInput').value = cfg ? cfg.databaseURL : '';
+      document.getElementById('cloudSyncEnabled').checked = cfg ? cfg.enabled : false;
+      document.getElementById('cloudSyncOverlay').classList.add('open');
+    }
+    function closeCloudSyncModal() {
+      document.getElementById('cloudSyncOverlay').classList.remove('open');
+    }
+    function generateSyncId() {
+      document.getElementById('syncIdInput').value = 'books-' + Date.now();
+    }
+
+    async function saveCloudSyncConfig() {
+      const syncId = (document.getElementById('syncIdInput').value || '').trim().replace(/[^a-zA-Z0-9_-]/g, '-') || ('books-' + Date.now());
+      const databaseURL = (document.getElementById('firebaseUrlInput').value || '').trim().replace(/\/+$/, '');
+      const enabled = !!document.getElementById('cloudSyncEnabled').checked;
+      if (!databaseURL && enabled) { showToast('Enter Firebase Database URL'); return; }
+      if (enabled && !/^https:\/\/.+(\.firebaseio\.com|\.firebasedatabase\.app)$/.test(databaseURL)) {
+        showToast('Use full Firebase Realtime Database URL');
+        return;
+      }
+      const cfg = { syncId, databaseURL, enabled };
+      localStorage.setItem(SYNC_CONFIG_KEY, JSON.stringify(cfg));
+
+      const btn = document.getElementById('cloudSyncBtn');
+      if (btn) {
+        btn.classList.toggle('btn-teal', enabled);
+        btn.classList.toggle('btn-ghost', !enabled);
+      }
+
+      if (enabled) {
+        try {
+          // probe
+          const base = cloudBaseUrl();
+          const probeUrl = base + '/__probe__.json';
+          const r = await fetch(probeUrl, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ok: 1, at: Date.now() }) });
+          if (!r.ok) throw new Error('Probe failed (' + r.status + ')');
+          // upload current books
+          await cloudPutBooks(books);
+          _cloudLastPayload = JSON.stringify(books || []);
+          startCloudPolling();
+          showToast('☁ Cloud sync enabled');
+          closeCloudSyncModal();
+        } catch (e) {
+          _cloudSyncLastError = e && e.message ? e.message : 'Cloud sync failed';
+          localStorage.setItem(SYNC_CONFIG_KEY, JSON.stringify({ syncId, databaseURL, enabled: false }));
+          document.getElementById('cloudSyncEnabled').checked = false;
+          showToast('Cloud sync failed: ' + _cloudSyncLastError);
+        }
+      } else {
+        stopCloudPolling();
+        _cloudLastPayload = '';
+        closeCloudSyncModal();
+        showToast('Cloud sync disabled');
+      }
     }
 
     function loadBooks() {
@@ -498,6 +756,13 @@
       try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(books));
         showAutoSaveIndicator();
+        if (cloudEnabled()) {
+          cloudPutBooks(books).then(function() {
+            _cloudLastPayload = JSON.stringify(books || []);
+          }).catch(function(e) {
+            _cloudSyncLastError = e && e.message ? e.message : 'Cloud write failed';
+          });
+        }
         return true;
       } catch (e) {
         showToast('Could not save');
@@ -812,8 +1077,157 @@
       el = document.getElementById('statPages'); if (el) el.textContent = pages.toLocaleString();
     }
 
+    /* ================================================================
+      SPEECH TO TEXT (Web Speech API)
+    ================================================================ */
+    let _sttRec = null;
+    let _sttListening = false;
+    let _sttTarget = null;
+    let _sttLastTarget = null;
+
+    function speechToTextSupported() {
+      return !!(window.SpeechRecognition || window.webkitSpeechRecognition);
+    }
+
+    function isTextTarget(el) {
+      if (!el) return false;
+      if (el.isContentEditable) return true;
+      var tag = (el.tagName || '').toLowerCase();
+      if (tag === 'textarea') return true;
+      if (tag === 'input') {
+        var type = (el.getAttribute('type') || 'text').toLowerCase();
+        return type === 'text' || type === 'search' || type === 'email' || type === 'tel' || type === 'url' || type === 'password' || type === 'number';
+      }
+      return false;
+    }
+
+    function getActiveTextTarget() {
+      var el = document.activeElement;
+      return isTextTarget(el) ? el : null;
+    }
+
+    function insertTextAtCursor(el, text) {
+      if (!el || !text) return;
+      if (el.isContentEditable) {
+        var sel = window.getSelection();
+        if (!sel) { el.textContent = (el.textContent || '') + text; return; }
+        var range = sel.rangeCount ? sel.getRangeAt(0) : document.createRange();
+        range.deleteContents();
+        range.insertNode(document.createTextNode(text));
+        range.collapse(false);
+        sel.removeAllRanges();
+        sel.addRange(range);
+        return;
+      }
+
+      var start = (typeof el.selectionStart === 'number') ? el.selectionStart : el.value.length;
+      var end = (typeof el.selectionEnd === 'number') ? el.selectionEnd : el.value.length;
+      var before = el.value.slice(0, start);
+      var after = el.value.slice(end);
+      var spacer = (before && !before.endsWith(' ') && text && !text.startsWith(' ')) ? ' ' : '';
+      el.value = before + spacer + text + after;
+      var pos = (before + spacer + text).length;
+      try { el.setSelectionRange(pos, pos); } catch {}
+    }
+
+    function setSttButtonState(listening) {
+      var btn = document.getElementById('sttBtn');
+      if (!btn) return;
+      btn.classList.toggle('listening', !!listening);
+      btn.textContent = listening ? '⏺ Stop' : '🎙 Dictate';
+      btn.title = listening ? 'Stop dictation' : 'Speech to text (dictation)';
+    }
+
+    function stopSpeechToText() {
+      try { if (_sttRec) _sttRec.stop(); } catch {}
+      _sttListening = false;
+      _sttTarget = null;
+      setSttButtonState(false);
+    }
+
+    function toggleSpeechToText() {
+      if (_sttListening) { stopSpeechToText(); return; }
+      if (!speechToTextSupported()) { showToast('Speech to text not supported in this browser.'); return; }
+      if (!window.isSecureContext) { showToast('Speech to text needs HTTPS (file:// may be blocked).'); return; }
+
+      var target = getActiveTextTarget() || (_sttLastTarget && document.contains(_sttLastTarget) ? _sttLastTarget : null);
+      if (!target) { showToast('Click into a text field first, then press Dictate.'); return; }
+      _sttTarget = target;
+      try { _sttTarget.focus && _sttTarget.focus(); } catch {}
+
+      var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+      var rec = new SR();
+      _sttRec = rec;
+      rec.lang = (navigator.language || 'en-US');
+      rec.interimResults = true;
+      rec.continuous = false;
+      rec.maxAlternatives = 1;
+
+      var hadAnyFinal = false;
+      rec.onresult = function(event) {
+        var finalText = '';
+        for (var i = event.resultIndex; i < event.results.length; i++) {
+          var res = event.results[i];
+          var t = (res[0] && res[0].transcript) ? res[0].transcript : '';
+          if (res.isFinal) finalText += t;
+        }
+        if (finalText) {
+          hadAnyFinal = true;
+          insertTextAtCursor(_sttTarget, finalText.trim());
+        }
+      };
+      rec.onerror = function(e) {
+        var msg =
+          e && e.error === 'not-allowed' ? 'Mic permission denied (allow microphone access).' :
+          e && e.error === 'no-speech' ? 'No speech detected. Try again.' :
+          e && e.error === 'audio-capture' ? 'No microphone found.' :
+          ('Speech to text error' + (e && e.error ? ': ' + e.error : ''));
+        showToast(msg);
+        stopSpeechToText();
+      };
+      rec.onend = function() {
+        _sttListening = false;
+        setSttButtonState(false);
+        if (!hadAnyFinal) showToast('Dictation stopped. If nothing was inserted, check microphone permission.');
+      };
+
+      try {
+        _sttListening = true;
+        setSttButtonState(true);
+        showToast('Listening… speak now.');
+        rec.start();
+      } catch {
+        showToast('Could not start dictation.');
+        stopSpeechToText();
+      }
+    }
+
     loadBooks();
     renderBookList();
+    renderStats();
+
+    // Enable/disable STT button based on browser support
+    window.addEventListener('DOMContentLoaded', function() {
+      document.addEventListener('focusin', function(e) {
+        var t = e && e.target;
+        if (isTextTarget(t)) _sttLastTarget = t;
+      }, true);
+
+      var sttBtn = document.getElementById('sttBtn');
+      if (sttBtn && !speechToTextSupported()) {
+        sttBtn.disabled = true;
+        sttBtn.title = 'Speech to text not supported in this browser';
+      }
+
+      // If sync is enabled, start polling and pull latest
+      var cfg = getSyncConfig();
+      var syncBtn = document.getElementById('cloudSyncBtn');
+      if (syncBtn) {
+        syncBtn.classList.toggle('btn-teal', !!(cfg && cfg.enabled));
+        syncBtn.classList.toggle('btn-ghost', !(cfg && cfg.enabled));
+      }
+      startCloudPolling();
+    });
   </script>
 </body>
 </html>
