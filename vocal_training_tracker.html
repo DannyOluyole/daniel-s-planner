@@ -144,6 +144,46 @@
       }
       .toast.show{ opacity:1; transform: translateY(0); }
 
+      .btn.syncOn{ background: rgba(88,166,255,0.12); border-color: rgba(88,166,255,0.40); }
+
+      .modalOverlay{
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.58);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        padding: 18px;
+        z-index: 200;
+      }
+      .modalOverlay.open{ display:flex; }
+      .modal{
+        width: 100%;
+        max-width: 760px;
+        border-radius: 16px;
+        background: rgba(11,18,32,0.95);
+        border: 1px solid rgba(255,255,255,0.16);
+        box-shadow: var(--shadow);
+        overflow: hidden;
+      }
+      .modal .mhead{
+        padding: 14px 16px;
+        font-weight: 900;
+        background: rgba(0,0,0,0.25);
+        border-bottom: 1px solid rgba(255,255,255,0.10);
+      }
+      .modal .mbody{ padding: 16px; }
+      .modal .mfoot{
+        padding: 12px 16px;
+        border-top: 1px solid rgba(255,255,255,0.10);
+        display:flex;
+        justify-content: flex-end;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+      .modal p{ margin: 0 0 10px; color: rgba(255,255,255,0.72); line-height: 1.5; }
+      .modal .field label{ color: rgba(255,255,255,0.78); }
+
       .mono{ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
       .neg{ color: rgba(255,77,79,0.95); font-weight: 900; }
     </style>
@@ -165,6 +205,7 @@
         <div class="actions">
           <button class="btn small" type="button" id="btnExport">Export</button>
           <button class="btn small" type="button" id="btnImport">Import</button>
+          <button class="btn small" type="button" id="btnSync">Sync</button>
           <button class="btn small danger" type="button" id="btnReset">Reset</button>
         </div>
       </header>
@@ -429,10 +470,44 @@
       </section>
 
       <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+      <!-- Cloud Sync Modal -->
+      <div class="modalOverlay" id="cloudOverlay" role="dialog" aria-modal="true" aria-labelledby="cloudTitle">
+        <div class="modal">
+          <div class="mhead" id="cloudTitle">☁ Cloud Sync (Firebase Realtime Database)</div>
+          <div class="mbody">
+            <p>Sync your vocal tracker across devices using Firebase Realtime Database (REST). Use the same Firebase URL + Sync ID on each device.</p>
+            <div class="form two">
+              <div class="field">
+                <label for="cloudSyncId">Sync ID</label>
+                <input id="cloudSyncId" type="text" placeholder="e.g. my-voice-2026" />
+              </div>
+              <div class="field">
+                <label for="cloudDbUrl">Firebase Database URL</label>
+                <input id="cloudDbUrl" type="text" placeholder="https://YOUR-PROJECT.firebaseio.com" />
+              </div>
+            </div>
+            <div class="field" style="margin-top:12px;">
+              <label style="display:flex; gap:10px; align-items:center;">
+                <input type="checkbox" id="cloudEnabled" />
+                Enable cloud sync
+              </label>
+              <div class="hint">Note: this app uses unauthenticated Firebase REST. Keep your Sync ID hard to guess, or add Firebase Auth later for real security.</div>
+            </div>
+          </div>
+          <div class="mfoot">
+            <button class="btn" type="button" id="cloudCancel">Close</button>
+            <button class="btn primary" type="button" id="cloudSave">Save</button>
+          </div>
+        </div>
+      </div>
     </div>
 
     <script>
       const KEY = "vocalTracker-v1";
+      const SYNC_CONFIG_KEY = "vocalTracker-sync-config";
+      const SHARED_SYNC_KEY = "universal-sync-config-v1";
+      const DEFAULT_FIREBASE_DB_URL = "https://adeyinka-daniel-oluyole-default-rtdb.firebaseio.com";
 
       const $ = (sel) => document.querySelector(sel);
       const $$ = (sel) => Array.from(document.querySelectorAll(sel));
@@ -444,7 +519,11 @@
       }
 
       function safeParse(s){ try { return JSON.parse(s); } catch { return null; } }
-      function save(){ state.updatedAt = new Date().toISOString(); localStorage.setItem(KEY, JSON.stringify(state)); }
+      function save(){
+        state.updatedAt = new Date().toISOString();
+        localStorage.setItem(KEY, JSON.stringify(state));
+        if (cloudEnabled()) scheduleCloudWrite();
+      }
       function load(){
         const raw = localStorage.getItem(KEY);
         const parsed = raw ? safeParse(raw) : null;
@@ -469,6 +548,177 @@
         t.classList.add("show");
         clearTimeout(toast._t);
         toast._t = setTimeout(() => t.classList.remove("show"), 2600);
+      }
+
+      /* ================================================================
+        Cloud Sync (Firebase Realtime Database REST)
+      ================================================================ */
+      let _cloudPollTimer = null;
+      let _cloudLastPayload = "";
+      let _cloudWriteTimer = null;
+
+      function getSyncConfigRaw(key) {
+        const raw = localStorage.getItem(key);
+        if (!raw) return null;
+        const c = safeParse(raw);
+        if (!c || typeof c !== "object") return null;
+        if (!c.databaseURL || !c.syncId) return null;
+        return { databaseURL: String(c.databaseURL), syncId: String(c.syncId), enabled: !!c.enabled };
+      }
+
+      function getSyncConfig() {
+        // Prefer app-specific config; fall back to shared config if none.
+        const own = getSyncConfigRaw(SYNC_CONFIG_KEY);
+        if (own) return own;
+        const shared = getSyncConfigRaw(SHARED_SYNC_KEY);
+        return shared || null;
+      }
+
+      function cloudEnabled() {
+        const cfg = getSyncConfig();
+        return !!(cfg && cfg.enabled);
+      }
+
+      function cloudBaseUrl() {
+        const cfg = getSyncConfig();
+        if (!cfg || !cfg.enabled) return "";
+        return cfg.databaseURL.replace(/\/+$/, "") + "/vocaltracker/" + encodeURIComponent(cfg.syncId);
+      }
+
+      function cloudStateUrl() {
+        const base = cloudBaseUrl();
+        return base ? base + "/state.json" : "";
+      }
+
+      async function cloudPutState(obj) {
+        const url = cloudStateUrl();
+        if (!url) return false;
+        const r = await fetch(url, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(obj) });
+        if (!r.ok) {
+          let detail = "";
+          try { detail = await r.text(); } catch {}
+          throw new Error("Cloud write failed (" + r.status + "): " + (detail || r.statusText || ""));
+        }
+        return true;
+      }
+
+      async function cloudGetState() {
+        const url = cloudStateUrl();
+        if (!url) return null;
+        const r = await fetch(url);
+        if (!r.ok) {
+          let detail = "";
+          try { detail = await r.text(); } catch {}
+          throw new Error("Cloud read failed (" + r.status + "): " + (detail || r.statusText || ""));
+        }
+        return await r.json();
+      }
+
+      function scheduleCloudWrite() {
+        clearTimeout(_cloudWriteTimer);
+        _cloudWriteTimer = setTimeout(async () => {
+          try {
+            await cloudPutState(state);
+            _cloudLastPayload = JSON.stringify(state || {});
+          } catch {
+            // ignore toasts here to avoid spam
+          }
+        }, 700);
+      }
+
+      function stopCloudPolling() {
+        if (_cloudPollTimer) clearInterval(_cloudPollTimer);
+        _cloudPollTimer = null;
+      }
+
+      async function pollCloudUpdates() {
+        if (!cloudEnabled()) return;
+        try {
+          const remote = await cloudGetState();
+          const payload = JSON.stringify(remote || {});
+          if (payload === _cloudLastPayload) return;
+          _cloudLastPayload = payload;
+          if (remote && typeof remote === "object") {
+            state = normalizeState(remote);
+            localStorage.setItem(KEY, JSON.stringify(state));
+            render();
+            toast("☁ Synced from cloud");
+          }
+        } catch {
+          // swallow
+        }
+      }
+
+      function startCloudPolling() {
+        stopCloudPolling();
+        if (!cloudEnabled()) return;
+        pollCloudUpdates();
+        _cloudPollTimer = setInterval(pollCloudUpdates, 5000);
+      }
+
+      function setSyncButtonState() {
+        const btn = $("#btnSync");
+        if (!btn) return;
+        const on = cloudEnabled();
+        btn.classList.toggle("syncOn", on);
+        btn.textContent = on ? "Sync ✓" : "Sync";
+      }
+
+      function openCloudModal() {
+        const cfgOwn = getSyncConfigRaw(SYNC_CONFIG_KEY);
+        const cfg = cfgOwn || getSyncConfig() || { syncId: "", databaseURL: "", enabled: false };
+        $("#cloudSyncId").value = cfg.syncId || "";
+        $("#cloudDbUrl").value = cfg.databaseURL || DEFAULT_FIREBASE_DB_URL;
+        $("#cloudEnabled").checked = !!cfg.enabled;
+        $("#cloudOverlay").classList.add("open");
+      }
+
+      function closeCloudModal() {
+        $("#cloudOverlay").classList.remove("open");
+      }
+
+      async function saveCloudModal() {
+        const syncId = ($("#cloudSyncId").value || "").trim().replace(/[^a-zA-Z0-9_-]/g, "-") || ("voice-" + Date.now());
+        const databaseURL = ($("#cloudDbUrl").value || "").trim().replace(/\/+$/, "");
+        const enabled = !!$("#cloudEnabled").checked;
+        if (enabled && !databaseURL) { toast("Enter Firebase Database URL"); return; }
+        if (enabled && !/^https:\/\/.+(\.firebaseio\.com|\.firebasedatabase\.app)$/.test(databaseURL)) {
+          toast("Use full Firebase Realtime Database URL");
+          return;
+        }
+        const cfg = { syncId, databaseURL, enabled };
+        localStorage.setItem(SYNC_CONFIG_KEY, JSON.stringify(cfg));
+        // store shared config only when enabling, so disabling here doesn't disable other apps
+        if (enabled) localStorage.setItem(SHARED_SYNC_KEY, JSON.stringify(cfg));
+
+        if (enabled) {
+          try {
+            // probe + upload current state
+            const base = cloudBaseUrl();
+            const probeUrl = base + "/__probe__.json";
+            const r = await fetch(probeUrl, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ok: 1, at: Date.now() }) });
+            if (!r.ok) {
+              let detail = "";
+              try { detail = await r.text(); } catch {}
+              throw new Error("Probe failed (" + r.status + "): " + (detail || r.statusText || ""));
+            }
+            await cloudPutState(state);
+            _cloudLastPayload = JSON.stringify(state || {});
+            startCloudPolling();
+            toast("☁ Cloud sync enabled");
+            closeCloudModal();
+          } catch (e) {
+            localStorage.setItem(SYNC_CONFIG_KEY, JSON.stringify({ syncId, databaseURL, enabled: false }));
+            $("#cloudEnabled").checked = false;
+            toast("Cloud sync failed: " + (e && e.message ? e.message : "check URL/rules"));
+          }
+        } else {
+          stopCloudPolling();
+          _cloudLastPayload = "";
+          closeCloudModal();
+          toast("Cloud sync disabled");
+        }
+        setSyncButtonState();
       }
 
       // Note parsing: C4, F#3, Bb2 -> MIDI
@@ -959,12 +1209,25 @@
         ["btnExport","btnExport2"].forEach(id => $("#" + id).addEventListener("click", exportData));
         ["btnImport","btnImport2"].forEach(id => $("#" + id).addEventListener("click", importData));
         ["btnReset","btnReset2"].forEach(id => $("#" + id).addEventListener("click", resetAll));
+
+        // cloud sync
+        $("#btnSync").addEventListener("click", openCloudModal);
+        $("#cloudCancel").addEventListener("click", closeCloudModal);
+        $("#cloudSave").addEventListener("click", saveCloudModal);
+        $("#cloudOverlay").addEventListener("click", (e) => {
+          if (e.target && e.target.id === "cloudOverlay") closeCloudModal();
+        });
+        window.addEventListener("keydown", (e) => {
+          if (e.key === "Escape") closeCloudModal();
+        });
       }
 
       let state = load();
 
       window.addEventListener("DOMContentLoaded", () => {
         wire();
+        setSyncButtonState();
+        startCloudPolling();
         render();
         setView("dashboard");
       });

@@ -355,6 +355,7 @@
               <div class="actions">
                 <button class="btn" type="button" id="btnExport">Export backup</button>
                 <button class="btn" type="button" id="btnImport">Import backup</button>
+                <button class="btn" type="button" id="btnCloudSync">Sync</button>
                 <button class="btn danger" type="button" id="btnReset">Reset everything</button>
               </div>
               <div class="hint" style="margin-top:10px;">
@@ -382,6 +383,39 @@
       </section>
 
       <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+      <!-- Cloud Sync Modal -->
+      <div class="modalOverlay" id="cloudOverlay" role="dialog" aria-modal="true" aria-labelledby="cloudTitle">
+        <div class="modal">
+          <div class="mhead" id="cloudTitle">☁ Cloud Sync (Firebase Realtime Database)</div>
+          <div class="mbody">
+            <div class="hint" style="margin-bottom:12px;">
+              Sync your fitness data across devices using Firebase Realtime Database (REST). Use the same Firebase URL + Sync ID on each device.
+            </div>
+            <div class="form two">
+              <div class="field">
+                <label for="cloudSyncId">Sync ID</label>
+                <input id="cloudSyncId" type="text" placeholder="e.g. my-fitness-2026" />
+              </div>
+              <div class="field">
+                <label for="cloudDbUrl">Firebase Database URL</label>
+                <input id="cloudDbUrl" type="text" placeholder="https://YOUR-PROJECT.firebaseio.com" />
+              </div>
+            </div>
+            <div class="field" style="margin-top:12px;">
+              <label style="display:flex; gap:10px; align-items:center;">
+                <input type="checkbox" id="cloudEnabled" />
+                Enable cloud sync
+              </label>
+              <div class="hint">Note: this uses unauthenticated Firebase REST. Keep your Sync ID hard to guess, or add Firebase Auth later for real security.</div>
+            </div>
+          </div>
+          <div class="mfoot">
+            <button class="btn" type="button" id="cloudCancel">Close</button>
+            <button class="btn primary" type="button" id="cloudSave">Save</button>
+          </div>
+        </div>
+      </div>
 
       <!-- Modal -->
       <div class="modalOverlay" id="modalOverlay" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
