@@ -389,6 +389,7 @@
                 <div class="kpi"><div class="k">Target</div><div class="v" id="kpiTarget">—</div><div class="s">Daily minutes you aim to complete.</div></div>
                 <div class="kpi"><div class="k">Done today</div><div class="v" id="kpiDoneToday">—</div><div class="s">Logged practice minutes today.</div></div>
                 <div class="kpi"><div class="k">Streak</div><div class="v" id="kpiStreak">—</div><div class="s">Days in a row with any practice.</div></div>
+                <div class="kpi"><div class="k">Days to test</div><div class="v" id="kpiCountdown">—</div><div class="s">Countdown to your exam date.</div></div>
               </div>
               <div class="row two">
                 <div class="q">
@@ -441,6 +442,12 @@
                   <label class="muted" style="font-size:0.85rem; font-weight:900; letter-spacing:0.06em; text-transform:uppercase;">Recent activity</label>
                   <div class="list" id="recentSessions" style="margin-top:0.5rem;"></div>
                 </div>
+              </div>
+              <hr class="divider">
+              <div class="q">
+                <div class="qt">B2 plan (8 weeks)</div>
+                <div class="qd muted">A practical schedule from today → test day. Adjust daily target minutes in Settings.</div>
+                <div id="b2Plan" style="margin-top:0.75rem; display:grid; gap:0.6rem;"></div>
               </div>
             </div>
           </div>
@@ -882,6 +889,21 @@
                   </select>
                 </div>
               </div>
+              <div class="row two" style="margin-top:0.85rem;">
+                <div>
+                  <label class="muted" style="font-size:0.85rem; font-weight:900; text-transform:uppercase; letter-spacing:0.06em;">Test date</label>
+                  <input id="setTestDate" type="date" onchange="saveSettings()" />
+                </div>
+                <div>
+                  <label class="muted" style="font-size:0.85rem; font-weight:900; text-transform:uppercase; letter-spacing:0.06em;">Level filter</label>
+                  <div style="display:flex; gap:0.75rem; align-items:center; flex-wrap:wrap; padding:0.5rem 0;">
+                    <label style="display:flex; align-items:center; gap:0.55rem; font-weight:800; color:var(--gray-med);">
+                      <input type="checkbox" id="setStretch" onchange="saveSettings()" />
+                      Include C1 stretch content
+                    </label>
+                  </div>
+                </div>
+              </div>
 
               <hr class="divider">
               <div class="row two">
@@ -997,7 +1019,10 @@
           settings: {
             exam: 'TCF',
             level: 'B2',
-            targetMinutes: 60,
+            // Default: B2 in ~8 weeks (adjust anytime in Settings)
+            targetMinutes: 75,
+            testDateISO: (function(){ const d = new Date(); d.setDate(d.getDate()+60); d.setHours(0,0,0,0); return d.toISOString().slice(0,10); })(),
+            includeC1Stretch: true,
             sttLang: 'fr-FR',
             ttsVoiceURI: '',
             ttsRate: 1.0
@@ -1512,6 +1537,70 @@
         return dt.toISOString().slice(0,10);
       }
 
+      const CEFR_RANK = { A1: 0, A2: 1, B1: 2, B2: 3, C1: 4, C2: 5 };
+      function cefrRank(level) { return CEFR_RANK[String(level || '').toUpperCase()] ?? 99; }
+      function allowLevel(level) {
+        const target = cefrRank(state.settings.level || 'B2');
+        const stretch = state.settings.includeC1Stretch ? 1 : 0;
+        return cefrRank(level) <= target + stretch;
+      }
+      function filterByLevel(items) {
+        const arr = Array.isArray(items) ? items : [];
+        const filtered = arr.filter(x => !x.level || allowLevel(x.level));
+        return filtered.length ? filtered : arr;
+      }
+
+      function daysUntilTest() {
+        const iso = state.settings.testDateISO;
+        if (!iso || !/^\d{4}-\d{2}-\d{2}$/.test(iso)) return null;
+        const t = new Date(iso + 'T00:00:00');
+        t.setHours(0,0,0,0);
+        const diff = Math.ceil((t.getTime() - TODAY.getTime()) / (24*3600*1000));
+        return diff;
+      }
+
+      function renderB2Plan() {
+        const el = document.getElementById('b2Plan');
+        if (!el) return;
+
+        const days = daysUntilTest();
+        const weeks = 8;
+        const perDay = Math.max(0, Number(state.settings.targetMinutes) || 0);
+        const totalMin = days != null ? Math.max(0, days) * perDay : null;
+
+        const header = days == null
+          ? `Set your test date in Settings to generate a countdown-based plan.`
+          : `You have <strong>${days}</strong> day(s). With <strong>${perDay} min/day</strong>, that’s about <strong>${(totalMin||0).toLocaleString()} minutes</strong> of practice.`;
+
+        const plan = [
+          { w: 1, title: "Foundation + habits", bullets: ["Listening: 3 mini-dialogues + 2 dictations", "Speaking: 3 prompts (record 60–90s)", "Vocab: 10–15 cards/day", "Grammar: articles + prepositions"] },
+          { w: 2, title: "Comprehension first", bullets: ["Listening: increase speed (TTS rate +0.05)", "Reading: 3 passages + timed questions", "Writing: 1 email + 1 opinion", "Review mistakes list daily (5 min)"] },
+          { w: 3, title: "B1→B2 upgrade", bullets: ["Speaking: structure + connectors (d’abord, ensuite, pourtant, donc)", "Dictation: focus on endings (-e/-s/-ent) + liaisons", "Vocab: add collocations (faire face à, se rendre compte)", "Grammar: pronouns (y/en)"] },
+          { w: 4, title: "Output accuracy", bullets: ["Writing: 2 timed tasks (20–30 min)", "Speaking: 2 roleplays + 1 argument", "Reading: inference questions (why/what implied)", "Grammar: passé composé vs imparfait"] },
+          { w: 5, title: "Mock mini-tests", bullets: ["1 listening set + 1 reading set back-to-back (timed)", "1 writing task (timed) + self-correct", "Speaking: 2 recordings; redo once with improvements", "Vocab: keep daily review"] },
+          { w: 6, title: "Weakness targeting", bullets: ["Focus your weakest skill 4x this week", "Keep the other skills 1–2x each", "Track recurring grammar errors and drill them", "Add 20 new high-frequency words"] },
+          { w: 7, title: "Full simulation week", bullets: ["2 full mock days (L+R+W+S)", "After each mock: error review + rewrite/re-record", "Timing discipline: answer then move on", "Sleep + hydration consistency"] },
+          { w: 8, title: "Taper + polish", bullets: ["Short daily practice (30–60 min)", "Pronunciation + fluency: read aloud 10 min/day", "Review connectors + templates (email/complaint/opinion)", "Light mock 2–3 days before test"] },
+        ];
+
+        el.innerHTML = `
+          <div class="muted" style="line-height:1.6;">${header}</div>
+          <div style="margin-top:0.75rem; display:grid; gap:0.6rem;">
+            ${plan.map(p => `
+              <div style="border:1.5px solid var(--gray-xlight); border-radius:12px; padding:0.85rem 0.9rem; background:white;">
+                <div style="display:flex; align-items:center; justify-content:space-between; gap:0.75rem; flex-wrap:wrap;">
+                  <div style="font-weight:900; color:var(--navy);">Week ${p.w}: ${p.title}</div>
+                  <span class="pill teal">B2</span>
+                </div>
+                <ul style="margin:0.6rem 0 0; padding-left:1.2rem; color:var(--gray-med); line-height:1.55;">
+                  ${p.bullets.map(b => `<li>${b}</li>`).join('')}
+                </ul>
+              </div>
+            `).join('')}
+          </div>
+        `;
+      }
+
       function sumMinutesForDate(dateISO) {
         return state.logs.sessions.filter(x => x.date === dateISO).reduce((s,x) => s + (Number(x.minutes)||0), 0);
       }
@@ -1591,11 +1680,14 @@
         document.getElementById('kpiTarget').textContent = (Number(state.settings.targetMinutes)||0) + 'm';
         document.getElementById('kpiDoneToday').textContent = sumMinutesForDate(isoDate(new Date())) + 'm';
         document.getElementById('kpiStreak').textContent = streakDays() + 'd';
+        const days = daysUntilTest();
+        document.getElementById('kpiCountdown').textContent = (days == null) ? '—' : (days >= 0 ? (days + 'd') : 'passed');
         document.getElementById('kpiL7').textContent = avg7('listening') + 'm';
         document.getElementById('kpiS7').textContent = avg7('speaking') + 'm';
         document.getElementById('kpiW7').textContent = avg7('writing') + 'm';
         renderRecentSessions();
         renderDashboardChart();
+        renderB2Plan();
       }
 
       function drawAxes(ctx, w, h) {
@@ -1657,16 +1749,19 @@
       let _listenIdx = 0;
       function renderListening() {
         const sel = document.getElementById('listenExerciseSelect');
-        sel.innerHTML = listeningExercises.map((x,i)=>`<option value="${x.id}" ${i===_listenIdx?'selected':''}>${x.id} • ${x.level}</option>`).join('');
+        const pool = filterByLevel(listeningExercises);
+        sel.innerHTML = pool.map((x,i)=>`<option value="${x.id}" ${i===_listenIdx?'selected':''}>${x.id} • ${x.level}</option>`).join('');
         loadListeningExercise();
         const dsel = document.getElementById('dictationSelect');
-        dsel.innerHTML = dictations.map((x,i)=>`<option value="${x.id}" ${i===0?'selected':''}>${x.id} • ${x.level}</option>`).join('');
+        const dpool = filterByLevel(dictations);
+        dsel.innerHTML = dpool.map((x,i)=>`<option value="${x.id}" ${i===0?'selected':''}>${x.id} • ${x.level}</option>`).join('');
         loadDictation();
       }
       function loadListeningExercise() {
         const id = document.getElementById('listenExerciseSelect').value;
-        _listenIdx = Math.max(0, listeningExercises.findIndex(x=>x.id===id));
-        const ex = listeningExercises[_listenIdx] || listeningExercises[0];
+        const pool = filterByLevel(listeningExercises);
+        _listenIdx = Math.max(0, pool.findIndex(x=>x.id===id));
+        const ex = pool[_listenIdx] || pool[0] || listeningExercises[0];
         document.getElementById('listenTranscript').textContent = ex.transcript;
         document.getElementById('listenTranscriptWrap').style.display = 'none';
         document.getElementById('listenScoreLabel').textContent = '';
@@ -1686,11 +1781,13 @@
         wrap.style.display = (wrap.style.display === 'none' || !wrap.style.display) ? 'block' : 'none';
       }
       function playListening() {
-        const ex = listeningExercises[_listenIdx] || listeningExercises[0];
+        const pool = filterByLevel(listeningExercises);
+        const ex = pool[_listenIdx] || pool[0] || listeningExercises[0];
         speakText(ex.transcript.replaceAll('—', ''));
       }
       function gradeListening() {
-        const ex = listeningExercises[_listenIdx] || listeningExercises[0];
+        const pool = filterByLevel(listeningExercises);
+        const ex = pool[_listenIdx] || pool[0] || listeningExercises[0];
         let score = 0;
         ex.questions.forEach((q, qi)=>{
           const picked = document.querySelector(`input[name="lq${qi}"]:checked`);
@@ -1703,15 +1800,17 @@
         renderDashboard();
       }
       function nextListening() {
-        _listenIdx = (_listenIdx + 1) % listeningExercises.length;
-        document.getElementById('listenExerciseSelect').value = listeningExercises[_listenIdx].id;
+        const pool = filterByLevel(listeningExercises);
+        _listenIdx = (_listenIdx + 1) % pool.length;
+        document.getElementById('listenExerciseSelect').value = pool[_listenIdx].id;
         loadListeningExercise();
       }
 
       // dictation
       function currentDictation() {
         const id = document.getElementById('dictationSelect').value;
-        return dictations.find(x=>x.id===id) || dictations[0];
+        const pool = filterByLevel(dictations);
+        return pool.find(x=>x.id===id) || pool[0] || dictations[0];
       }
       function loadDictation() {
         document.getElementById('dictationInput').value = '';
@@ -1769,7 +1868,7 @@
       }
       function speakingPromptList() {
         const type = document.getElementById('speakTaskType').value;
-        return speakingPrompts[type] || [];
+        return filterByLevel(speakingPrompts[type] || []);
       }
       function loadSpeakingPrompt() {
         const type = document.getElementById('speakTaskType').value;
@@ -1886,14 +1985,19 @@
       let _writeStart = null;
       function renderWriting() {
         const sel = document.getElementById('writePromptSelect');
-        if (!sel.options.length) sel.innerHTML = writingPrompts.map(x=>`<option value="${x.id}">${x.id} • ${x.level}</option>`).join('');
+        const pool = filterByLevel(writingPrompts);
+        if (!sel.options.length || sel.dataset.poolSize !== String(pool.length)) {
+          sel.dataset.poolSize = String(pool.length);
+          sel.innerHTML = pool.map(x=>`<option value="${x.id}">${x.id} • ${x.level}</option>`).join('');
+        }
         loadWritingPrompt();
         renderWritingList();
         updateWriteWords();
       }
       function loadWritingPrompt() {
         const id = document.getElementById('writePromptSelect').value;
-        const p = writingPrompts.find(x=>x.id===id) || writingPrompts[0];
+        const pool = filterByLevel(writingPrompts);
+        const p = pool.find(x=>x.id===id) || pool[0] || writingPrompts[0];
         document.getElementById('writePromptText').textContent = p ? p.text : '—';
       }
       function startWritingTimer() {
@@ -1973,13 +2077,15 @@
       let _readIdx = 0;
       function renderReading() {
         const sel = document.getElementById('readPassageSelect');
-        sel.innerHTML = readingPassages.map((x,i)=>`<option value="${x.id}" ${i===_readIdx?'selected':''}>${x.id} • ${x.level}</option>`).join('');
+        const pool = filterByLevel(readingPassages);
+        sel.innerHTML = pool.map((x,i)=>`<option value="${x.id}" ${i===_readIdx?'selected':''}>${x.id} • ${x.level}</option>`).join('');
         loadReading();
       }
       function loadReading() {
         const id = document.getElementById('readPassageSelect').value;
-        _readIdx = Math.max(0, readingPassages.findIndex(x=>x.id===id));
-        const p = readingPassages[_readIdx] || readingPassages[0];
+        const pool = filterByLevel(readingPassages);
+        _readIdx = Math.max(0, pool.findIndex(x=>x.id===id));
+        const p = pool[_readIdx] || pool[0] || readingPassages[0];
         document.getElementById('readTitle').textContent = p.title + ' • ' + p.level;
         document.getElementById('readText').textContent = p.text;
         document.getElementById('readScoreLabel').textContent = '';
@@ -1995,7 +2101,8 @@
         }).join('');
       }
       function gradeReading() {
-        const p = readingPassages[_readIdx] || readingPassages[0];
+        const pool = filterByLevel(readingPassages);
+        const p = pool[_readIdx] || pool[0] || readingPassages[0];
         let score = 0;
         p.questions.forEach((q, qi)=>{
           const picked = document.querySelector(`input[name="rq${qi}"]:checked`);
@@ -2008,8 +2115,9 @@
         renderDashboard();
       }
       function nextReading() {
-        _readIdx = (_readIdx + 1) % readingPassages.length;
-        document.getElementById('readPassageSelect').value = readingPassages[_readIdx].id;
+        const pool = filterByLevel(readingPassages);
+        _readIdx = (_readIdx + 1) % pool.length;
+        document.getElementById('readPassageSelect').value = pool[_readIdx].id;
         loadReading();
       }
 
@@ -2224,17 +2332,28 @@
         state.settings.exam = document.getElementById('setExam').value;
         state.settings.level = document.getElementById('setLevel').value;
         state.settings.targetMinutes = Math.max(0, Number(document.getElementById('setTargetMinutes').value || 0));
+        state.settings.testDateISO = document.getElementById('setTestDate').value || state.settings.testDateISO;
+        state.settings.includeC1Stretch = !!document.getElementById('setStretch').checked;
         state.settings.sttLang = document.getElementById('setSttLang').value;
         state.settings.ttsVoiceURI = document.getElementById('ttsVoiceSelect').value || '';
         state.settings.ttsRate = Math.min(1.3, Math.max(0.6, Number(document.getElementById('ttsRate').value || 1)));
         saveState();
         renderDashboard();
+        // re-render level-filtered content when level settings change
+        renderListening();
+        renderSpeaking();
+        renderWriting();
+        renderReading();
+        renderGrammar();
+        renderVocab();
         showToast('Settings saved');
       }
       function renderSettings() {
         document.getElementById('setExam').value = state.settings.exam || 'TCF';
         document.getElementById('setLevel').value = state.settings.level || 'B2';
         document.getElementById('setTargetMinutes').value = String(state.settings.targetMinutes ?? 60);
+        document.getElementById('setTestDate').value = state.settings.testDateISO || '';
+        document.getElementById('setStretch').checked = !!state.settings.includeC1Stretch;
         document.getElementById('setSttLang').value = state.settings.sttLang || 'fr-FR';
         document.getElementById('ttsRate').value = String(state.settings.ttsRate ?? 1.0);
         populateVoices();
