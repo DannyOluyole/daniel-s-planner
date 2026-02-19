@@ -134,7 +134,13 @@
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(obj),
     });
-    if (!r.ok) throw new Error("Cloud write failed (" + r.status + ")");
+    if (!r.ok) {
+      let detail = "";
+      try {
+        detail = await r.text();
+      } catch {}
+      throw new Error("Cloud write failed (" + r.status + "): " + (detail || r.statusText || ""));
+    }
     return true;
   }
 
@@ -142,7 +148,13 @@
     const url = cloudStateUrl();
     if (!url) return null;
     const r = await fetch(url);
-    if (!r.ok) throw new Error("Cloud read failed (" + r.status + ")");
+    if (!r.ok) {
+      let detail = "";
+      try {
+        detail = await r.text();
+      } catch {}
+      throw new Error("Cloud read failed (" + r.status + "): " + (detail || r.statusText || ""));
+    }
     return await r.json();
   }
 
@@ -240,16 +252,22 @@
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ ok: 1, at: Date.now() }),
         });
-        if (!r.ok) throw new Error("Probe failed");
+        if (!r.ok) {
+          let detail = "";
+          try {
+            detail = await r.text();
+          } catch {}
+          throw new Error("Probe failed (" + r.status + "): " + (detail || r.statusText || ""));
+        }
         await cloudPutState(state);
         _cloudLastPayload = JSON.stringify(state || {});
         startCloudPolling();
         toast("☁ Cloud sync enabled");
         closeCloudModal();
-      } catch {
+      } catch (e) {
         localStorage.setItem(SYNC_CONFIG_KEY, JSON.stringify({ syncId, databaseURL, enabled: false }));
         $("#cloudEnabled").checked = false;
-        toast("Cloud sync failed (check URL/rules)");
+        toast("Cloud sync failed: " + (e && e.message ? e.message : "check URL/rules"));
       }
     } else {
       stopCloudPolling();

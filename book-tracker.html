@@ -632,7 +632,11 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(value)
       });
-      if (!r.ok) throw new Error('Cloud write failed (' + r.status + ')');
+      if (!r.ok) {
+        let detail = '';
+        try { detail = await r.text(); } catch {}
+        throw new Error('Cloud write failed (' + r.status + '): ' + (detail || r.statusText || ''));
+      }
       return true;
     }
 
@@ -640,7 +644,11 @@
       const url = cloudBooksUrl();
       if (!url) return null;
       const r = await fetch(url);
-      if (!r.ok) throw new Error('Cloud read failed (' + r.status + ')');
+      if (!r.ok) {
+        let detail = '';
+        try { detail = await r.text(); } catch {}
+        throw new Error('Cloud read failed (' + r.status + '): ' + (detail || r.statusText || ''));
+      }
       return await r.json();
     }
 
@@ -717,7 +725,11 @@
           const base = cloudBaseUrl();
           const probeUrl = base + '/__probe__.json';
           const r = await fetch(probeUrl, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ok: 1, at: Date.now() }) });
-          if (!r.ok) throw new Error('Probe failed (' + r.status + ')');
+          if (!r.ok) {
+            let detail = '';
+            try { detail = await r.text(); } catch {}
+            throw new Error('Probe failed (' + r.status + '): ' + (detail || r.statusText || ''));
+          }
           // upload current books
           await cloudPutBooks(books);
           _cloudLastPayload = JSON.stringify(books || []);
