@@ -699,6 +699,7 @@
             <label for="bookGenre">Genre (optional)</label>
             <input type="text" id="bookGenre" placeholder="e.g. Finance, Psychology, Productivity" list="genreList" />
             <datalist id="genreList">
+              <option value="Spiritual"></option>
               <option value="Finance"></option>
               <option value="Life Advice"></option>
               <option value="Productivity"></option>
@@ -1441,6 +1442,7 @@
 
     function genreColorMap() {
       return {
+        'Spiritual': '#6A1B9A',
         'Finance': '#C49A2B',
         'Life Advice': '#20B2AA',
         'Productivity': '#E65100',
@@ -1469,8 +1471,20 @@
         counts[g] = (counts[g] || 0) + 1;
       });
 
+      var preferred = ['Spiritual','Finance','Life Advice','Productivity','Psychology','Study','Technology','Medical','Business','Uncategorized'];
+      var orderIndex = {};
+      preferred.forEach(function(k, idx){ orderIndex[k] = idx; });
       var entries = Object.keys(counts).map(function(k) { return { label: k, value: counts[k] }; })
-        .sort(function(a,b){ return b.value - a.value; });
+        .sort(function(a,b){
+          var ai = orderIndex[a.label];
+          var bi = orderIndex[b.label];
+          if (ai != null && bi != null) return ai - bi;
+          if (ai != null) return -1;
+          if (bi != null) return 1;
+          // fallback: higher count first, then name
+          if (b.value !== a.value) return b.value - a.value;
+          return String(a.label).localeCompare(String(b.label));
+        });
 
       if (!entries.length) {
         host.innerHTML = '<div class="template-muted" style="text-align:center; padding: 1rem;">No data yet</div>';
