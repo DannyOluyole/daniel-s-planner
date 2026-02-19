@@ -516,6 +516,8 @@
   <script>
     const STORAGE_KEY = 'booktracker-books';
     const SYNC_CONFIG_KEY = 'booktracker-sync-config';
+    const SHARED_SYNC_KEY = 'universal-sync-config-v1';
+    const DEFAULT_FIREBASE_DB_URL = 'https://adeyinka-daniel-oluyole-default-rtdb.firebaseio.com';
     let books = [];
 
     function showToast(msg) {
@@ -593,14 +595,14 @@
 
     function getSyncConfig() {
       try {
-        const raw = localStorage.getItem(SYNC_CONFIG_KEY);
-        if (!raw) return null;
-        const c = JSON.parse(raw);
-        if (c && c.syncId && c.databaseURL) return {
-          syncId: c.syncId,
-          databaseURL: c.databaseURL,
-          enabled: !!c.enabled
-        };
+        const rawOwn = localStorage.getItem(SYNC_CONFIG_KEY);
+        const own = rawOwn ? JSON.parse(rawOwn) : null;
+        if (own && own.syncId && own.databaseURL) return { syncId: own.syncId, databaseURL: own.databaseURL, enabled: !!own.enabled };
+
+        const rawShared = localStorage.getItem(SHARED_SYNC_KEY);
+        const shared = rawShared ? JSON.parse(rawShared) : null;
+        if (shared && shared.syncId && shared.databaseURL) return { syncId: shared.syncId, databaseURL: shared.databaseURL, enabled: !!shared.enabled };
+
         return null;
       } catch { return null; }
     }
@@ -679,7 +681,7 @@
     function openCloudSyncModal() {
       const cfg = getSyncConfig();
       document.getElementById('syncIdInput').value = cfg ? cfg.syncId : '';
-      document.getElementById('firebaseUrlInput').value = cfg ? cfg.databaseURL : '';
+      document.getElementById('firebaseUrlInput').value = cfg ? cfg.databaseURL : DEFAULT_FIREBASE_DB_URL;
       document.getElementById('cloudSyncEnabled').checked = cfg ? cfg.enabled : false;
       document.getElementById('cloudSyncOverlay').classList.add('open');
     }
@@ -701,6 +703,7 @@
       }
       const cfg = { syncId, databaseURL, enabled };
       localStorage.setItem(SYNC_CONFIG_KEY, JSON.stringify(cfg));
+      if (enabled) localStorage.setItem(SHARED_SYNC_KEY, JSON.stringify(cfg));
 
       const btn = document.getElementById('cloudSyncBtn');
       if (btn) {

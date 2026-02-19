@@ -507,6 +507,7 @@
       const KEY = "vocalTracker-v1";
       const SYNC_CONFIG_KEY = "vocalTracker-sync-config";
       const SHARED_SYNC_KEY = "universal-sync-config-v1";
+      const DEFAULT_FIREBASE_DB_URL = "https://adeyinka-daniel-oluyole-default-rtdb.firebaseio.com";
 
       const $ = (sel) => document.querySelector(sel);
       const $$ = (sel) => Array.from(document.querySelectorAll(sel));
@@ -566,12 +567,11 @@
       }
 
       function getSyncConfig() {
-        // Prefer app-specific config, fall back to shared config.
+        // Prefer app-specific config; fall back to shared config if none.
         const own = getSyncConfigRaw(SYNC_CONFIG_KEY);
-        if (own && own.enabled) return own;
+        if (own) return own;
         const shared = getSyncConfigRaw(SHARED_SYNC_KEY);
-        if (shared && shared.enabled) return shared;
-        return own || shared || null;
+        return shared || null;
       }
 
       function cloudEnabled() {
@@ -660,7 +660,7 @@
         const cfgOwn = getSyncConfigRaw(SYNC_CONFIG_KEY);
         const cfg = cfgOwn || getSyncConfig() || { syncId: "", databaseURL: "", enabled: false };
         $("#cloudSyncId").value = cfg.syncId || "";
-        $("#cloudDbUrl").value = cfg.databaseURL || "";
+        $("#cloudDbUrl").value = cfg.databaseURL || DEFAULT_FIREBASE_DB_URL;
         $("#cloudEnabled").checked = !!cfg.enabled;
         $("#cloudOverlay").classList.add("open");
       }
@@ -680,8 +680,8 @@
         }
         const cfg = { syncId, databaseURL, enabled };
         localStorage.setItem(SYNC_CONFIG_KEY, JSON.stringify(cfg));
-        // also store shared config so other trackers can auto-use it
-        localStorage.setItem(SHARED_SYNC_KEY, JSON.stringify(cfg));
+        // store shared config only when enabling, so disabling here doesn't disable other apps
+        if (enabled) localStorage.setItem(SHARED_SYNC_KEY, JSON.stringify(cfg));
 
         if (enabled) {
           try {
@@ -697,7 +697,6 @@
             closeCloudModal();
           } catch {
             localStorage.setItem(SYNC_CONFIG_KEY, JSON.stringify({ syncId, databaseURL, enabled: false }));
-            localStorage.setItem(SHARED_SYNC_KEY, JSON.stringify({ syncId, databaseURL, enabled: false }));
             $("#cloudEnabled").checked = false;
             toast("Cloud sync failed (check URL/rules)");
           }

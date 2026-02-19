@@ -4,6 +4,9 @@
 
   const STORAGE_KEY = "pfs-state";
   const STATE_VERSION = 1;
+  const SYNC_CONFIG_KEY = "pfs-sync-config";
+  const SHARED_SYNC_KEY = "universal-sync-config-v1";
+  const DEFAULT_FIREBASE_DB_URL = "https://adeyinka-daniel-oluyole-default-rtdb.firebaseio.com";
 
   const $ = (sel) => document.querySelector(sel);
   const $$ = (sel) => Array.from(document.querySelectorAll(sel));
@@ -77,6 +80,185 @@
   function saveState() {
     state.updatedAt = new Date().toISOString();
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    if (cloudEnabled()) scheduleCloudWrite();
+  }
+
+  /* ================================================================
+    CLOUD SYNC (Firebase Realtime Database REST)
+  ================================================================ */
+  let _cloudPollTimer = null;
+  let _cloudLastPayload = "";
+  let _cloudWriteTimer = null;
+
+  function getSyncConfigRaw(key) {
+    try {
+      const raw = localStorage.getItem(key);
+      if (!raw) return null;
+      const c = JSON.parse(raw);
+      if (!c || typeof c !== "object") return null;
+      if (!c.syncId || !c.databaseURL) return null;
+      return { syncId: String(c.syncId), databaseURL: String(c.databaseURL), enabled: !!c.enabled };
+    } catch {
+      return null;
+    }
+  }
+
+  function getSyncConfig() {
+    const own = getSyncConfigRaw(SYNC_CONFIG_KEY);
+    if (own) return own;
+    const shared = getSyncConfigRaw(SHARED_SYNC_KEY);
+    return shared || null;
+  }
+
+  function cloudEnabled() {
+    const cfg = getSyncConfig();
+    return !!(cfg && cfg.enabled);
+  }
+
+  function cloudBaseUrl() {
+    const cfg = getSyncConfig();
+    if (!cfg || !cfg.enabled || !cfg.syncId || !cfg.databaseURL) return "";
+    return cfg.databaseURL.replace(/\/+$/, "") + "/fitness/" + encodeURIComponent(cfg.syncId);
+  }
+
+  function cloudStateUrl() {
+    const base = cloudBaseUrl();
+    return base ? base + "/state.json" : "";
+  }
+
+  async function cloudPutState(obj) {
+    const url = cloudStateUrl();
+    if (!url) return false;
+    const r = await fetch(url, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(obj),
+    });
+    if (!r.ok) throw new Error("Cloud write failed (" + r.status + ")");
+    return true;
+  }
+
+  async function cloudGetState() {
+    const url = cloudStateUrl();
+    if (!url) return null;
+    const r = await fetch(url);
+    if (!r.ok) throw new Error("Cloud read failed (" + r.status + ")");
+    return await r.json();
+  }
+
+  function scheduleCloudWrite() {
+    clearTimeout(_cloudWriteTimer);
+    _cloudWriteTimer = setTimeout(async () => {
+      try {
+        await cloudPutState(state);
+        _cloudLastPayload = JSON.stringify(state || {});
+      } catch {
+        // avoid toast spam on flaky networks
+      }
+    }, 700);
+  }
+
+  function stopCloudPolling() {
+    if (_cloudPollTimer) clearInterval(_cloudPollTimer);
+    _cloudPollTimer = null;
+  }
+
+  async function pollCloudUpdates() {
+    if (!cloudEnabled()) return;
+    try {
+      const remote = await cloudGetState();
+      const payload = JSON.stringify(remote || {});
+      if (payload === _cloudLastPayload) return;
+      _cloudLastPayload = payload;
+      if (remote && typeof remote === "object") {
+        state = migrateState(remote);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+        fillProfileForm();
+        render();
+        toast("☁ Synced from cloud");
+      }
+    } catch {
+      // swallow
+    }
+  }
+
+  function startCloudPolling() {
+    stopCloudPolling();
+    if (!cloudEnabled()) return;
+    pollCloudUpdates();
+    _cloudPollTimer = setInterval(pollCloudUpdates, 5000);
+  }
+
+  function setSyncButtonState() {
+    const btn = $("#btnCloudSync");
+    if (!btn) return;
+    const on = cloudEnabled();
+    btn.classList.toggle("syncOn", on);
+    btn.textContent = on ? "Sync ✓" : "Sync";
+  }
+
+  function openCloudModal() {
+    const cfgOwn = getSyncConfigRaw(SYNC_CONFIG_KEY);
+    const cfg = cfgOwn || getSyncConfig() || { syncId: "", databaseURL: "", enabled: false };
+    $("#cloudSyncId").value = cfg.syncId || "";
+    $("#cloudDbUrl").value = cfg.databaseURL || DEFAULT_FIREBASE_DB_URL;
+    $("#cloudEnabled").checked = !!cfg.enabled;
+    $("#cloudOverlay").classList.add("open");
+  }
+
+  function closeCloudModal() {
+    $("#cloudOverlay").classList.remove("open");
+  }
+
+  async function saveCloudModal() {
+    const syncId = ($("#cloudSyncId").value || "")
+      .trim()
+      .replace(/[^a-zA-Z0-9_-]/g, "-") || ("fitness-" + Date.now());
+    const databaseURL = ($("#cloudDbUrl").value || "").trim().replace(/\/+$/, "");
+    const enabled = !!$("#cloudEnabled").checked;
+
+    if (enabled && !databaseURL) {
+      toast("Enter Firebase Database URL");
+      return;
+    }
+    if (enabled && !/^https:\/\/.+(\.firebaseio\.com|\.firebasedatabase\.app)$/.test(databaseURL)) {
+      toast("Use full Firebase Realtime Database URL");
+      return;
+    }
+
+    const cfg = { syncId, databaseURL, enabled };
+    localStorage.setItem(SYNC_CONFIG_KEY, JSON.stringify(cfg));
+    if (enabled) localStorage.setItem(SHARED_SYNC_KEY, JSON.stringify(cfg));
+
+    if (enabled) {
+      try {
+        // probe + upload current state
+        const base = cloudBaseUrl();
+        const probeUrl = base + "/__probe__.json";
+        const r = await fetch(probeUrl, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ok: 1, at: Date.now() }),
+        });
+        if (!r.ok) throw new Error("Probe failed");
+        await cloudPutState(state);
+        _cloudLastPayload = JSON.stringify(state || {});
+        startCloudPolling();
+        toast("☁ Cloud sync enabled");
+        closeCloudModal();
+      } catch {
+        localStorage.setItem(SYNC_CONFIG_KEY, JSON.stringify({ syncId, databaseURL, enabled: false }));
+        $("#cloudEnabled").checked = false;
+        toast("Cloud sync failed (check URL/rules)");
+      }
+    } else {
+      stopCloudPolling();
+      _cloudLastPayload = "";
+      closeCloudModal();
+      toast("Cloud sync disabled");
+    }
+
+    setSyncButtonState();
   }
 
   function toast(msg) {
@@ -681,6 +863,16 @@
     $("#btnExport").addEventListener("click", openExport);
     $("#btnImport").addEventListener("click", openImport);
     $("#btnReset").addEventListener("click", resetAll);
+    $("#btnCloudSync").addEventListener("click", openCloudModal);
+
+    $("#cloudCancel").addEventListener("click", closeCloudModal);
+    $("#cloudSave").addEventListener("click", saveCloudModal);
+    $("#cloudOverlay").addEventListener("click", (e) => {
+      if (e.target && e.target.id === "cloudOverlay") closeCloudModal();
+    });
+    window.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") closeCloudModal();
+    });
 
     $("#modalCancel").addEventListener("click", () => {
       closeModal();
@@ -698,6 +890,8 @@
     wireEvents();
     setView("profile");
     render();
+    setSyncButtonState();
+    startCloudPolling();
   });
 })();
 
