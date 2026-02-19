@@ -979,6 +979,27 @@
                 <button class="btn btn-red btn-sm" type="button" onclick="resetAll()">⚠ Reset</button>
               </div>
               <hr class="divider">
+              <div class="q">
+                <div class="qt">Official past papers (import)</div>
+                <div class="qd muted" style="line-height:1.6;">
+                  I can’t ship official TEF/TCF past papers inside this app. But you can <strong>import</strong> content you legally have access to (licensed/owned)
+                  and the trainer will include it in the exercise dropdowns (and sync it via cloud sync).
+                </div>
+                <div style="margin-top:0.75rem; display:flex; gap:0.6rem; flex-wrap:wrap;">
+                  <button class="btn btn-ghost btn-sm" type="button" onclick="exportCustomBanks()">⬇ Export imported bank</button>
+                  <button class="btn btn-red btn-sm" type="button" onclick="resetCustomBanks()">Reset imported bank</button>
+                </div>
+                <div style="margin-top:0.75rem;">
+                  <label class="muted" style="font-size:0.82rem; font-weight:900; text-transform:uppercase; letter-spacing:0.06em;">Import JSON</label>
+                  <input type="file" id="customBankFile" accept="application/json,.json" />
+                  <textarea id="customBankJson" rows="6" placeholder='Paste JSON here (see “Template” below)…' style="margin-top:0.6rem;"></textarea>
+                  <div style="margin-top:0.6rem; display:flex; gap:0.6rem; flex-wrap:wrap;">
+                    <button class="btn btn-teal btn-sm" type="button" onclick="importCustomBanks()">Import</button>
+                    <button class="btn btn-ghost btn-sm" type="button" onclick="pasteCustomTemplate()">Template</button>
+                  </div>
+                </div>
+              </div>
+              <hr class="divider">
               <div class="muted" style="line-height:1.6;">
                 GitHub Pages URL for this page (if hosted in your repo):
                 <div class="mono" style="margin-top:0.35rem;">/french_tcf_tef_trainer.html</div>
@@ -1085,6 +1106,15 @@
             grammarMistakes: [], // {id,date,topic,prompt,answer,correct}
             mocks: [] // {id,date,type,score,minutes,note}
           },
+          customBanks: {
+            // Import your own (official/licensed) materials here.
+            // Structure matches the built-in banks.
+            listeningExercises: [], // [{id,level,tag,title,transcript,questions:[{q,options,a}]}]
+            dictations: [], // [{id,level,tag,text}]
+            readingPassages: [], // [{id,level,tag,title,text,questions:[{q,options,a}]}]
+            speakingPrompts: { interview: [], roleplay: [], argument: [] }, // same prompt shape
+            writingPrompts: [] // [{id,level,tag,text}]
+          },
           vocab: {
             cards: [] // {id,front,back,ef,intervalDays,dueISO,createdAt}
           }
@@ -1107,6 +1137,15 @@
         st.logs.reading = Array.isArray(st.logs.reading) ? st.logs.reading : [];
         st.logs.grammarMistakes = Array.isArray(st.logs.grammarMistakes) ? st.logs.grammarMistakes : [];
         st.logs.mocks = Array.isArray(st.logs.mocks) ? st.logs.mocks : [];
+        st.customBanks = Object.assign({}, base.customBanks, parsed.customBanks || {});
+        st.customBanks.listeningExercises = Array.isArray(st.customBanks.listeningExercises) ? st.customBanks.listeningExercises : [];
+        st.customBanks.dictations = Array.isArray(st.customBanks.dictations) ? st.customBanks.dictations : [];
+        st.customBanks.readingPassages = Array.isArray(st.customBanks.readingPassages) ? st.customBanks.readingPassages : [];
+        st.customBanks.speakingPrompts = Object.assign({}, base.customBanks.speakingPrompts, (st.customBanks.speakingPrompts || {}));
+        st.customBanks.speakingPrompts.interview = Array.isArray(st.customBanks.speakingPrompts.interview) ? st.customBanks.speakingPrompts.interview : [];
+        st.customBanks.speakingPrompts.roleplay = Array.isArray(st.customBanks.speakingPrompts.roleplay) ? st.customBanks.speakingPrompts.roleplay : [];
+        st.customBanks.speakingPrompts.argument = Array.isArray(st.customBanks.speakingPrompts.argument) ? st.customBanks.speakingPrompts.argument : [];
+        st.customBanks.writingPrompts = Array.isArray(st.customBanks.writingPrompts) ? st.customBanks.writingPrompts : [];
         st.vocab = Object.assign({}, base.vocab, parsed.vocab || {});
         st.vocab.cards = Array.isArray(st.vocab.cards) ? st.vocab.cards : [];
         return st;
@@ -1201,7 +1240,7 @@
           if (remote && typeof remote === 'object') {
             state = remote;
             // re-normalize missing arrays
-            state = (function normalize(s){ const base=defaultState(); const out=Object.assign({}, base, s||{}); out.settings=Object.assign({}, base.settings, (s||{}).settings||{}); out.logs=Object.assign({}, base.logs, (s||{}).logs||{}); out.logs.sessions=Array.isArray(out.logs.sessions)?out.logs.sessions:[]; out.logs.listening=Array.isArray(out.logs.listening)?out.logs.listening:[]; out.logs.dictation=Array.isArray(out.logs.dictation)?out.logs.dictation:[]; out.logs.speaking=Array.isArray(out.logs.speaking)?out.logs.speaking:[]; out.logs.writing=Array.isArray(out.logs.writing)?out.logs.writing:[]; out.logs.reading=Array.isArray(out.logs.reading)?out.logs.reading:[]; out.logs.grammarMistakes=Array.isArray(out.logs.grammarMistakes)?out.logs.grammarMistakes:[]; out.logs.mocks=Array.isArray(out.logs.mocks)?out.logs.mocks:[]; out.vocab=Object.assign({}, base.vocab, (s||{}).vocab||{}); out.vocab.cards=Array.isArray(out.vocab.cards)?out.vocab.cards:[]; return out; })(state);
+            state = (function normalize(s){ const base=defaultState(); const out=Object.assign({}, base, s||{}); out.settings=Object.assign({}, base.settings, (s||{}).settings||{}); out.logs=Object.assign({}, base.logs, (s||{}).logs||{}); out.logs.sessions=Array.isArray(out.logs.sessions)?out.logs.sessions:[]; out.logs.listening=Array.isArray(out.logs.listening)?out.logs.listening:[]; out.logs.dictation=Array.isArray(out.logs.dictation)?out.logs.dictation:[]; out.logs.speaking=Array.isArray(out.logs.speaking)?out.logs.speaking:[]; out.logs.writing=Array.isArray(out.logs.writing)?out.logs.writing:[]; out.logs.reading=Array.isArray(out.logs.reading)?out.logs.reading:[]; out.logs.grammarMistakes=Array.isArray(out.logs.grammarMistakes)?out.logs.grammarMistakes:[]; out.logs.mocks=Array.isArray(out.logs.mocks)?out.logs.mocks:[]; out.customBanks=Object.assign({}, base.customBanks, (s||{}).customBanks||{}); out.customBanks.listeningExercises=Array.isArray(out.customBanks.listeningExercises)?out.customBanks.listeningExercises:[]; out.customBanks.dictations=Array.isArray(out.customBanks.dictations)?out.customBanks.dictations:[]; out.customBanks.readingPassages=Array.isArray(out.customBanks.readingPassages)?out.customBanks.readingPassages:[]; out.customBanks.speakingPrompts=Object.assign({}, base.customBanks.speakingPrompts, (out.customBanks.speakingPrompts||{})); out.customBanks.speakingPrompts.interview=Array.isArray(out.customBanks.speakingPrompts.interview)?out.customBanks.speakingPrompts.interview:[]; out.customBanks.speakingPrompts.roleplay=Array.isArray(out.customBanks.speakingPrompts.roleplay)?out.customBanks.speakingPrompts.roleplay:[]; out.customBanks.speakingPrompts.argument=Array.isArray(out.customBanks.speakingPrompts.argument)?out.customBanks.speakingPrompts.argument:[]; out.customBanks.writingPrompts=Array.isArray(out.customBanks.writingPrompts)?out.customBanks.writingPrompts:[]; out.vocab=Object.assign({}, base.vocab, (s||{}).vocab||{}); out.vocab.cards=Array.isArray(out.vocab.cards)?out.vocab.cards:[]; return out; })(state);
             localStorage.setItem(STATE_KEY, JSON.stringify(state));
             renderAll();
             showToast('☁ Synced from cloud');
@@ -1882,6 +1921,28 @@
         return filtered.length ? filtered : arr;
       }
 
+      function getAllListeningExercises() {
+        const custom = (state.customBanks && Array.isArray(state.customBanks.listeningExercises)) ? state.customBanks.listeningExercises : [];
+        return custom.concat(listeningExercises);
+      }
+      function getAllDictations() {
+        const custom = (state.customBanks && Array.isArray(state.customBanks.dictations)) ? state.customBanks.dictations : [];
+        return custom.concat(dictations);
+      }
+      function getAllReadingPassages() {
+        const custom = (state.customBanks && Array.isArray(state.customBanks.readingPassages)) ? state.customBanks.readingPassages : [];
+        return custom.concat(readingPassages);
+      }
+      function getAllWritingPrompts() {
+        const custom = (state.customBanks && Array.isArray(state.customBanks.writingPrompts)) ? state.customBanks.writingPrompts : [];
+        return custom.concat(writingPrompts);
+      }
+      function getAllSpeakingPrompts(type) {
+        const base = (speakingPrompts && speakingPrompts[type]) ? speakingPrompts[type] : [];
+        const custom = (state.customBanks && state.customBanks.speakingPrompts && Array.isArray(state.customBanks.speakingPrompts[type])) ? state.customBanks.speakingPrompts[type] : [];
+        return custom.concat(base);
+      }
+
       function daysUntilTest() {
         const iso = state.settings.testDateISO;
         if (!iso || !/^\d{4}-\d{2}-\d{2}$/.test(iso)) return null;
@@ -2104,6 +2165,129 @@
         alert('Mock history (latest first):\n\n' + lines);
       }
 
+      /* ================================================================
+        IMPORT OFFICIAL/OWNED MATERIALS (Custom banks)
+      ================================================================ */
+      function customTemplate() {
+        return {
+          listeningExercises: [
+            {
+              id: "OFFL1",
+              level: "B2",
+              tag: "Official (imported)",
+              title: "Listening set 1",
+              transcript: "Paste transcript here…",
+              questions: [
+                { q: "Question 1?", options: ["A","B","C"], a: 0 }
+              ]
+            }
+          ],
+          dictations: [
+            { id: "OFFD1", level: "B2", tag: "Official (imported)", text: "Paste dictation sentence here…" }
+          ],
+          readingPassages: [
+            {
+              id: "OFFR1",
+              level: "B2",
+              tag: "Official (imported)",
+              title: "Reading set 1",
+              text: "Paste passage here…",
+              questions: [
+                { q: "Question 1?", options: ["A","B","C"], a: 1 }
+              ]
+            }
+          ],
+          speakingPrompts: {
+            interview: [{ id:"OFFSI1", level:"B2", tag:"Official (imported)", text:"Prompt…" }],
+            roleplay: [{ id:"OFFSR1", level:"B2", tag:"Official (imported)", text:"Prompt…" }],
+            argument: [{ id:"OFFSA1", level:"B2", tag:"Official (imported)", text:"Prompt…" }]
+          },
+          writingPrompts: [
+            { id:"OFFW1", level:"B2", tag:"Official (imported)", text:"Prompt…" }
+          ]
+        };
+      }
+
+      function pasteCustomTemplate() {
+        const el = document.getElementById('customBankJson');
+        if (!el) return;
+        el.value = JSON.stringify(customTemplate(), null, 2);
+        showToast('Template pasted');
+      }
+
+      function sanitizeImportedBanks(obj) {
+        const out = defaultState().customBanks;
+        const src = obj && typeof obj === 'object' ? obj : {};
+        const sSpeak = (src.speakingPrompts && typeof src.speakingPrompts === 'object') ? src.speakingPrompts : {};
+        out.listeningExercises = Array.isArray(src.listeningExercises) ? src.listeningExercises : [];
+        out.dictations = Array.isArray(src.dictations) ? src.dictations : [];
+        out.readingPassages = Array.isArray(src.readingPassages) ? src.readingPassages : [];
+        out.speakingPrompts = {
+          interview: Array.isArray(sSpeak.interview) ? sSpeak.interview : [],
+          roleplay: Array.isArray(sSpeak.roleplay) ? sSpeak.roleplay : [],
+          argument: Array.isArray(sSpeak.argument) ? sSpeak.argument : []
+        };
+        out.writingPrompts = Array.isArray(src.writingPrompts) ? src.writingPrompts : [];
+        return out;
+      }
+
+      function importCustomBanks() {
+        const fileInput = document.getElementById('customBankFile');
+        const textEl = document.getElementById('customBankJson');
+        const fromText = (textEl && (textEl.value || '').trim()) ? (textEl.value || '').trim() : '';
+
+        const applyImport = (rawObj) => {
+          const imported = sanitizeImportedBanks(rawObj);
+          state.customBanks = imported;
+          saveState();
+          renderListening();
+          renderSpeaking();
+          renderWriting();
+          renderReading();
+          showToast('✅ Imported official/custom bank');
+        };
+
+        if (fromText) {
+          const obj = safeParse(fromText);
+          if (!obj) { showToast('Invalid JSON'); return; }
+          applyImport(obj);
+          return;
+        }
+
+        const f = fileInput && fileInput.files && fileInput.files[0];
+        if (!f) { showToast('Choose a JSON file or paste JSON'); return; }
+        const reader = new FileReader();
+        reader.onload = () => {
+          const obj = safeParse(String(reader.result || ''));
+          if (!obj) { showToast('Invalid JSON file'); return; }
+          applyImport(obj);
+        };
+        reader.readAsText(f);
+      }
+
+      function exportCustomBanks() {
+        const payload = state.customBanks || defaultState().customBanks;
+        const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'french-trainer-custom-bank-' + new Date().toISOString().slice(0,10) + '.json';
+        a.click();
+        URL.revokeObjectURL(url);
+        showToast('✅ Exported imported bank');
+      }
+
+      function resetCustomBanks() {
+        if (!confirm('Reset imported official/custom bank?')) return;
+        state.customBanks = defaultState().customBanks;
+        saveState();
+        renderListening();
+        renderSpeaking();
+        renderWriting();
+        renderReading();
+        showToast('Imported bank reset');
+      }
+
       function drawAxes(ctx, w, h) {
         ctx.strokeStyle = "rgba(0,0,0,0.10)";
         ctx.lineWidth = 1;
@@ -2163,14 +2347,14 @@
       let _listenIdx = 0;
       function renderListening() {
         const sel = document.getElementById('listenExerciseSelect');
-        const pool = filterByLevel(listeningExercises);
+        const pool = filterByLevel(getAllListeningExercises());
         sel.innerHTML = pool.map((x,i)=>{
           const extra = (x.tag ? (' • ' + esc(x.tag)) : '') + (x.title ? (' — ' + esc(x.title)) : '');
           return `<option value="${x.id}" ${i===_listenIdx?'selected':''}>${esc(x.id)} • ${esc(x.level)}${extra}</option>`;
         }).join('');
         loadListeningExercise();
         const dsel = document.getElementById('dictationSelect');
-        const dpool = filterByLevel(dictations);
+        const dpool = filterByLevel(getAllDictations());
         dsel.innerHTML = dpool.map((x,i)=>{
           const extra = x.tag ? (' • ' + esc(x.tag)) : '';
           return `<option value="${x.id}" ${i===0?'selected':''}>${esc(x.id)} • ${esc(x.level)}${extra}</option>`;
@@ -2179,9 +2363,9 @@
       }
       function loadListeningExercise() {
         const id = document.getElementById('listenExerciseSelect').value;
-        const pool = filterByLevel(listeningExercises);
+        const pool = filterByLevel(getAllListeningExercises());
         _listenIdx = Math.max(0, pool.findIndex(x=>x.id===id));
-        const ex = pool[_listenIdx] || pool[0] || listeningExercises[0];
+        const ex = pool[_listenIdx] || pool[0] || getAllListeningExercises()[0];
         document.getElementById('listenTranscript').textContent = ex.transcript;
         document.getElementById('listenTranscriptWrap').style.display = 'none';
         document.getElementById('listenScoreLabel').textContent = '';
@@ -2201,13 +2385,13 @@
         wrap.style.display = (wrap.style.display === 'none' || !wrap.style.display) ? 'block' : 'none';
       }
       function playListening() {
-        const pool = filterByLevel(listeningExercises);
-        const ex = pool[_listenIdx] || pool[0] || listeningExercises[0];
+        const pool = filterByLevel(getAllListeningExercises());
+        const ex = pool[_listenIdx] || pool[0] || getAllListeningExercises()[0];
         speakText(ex.transcript.replaceAll('—', ''));
       }
       function gradeListening() {
-        const pool = filterByLevel(listeningExercises);
-        const ex = pool[_listenIdx] || pool[0] || listeningExercises[0];
+        const pool = filterByLevel(getAllListeningExercises());
+        const ex = pool[_listenIdx] || pool[0] || getAllListeningExercises()[0];
         let score = 0;
         ex.questions.forEach((q, qi)=>{
           const picked = document.querySelector(`input[name="lq${qi}"]:checked`);
@@ -2220,7 +2404,7 @@
         renderDashboard();
       }
       function nextListening() {
-        const pool = filterByLevel(listeningExercises);
+        const pool = filterByLevel(getAllListeningExercises());
         _listenIdx = (_listenIdx + 1) % pool.length;
         document.getElementById('listenExerciseSelect').value = pool[_listenIdx].id;
         loadListeningExercise();
@@ -2229,8 +2413,8 @@
       // dictation
       function currentDictation() {
         const id = document.getElementById('dictationSelect').value;
-        const pool = filterByLevel(dictations);
-        return pool.find(x=>x.id===id) || pool[0] || dictations[0];
+        const pool = filterByLevel(getAllDictations());
+        return pool.find(x=>x.id===id) || pool[0] || getAllDictations()[0];
       }
       function loadDictation() {
         document.getElementById('dictationInput').value = '';
@@ -2288,7 +2472,7 @@
       }
       function speakingPromptList() {
         const type = document.getElementById('speakTaskType').value;
-        return filterByLevel(speakingPrompts[type] || []);
+        return filterByLevel(getAllSpeakingPrompts(type) || []);
       }
       function loadSpeakingPrompt() {
         const type = document.getElementById('speakTaskType').value;
@@ -2408,7 +2592,7 @@
       let _writeStart = null;
       function renderWriting() {
         const sel = document.getElementById('writePromptSelect');
-        const pool = filterByLevel(writingPrompts);
+        const pool = filterByLevel(getAllWritingPrompts());
         if (!sel.options.length || sel.dataset.poolSize !== String(pool.length)) {
           sel.dataset.poolSize = String(pool.length);
           sel.innerHTML = pool.map(x=>{
@@ -2422,8 +2606,8 @@
       }
       function loadWritingPrompt() {
         const id = document.getElementById('writePromptSelect').value;
-        const pool = filterByLevel(writingPrompts);
-        const p = pool.find(x=>x.id===id) || pool[0] || writingPrompts[0];
+        const pool = filterByLevel(getAllWritingPrompts());
+        const p = pool.find(x=>x.id===id) || pool[0] || getAllWritingPrompts()[0];
         document.getElementById('writePromptText').textContent = p ? p.text : '—';
       }
       function startWritingTimer() {
@@ -2503,7 +2687,7 @@
       let _readIdx = 0;
       function renderReading() {
         const sel = document.getElementById('readPassageSelect');
-        const pool = filterByLevel(readingPassages);
+        const pool = filterByLevel(getAllReadingPassages());
         sel.innerHTML = pool.map((x,i)=>{
           const extra = (x.tag ? (' • ' + esc(x.tag)) : '') + (x.title ? (' — ' + esc(x.title)) : '');
           return `<option value="${x.id}" ${i===_readIdx?'selected':''}>${esc(x.id)} • ${esc(x.level)}${extra}</option>`;
@@ -2512,9 +2696,9 @@
       }
       function loadReading() {
         const id = document.getElementById('readPassageSelect').value;
-        const pool = filterByLevel(readingPassages);
+        const pool = filterByLevel(getAllReadingPassages());
         _readIdx = Math.max(0, pool.findIndex(x=>x.id===id));
-        const p = pool[_readIdx] || pool[0] || readingPassages[0];
+        const p = pool[_readIdx] || pool[0] || getAllReadingPassages()[0];
         document.getElementById('readTitle').textContent = p.title + ' • ' + p.level;
         document.getElementById('readText').textContent = p.text;
         document.getElementById('readScoreLabel').textContent = '';
@@ -2530,8 +2714,8 @@
         }).join('');
       }
       function gradeReading() {
-        const pool = filterByLevel(readingPassages);
-        const p = pool[_readIdx] || pool[0] || readingPassages[0];
+        const pool = filterByLevel(getAllReadingPassages());
+        const p = pool[_readIdx] || pool[0] || getAllReadingPassages()[0];
         let score = 0;
         p.questions.forEach((q, qi)=>{
           const picked = document.querySelector(`input[name="rq${qi}"]:checked`);
@@ -2544,7 +2728,7 @@
         renderDashboard();
       }
       function nextReading() {
-        const pool = filterByLevel(readingPassages);
+        const pool = filterByLevel(getAllReadingPassages());
         _readIdx = (_readIdx + 1) % pool.length;
         document.getElementById('readPassageSelect').value = pool[_readIdx].id;
         loadReading();
