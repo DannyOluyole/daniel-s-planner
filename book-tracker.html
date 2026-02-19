@@ -273,6 +273,193 @@
     .stat-card .stat-num { font-family: 'Playfair Display', serif; font-size: 2.5rem; font-weight: 900; color: var(--teal-dark); }
     .stat-card .stat-label { font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--gray-med); margin-top: 0.25rem; font-weight: 600; }
 
+    /* ================================================================
+      TEMPLATE DASHBOARD (Spreadsheet-style)
+    ================================================================ */
+    .template-grid{
+      display: grid;
+      grid-template-columns: 280px 1fr 1.1fr;
+      gap: 1.25rem;
+      align-items: stretch;
+    }
+    @media (max-width: 1080px){
+      .template-grid{ grid-template-columns: 1fr; }
+    }
+    .template-kpi-stack{
+      display:flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+    .kpi-tile{
+      background: #FFFDF4;
+      border: 1.5px solid rgba(184,134,11,0.35);
+      border-radius: 12px;
+      padding: 1rem 1.1rem;
+      box-shadow: 0 4px 18px rgba(0,0,0,0.06);
+    }
+    .kpi-tile .kpi-label{
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.09em;
+      color: var(--gray-med);
+      font-weight: 700;
+    }
+    .kpi-tile .kpi-value{
+      font-family: 'Playfair Display', serif;
+      font-size: 3rem;
+      line-height: 1.05;
+      font-weight: 900;
+      color: #2E7D32;
+      margin-top: 0.2rem;
+    }
+    .kpi-tile.pages .kpi-value{ color: var(--teal-dark); }
+
+    .template-card{
+      background: #FFFDF4;
+      border-radius: 14px;
+      padding: 1rem 1.1rem;
+      border: 1.5px solid rgba(0,0,0,0.08);
+      box-shadow: 0 4px 18px rgba(0,0,0,0.06);
+      overflow: hidden;
+    }
+    .template-card .t-head{
+      font-weight: 900;
+      text-align: center;
+      color: var(--navy);
+      letter-spacing: 0.02em;
+      margin-bottom: 0.75rem;
+    }
+    .template-split{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.25rem;
+    }
+    @media (max-width: 1080px){
+      .template-split{ grid-template-columns: 1fr; }
+    }
+    .template-canvas{
+      width: 100%;
+      height: 220px;
+      display:block;
+      background: white;
+      border-radius: 12px;
+      border: 1px solid rgba(0,0,0,0.08);
+    }
+    .template-legend{
+      display:flex;
+      flex-direction: column;
+      gap: 0.45rem;
+      margin-top: 0.75rem;
+      font-size: 0.85rem;
+      color: var(--gray-med);
+    }
+    .legend-row{ display:flex; align-items:center; gap: 0.55rem; }
+    .legend-dot{ width: 10px; height: 10px; border-radius: 999px; }
+    .legend-row strong{ color: var(--gray-dark); font-weight: 800; }
+
+    .template-table-wrap{
+      margin-top: 1.25rem;
+      background: white;
+      border-radius: 14px;
+      border: 1.5px solid rgba(0,0,0,0.08);
+      overflow: hidden;
+      box-shadow: 0 4px 18px rgba(0,0,0,0.06);
+    }
+    .template-table-head{
+      background: linear-gradient(135deg, var(--gold) 0%, var(--gold-med) 100%);
+      color: white;
+      padding: 0.85rem 1rem;
+      font-weight: 900;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      font-size: 0.85rem;
+      display:flex;
+      align-items:center;
+      justify-content: space-between;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+    .template-table-scroll{ overflow:auto; }
+    table.template-table{
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 1200px;
+      font-size: 0.9rem;
+    }
+    .template-table th, .template-table td{
+      border-bottom: 1px solid rgba(0,0,0,0.06);
+      padding: 0.6rem 0.65rem;
+      vertical-align: top;
+    }
+    .template-table th{
+      background: #FFF8E7;
+      color: var(--navy);
+      font-weight: 900;
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      position: sticky;
+      top: 0;
+      z-index: 2;
+    }
+    .template-table tbody tr:hover{ background: rgba(0,153,153,0.07); }
+    .status-pill{
+      display:inline-flex;
+      align-items:center;
+      gap: 0.35rem;
+      padding: 0.18rem 0.55rem;
+      border-radius: 999px;
+      font-weight: 800;
+      font-size: 0.78rem;
+      border: 1.5px solid rgba(0,0,0,0.12);
+      white-space: nowrap;
+    }
+    .status-pill.done{ background: #E8F5E9; color: #1B5E20; border-color: rgba(46,125,50,0.35); }
+    .status-pill.reading{ background: #E3F2FD; color: #0D47A1; border-color: rgba(21,101,192,0.30); }
+    .status-pill.want{ background: #FFF8E1; color: #8A6A00; border-color: rgba(184,134,11,0.35); }
+    .genre-pill{
+      display:inline-flex;
+      padding: 0.18rem 0.55rem;
+      border-radius: 999px;
+      font-weight: 800;
+      font-size: 0.78rem;
+      border: 1.5px solid rgba(0,0,0,0.10);
+      white-space: nowrap;
+      background: rgba(0,0,0,0.04);
+      color: var(--gray-dark);
+    }
+    .rating-stars{
+      display:inline-flex;
+      gap: 2px;
+      line-height: 1;
+      user-select: none;
+      white-space: nowrap;
+    }
+    .rating-stars button{
+      border: none;
+      background: transparent;
+      cursor: pointer;
+      padding: 0;
+      font-size: 0.95rem;
+      color: rgba(184,134,11,0.35);
+    }
+    .rating-stars button.on{ color: rgba(184,134,11,0.95); }
+    .status-bar{
+      width: 120px;
+      height: 14px;
+      border-radius: 999px;
+      background: rgba(0,0,0,0.08);
+      overflow: hidden;
+      border: 1px solid rgba(0,0,0,0.08);
+    }
+    .status-bar > div{
+      height: 100%;
+      background: linear-gradient(90deg, var(--teal) 0%, var(--teal-med) 100%);
+      width: 0%;
+    }
+    .status-bar.done > div{ background: linear-gradient(90deg, var(--green) 0%, #4CAF50 100%); }
+    .template-muted{ color: var(--gray-med); font-size: 0.85rem; }
+
     .overlay {
       position: fixed; inset: 0;
       background: rgba(0,0,0,0.5);
@@ -402,26 +589,68 @@
       <p>Summary of your reading progress</p>
     </div>
     <div class="page-content">
-      <div class="stats-grid">
-        <div class="stat-card">
-          <div class="stat-num" id="statTotal">0</div>
-          <div class="stat-label">Total Books</div>
+      <div class="template-grid">
+        <div class="template-kpi-stack">
+          <div class="kpi-tile">
+            <div class="kpi-label">Total Books Finished</div>
+            <div class="kpi-value" id="tplBooksFinished">0</div>
+          </div>
+          <div class="kpi-tile pages">
+            <div class="kpi-label">Total Pages Read</div>
+            <div class="kpi-value" id="tplPagesRead">0</div>
+          </div>
+          <div class="template-muted">
+            Tip: if a book is marked “Finished” and has no End Date, the tracker will use today’s date so charts can work.
+          </div>
         </div>
-        <div class="stat-card">
-          <div class="stat-num" id="statReading">0</div>
-          <div class="stat-label">Reading</div>
+
+        <div class="template-card">
+          <div class="t-head">Genre</div>
+          <div style="display:flex; gap: 1rem; align-items:center; justify-content:center; flex-wrap:wrap;">
+            <div id="tplGenrePie" style="width:220px; height:220px;"></div>
+            <div class="template-legend" id="tplGenreLegend"></div>
+          </div>
         </div>
-        <div class="stat-card">
-          <div class="stat-num" id="statCompleted">0</div>
-          <div class="stat-label">Completed</div>
+
+        <div class="template-card">
+          <div class="template-split">
+            <div>
+              <div class="t-head">Books Read / Month</div>
+              <canvas class="template-canvas" id="tplBooksPerMonth"></canvas>
+            </div>
+            <div>
+              <div class="t-head">Books Read in <span id="tplYearLabel"></span></div>
+              <canvas class="template-canvas" id="tplBooksYear"></canvas>
+            </div>
+          </div>
         </div>
-        <div class="stat-card">
-          <div class="stat-num" id="statWant">0</div>
-          <div class="stat-label">Want to Read</div>
+      </div>
+
+      <div class="template-table-wrap">
+        <div class="template-table-head">
+          <div>Reading Template</div>
+          <div class="template-muted">Click stars to set rating • Click a row to edit</div>
         </div>
-        <div class="stat-card">
-          <div class="stat-num" id="statPages">0</div>
-          <div class="stat-label">Pages Read</div>
+        <div class="template-table-scroll">
+          <table class="template-table">
+            <thead>
+              <tr>
+                <th>Book name</th>
+                <th>Author</th>
+                <th>Recommended by</th>
+                <th>Start date</th>
+                <th>End date</th>
+                <th>Current page</th>
+                <th>Total # of pages</th>
+                <th>Status bar</th>
+                <th>Status</th>
+                <th>Rating</th>
+                <th>Genre</th>
+                <th>Who should read this book?</th>
+              </tr>
+            </thead>
+            <tbody id="tplTableBody"></tbody>
+          </table>
         </div>
       </div>
     </div>
@@ -441,6 +670,20 @@
           <label for="bookAuthor">Author</label>
           <input type="text" id="bookAuthor" placeholder="Author name" />
         </div>
+        <div class="form-row">
+          <label for="bookRecommendedBy">Recommended by (optional)</label>
+          <input type="text" id="bookRecommendedBy" placeholder="e.g. a friend, a creator, a mentor" />
+        </div>
+        <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+          <div>
+            <label for="bookStartDate">Start date (optional)</label>
+            <input type="date" id="bookStartDate" />
+          </div>
+          <div>
+            <label for="bookEndDate">End date (optional)</label>
+            <input type="date" id="bookEndDate" />
+          </div>
+        </div>
         <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
           <div>
             <label for="bookCurrent">Current page</label>
@@ -451,6 +694,33 @@
             <input type="number" id="bookTotal" min="1" placeholder="0" />
           </div>
         </div>
+        <div class="form-row" style="display:grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+          <div>
+            <label for="bookGenre">Genre (optional)</label>
+            <input type="text" id="bookGenre" placeholder="e.g. Finance, Psychology, Productivity" list="genreList" />
+            <datalist id="genreList">
+              <option value="Finance"></option>
+              <option value="Life Advice"></option>
+              <option value="Productivity"></option>
+              <option value="Psychology"></option>
+              <option value="Study"></option>
+              <option value="Technology"></option>
+              <option value="Medical"></option>
+              <option value="Business"></option>
+            </datalist>
+          </div>
+          <div>
+            <label for="bookRating">Rating (0–5)</label>
+            <select id="bookRating">
+              <option value="0">0 — Not rated</option>
+              <option value="1">1</option>
+              <option value="2">2</option>
+              <option value="3">3</option>
+              <option value="4">4</option>
+              <option value="5">5</option>
+            </select>
+          </div>
+        </div>
         <div class="form-row">
           <label for="bookStatus">Status</label>
           <select id="bookStatus">
@@ -458,6 +728,10 @@
             <option value="reading">Reading</option>
             <option value="completed">Completed</option>
           </select>
+        </div>
+        <div class="form-row">
+          <label for="bookAudience">Who should read this book? (optional)</label>
+          <textarea id="bookAudience" rows="2" placeholder="e.g. people who want to improve productivity, beginners in finance…"></textarea>
         </div>
         <div class="form-row">
           <label for="bookNotes">Notes</label>
@@ -519,6 +793,12 @@
     const SHARED_SYNC_KEY = 'universal-sync-config-v1';
     const DEFAULT_FIREBASE_DB_URL = 'https://adeyinka-daniel-oluyole-default-rtdb.firebaseio.com';
     let books = [];
+
+    function isoToday() {
+      var d = new Date();
+      d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+      return d.toISOString().slice(0, 10);
+    }
 
     function showToast(msg) {
       const el = document.getElementById('toast');
@@ -761,6 +1041,12 @@
         }
         books.forEach(function(b) {
           if (!Array.isArray(b.chapters)) b.chapters = [];
+          if (b.genre == null) b.genre = '';
+          if (b.recommendedBy == null) b.recommendedBy = '';
+          if (b.startDate == null) b.startDate = '';
+          if (b.endDate == null) b.endDate = '';
+          if (b.rating == null) b.rating = 0;
+          if (b.audience == null) b.audience = '';
         });
       } catch (e) {
         books = [];
@@ -855,9 +1141,15 @@
       document.getElementById('bookFormId').value = editId || '';
       document.getElementById('bookTitle').value = '';
       document.getElementById('bookAuthor').value = '';
+      document.getElementById('bookRecommendedBy').value = '';
+      document.getElementById('bookStartDate').value = '';
+      document.getElementById('bookEndDate').value = '';
       document.getElementById('bookCurrent').value = '';
       document.getElementById('bookTotal').value = '';
+      document.getElementById('bookGenre').value = '';
+      document.getElementById('bookRating').value = '0';
       document.getElementById('bookStatus').value = 'want';
+      document.getElementById('bookAudience').value = '';
       document.getElementById('bookNotes').value = '';
       document.getElementById('bookPdfUrl').value = '';
       if (editId) {
@@ -865,9 +1157,15 @@
         if (b) {
           document.getElementById('bookTitle').value = b.title || '';
           document.getElementById('bookAuthor').value = b.author || '';
+          document.getElementById('bookRecommendedBy').value = b.recommendedBy || '';
+          document.getElementById('bookStartDate').value = b.startDate || '';
+          document.getElementById('bookEndDate').value = b.endDate || '';
           document.getElementById('bookCurrent').value = b.currentPage != null ? b.currentPage : '';
           document.getElementById('bookTotal').value = b.totalPages != null ? b.totalPages : '';
+          document.getElementById('bookGenre').value = b.genre || '';
+          document.getElementById('bookRating').value = String(b.rating == null ? 0 : b.rating);
           document.getElementById('bookStatus').value = b.status || 'want';
+          document.getElementById('bookAudience').value = b.audience || '';
           document.getElementById('bookNotes').value = b.notes || '';
           document.getElementById('bookPdfUrl').value = b.pdfUrl || '';
         }
@@ -883,9 +1181,15 @@
       var id = document.getElementById('bookFormId').value;
       var title = (document.getElementById('bookTitle').value || '').trim();
       var author = (document.getElementById('bookAuthor').value || '').trim();
+      var recommendedBy = (document.getElementById('bookRecommendedBy').value || '').trim();
+      var startDate = (document.getElementById('bookStartDate').value || '').trim();
+      var endDate = (document.getElementById('bookEndDate').value || '').trim();
       var current = document.getElementById('bookCurrent').value;
       var total = document.getElementById('bookTotal').value;
+      var genre = (document.getElementById('bookGenre').value || '').trim();
+      var rating = parseInt(document.getElementById('bookRating').value, 10) || 0;
       var status = document.getElementById('bookStatus').value;
+      var audience = (document.getElementById('bookAudience').value || '').trim();
       var notes = (document.getElementById('bookNotes').value || '').trim();
       var pdfUrl = (document.getElementById('bookPdfUrl').value || '').trim();
 
@@ -893,19 +1197,53 @@
       var totalNum = Math.max(1, parseInt(total, 10) || 0);
       var currentNum = Math.min(totalNum, Math.max(0, parseInt(current, 10) || 0));
       if (status === 'completed') currentNum = totalNum;
+      if (status === 'completed' && !endDate) endDate = isoToday();
 
       if (id) {
         var idx = books.findIndex(function(b) { return String(b.id) === String(id); });
         if (idx >= 0) {
           var existing = books[idx];
-          books[idx] = { id: existing.id, title: title, author: author, currentPage: currentNum, totalPages: totalNum, status: status, notes: notes, pdfUrl: pdfUrl, chapters: existing.chapters || [] };
+          books[idx] = {
+            id: existing.id,
+            title: title,
+            author: author,
+            recommendedBy: recommendedBy,
+            startDate: startDate,
+            endDate: endDate,
+            currentPage: currentNum,
+            totalPages: totalNum,
+            genre: genre,
+            rating: rating,
+            status: status,
+            audience: audience,
+            notes: notes,
+            pdfUrl: pdfUrl,
+            chapters: existing.chapters || []
+          };
         }
       } else {
-        books.push({ id: Date.now().toString(), title: title, author: author, currentPage: currentNum, totalPages: totalNum, status: status, notes: notes, pdfUrl: pdfUrl, chapters: [] });
+        books.push({
+          id: Date.now().toString(),
+          title: title,
+          author: author,
+          recommendedBy: recommendedBy,
+          startDate: startDate,
+          endDate: endDate,
+          currentPage: currentNum,
+          totalPages: totalNum,
+          genre: genre,
+          rating: rating,
+          status: status,
+          audience: audience,
+          notes: notes,
+          pdfUrl: pdfUrl,
+          chapters: []
+        });
       }
       saveBooks();
       closeBookForm();
       renderBookList();
+      if (document.getElementById('view-stats') && document.getElementById('view-stats').classList.contains('active')) renderStats();
       showToast('Saved');
     }
 
@@ -923,9 +1261,13 @@
       var num = parseInt(v, 10);
       if (!isNaN(num) && num >= 0) {
         b.currentPage = Math.min(total, num);
-        if (b.currentPage >= total) b.status = 'completed';
+        if (b.currentPage >= total) {
+          b.status = 'completed';
+          if (!b.endDate) b.endDate = isoToday();
+        }
         saveBooks();
         renderBookList();
+        if (document.getElementById('view-stats') && document.getElementById('view-stats').classList.contains('active')) renderStats();
         showToast('Updated');
       }
     }
@@ -1076,20 +1418,319 @@
     }
 
     function renderStats() {
-      var total = books.length;
-      var reading = books.filter(function(b) { return b.status === 'reading'; }).length;
-      var completed = books.filter(function(b) { return b.status === 'completed'; }).length;
-      var want = books.filter(function(b) { return b.status === 'want'; }).length;
+      // KPI tiles
+      var finished = books.filter(function(b) { return b.status === 'completed'; }).length;
       var pages = books.reduce(function(sum, b) {
         var cur = parseInt(b.currentPage, 10) || 0;
         return sum + (b.status === 'completed' ? (parseInt(b.totalPages, 10) || 0) : cur);
       }, 0);
 
-      var el = document.getElementById('statTotal'); if (el) el.textContent = total;
-      el = document.getElementById('statReading'); if (el) el.textContent = reading;
-      el = document.getElementById('statCompleted'); if (el) el.textContent = completed;
-      el = document.getElementById('statWant'); if (el) el.textContent = want;
-      el = document.getElementById('statPages'); if (el) el.textContent = pages.toLocaleString();
+      var el = document.getElementById('tplBooksFinished'); if (el) el.textContent = String(finished);
+      el = document.getElementById('tplPagesRead'); if (el) el.textContent = pages.toLocaleString();
+
+      // Charts + table
+      var year = new Date().getFullYear();
+      var yEl = document.getElementById('tplYearLabel');
+      if (yEl) yEl.textContent = String(year);
+
+      renderGenrePie();
+      renderBooksPerMonthChart(year);
+      renderBooksYearChart(year);
+      renderTemplateTable();
+    }
+
+    function genreColorMap() {
+      return {
+        'Finance': '#C49A2B',
+        'Life Advice': '#20B2AA',
+        'Productivity': '#E65100',
+        'Psychology': '#1565C0',
+        'Study': '#7B1FA2',
+        'Technology': '#455A64',
+        'Medical': '#2E7D32',
+        'Business': '#8D6E63',
+        'Uncategorized': '#9E9E9E'
+      };
+    }
+
+    function normalizeGenre(g) {
+      var s = (g || '').trim();
+      return s ? s : 'Uncategorized';
+    }
+
+    function renderGenrePie() {
+      var host = document.getElementById('tplGenrePie');
+      var legend = document.getElementById('tplGenreLegend');
+      if (!host || !legend) return;
+
+      var counts = {};
+      books.forEach(function(b) {
+        var g = normalizeGenre(b.genre);
+        counts[g] = (counts[g] || 0) + 1;
+      });
+
+      var entries = Object.keys(counts).map(function(k) { return { label: k, value: counts[k] }; })
+        .sort(function(a,b){ return b.value - a.value; });
+
+      if (!entries.length) {
+        host.innerHTML = '<div class="template-muted" style="text-align:center; padding: 1rem;">No data yet</div>';
+        legend.innerHTML = '';
+        return;
+      }
+
+      var total = entries.reduce(function(s,e){ return s + e.value; }, 0);
+      var colors = genreColorMap();
+
+      var size = 220;
+      var r = 88;
+      var cx = size/2, cy = size/2;
+      var start = -Math.PI/2;
+      var paths = [];
+
+      entries.forEach(function(e){
+        var frac = e.value / total;
+        var end = start + frac * Math.PI * 2;
+        var x1 = cx + r * Math.cos(start);
+        var y1 = cy + r * Math.sin(start);
+        var x2 = cx + r * Math.cos(end);
+        var y2 = cy + r * Math.sin(end);
+        var large = (end - start) > Math.PI ? 1 : 0;
+        var d = [
+          'M', cx, cy,
+          'L', x1, y1,
+          'A', r, r, 0, large, 1, x2, y2,
+          'Z'
+        ].join(' ');
+        var fill = colors[e.label] || '#9E9E9E';
+        paths.push('<path d="' + d + '" fill="' + fill + '" opacity="0.92"></path>');
+        start = end;
+      });
+
+      host.innerHTML =
+        '<svg width="' + size + '" height="' + size + '" viewBox="0 0 ' + size + ' ' + size + '" role="img" aria-label="Genre pie chart">' +
+          paths.join('') +
+          '<circle cx="' + cx + '" cy="' + cy + '" r="' + (r*0.58) + '" fill="white" opacity="0.92"></circle>' +
+          '<text x="' + cx + '" y="' + (cy-4) + '" text-anchor="middle" font-family="IBM Plex Sans" font-size="14" font-weight="900" fill="#1C2E4A">' + total + '</text>' +
+          '<text x="' + cx + '" y="' + (cy+16) + '" text-anchor="middle" font-family="IBM Plex Sans" font-size="11" font-weight="700" fill="#5A5A5A">books</text>' +
+        '</svg>';
+
+      legend.innerHTML = entries.slice(0, 8).map(function(e){
+        var fill = colors[e.label] || '#9E9E9E';
+        return (
+          '<div class="legend-row">' +
+            '<span class="legend-dot" style="background:' + fill + '"></span>' +
+            '<div><strong>' + escapeHtml(e.label) + '</strong> <span class="template-muted">(' + e.value + ')</span></div>' +
+          '</div>'
+        );
+      }).join('');
+    }
+
+    function drawLineChart(canvas, labels, values, opts) {
+      if (!canvas) return;
+      var ctx = canvas.getContext('2d');
+      if (!ctx) return;
+
+      // fit canvas for crisp lines
+      var dpr = window.devicePixelRatio || 1;
+      var w = canvas.clientWidth || 600;
+      var h = canvas.clientHeight || 220;
+      canvas.width = Math.round(w * dpr);
+      canvas.height = Math.round(h * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+      ctx.clearRect(0,0,w,h);
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0,0,w,h);
+
+      var padL = 36, padR = 12, padT = 14, padB = 28;
+      var plotW = w - padL - padR;
+      var plotH = h - padT - padB;
+
+      var max = Math.max.apply(null, values.concat([1]));
+      var min = 0;
+      var xStep = labels.length > 1 ? plotW / (labels.length - 1) : plotW;
+
+      // grid
+      ctx.strokeStyle = 'rgba(0,0,0,0.08)';
+      ctx.lineWidth = 1;
+      for (var i=0;i<=4;i++){
+        var y = padT + (plotH * i / 4);
+        ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(padL + plotW, y); ctx.stroke();
+      }
+
+      // axis labels
+      ctx.fillStyle = '#5A5A5A';
+      ctx.font = '11px "IBM Plex Sans", system-ui';
+      ctx.textAlign = 'right';
+      ctx.textBaseline = 'middle';
+      for (var j=0;j<=4;j++){
+        var v = Math.round(max * (1 - j/4));
+        var yy = padT + (plotH * j/4);
+        ctx.fillText(String(v), padL - 6, yy);
+      }
+
+      // line
+      var stroke = (opts && opts.stroke) ? opts.stroke : '#007A7A';
+      ctx.strokeStyle = stroke;
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      values.forEach(function(v, idx){
+        var x = padL + xStep * idx;
+        var y = padT + plotH - ((v - min) / (max - min)) * plotH;
+        if (idx === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      });
+      ctx.stroke();
+
+      // points + value labels
+      ctx.fillStyle = stroke;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'bottom';
+      values.forEach(function(v, idx){
+        var x = padL + xStep * idx;
+        var y = padT + plotH - ((v - min) / (max - min)) * plotH;
+        ctx.beginPath(); ctx.arc(x, y, 3.5, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle = '#2C2C2C';
+        ctx.font = '11px "IBM Plex Sans", system-ui';
+        ctx.fillText(String(v), x, y - 6);
+        ctx.fillStyle = stroke;
+      });
+
+      // x labels
+      ctx.fillStyle = '#5A5A5A';
+      ctx.font = '11px "IBM Plex Sans", system-ui';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'top';
+      labels.forEach(function(lbl, idx){
+        var x = padL + xStep * idx;
+        ctx.fillText(lbl, x, padT + plotH + 8);
+      });
+    }
+
+    function renderBooksPerMonthChart(year) {
+      var canvas = document.getElementById('tplBooksPerMonth');
+      if (!canvas) return;
+
+      var counts = new Array(12).fill(0);
+      books.forEach(function(b){
+        if (b.status !== 'completed') return;
+        var d = (b.endDate || '').trim();
+        if (!d) return;
+        var dt = new Date(d + 'T00:00:00');
+        if (isNaN(dt.getTime())) return;
+        if (dt.getFullYear() !== year) return;
+        counts[dt.getMonth()] += 1;
+      });
+
+      var labels = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+      drawLineChart(canvas, labels, counts, { stroke: '#007A7A' });
+    }
+
+    function renderBooksYearChart(year) {
+      var canvas = document.getElementById('tplBooksYear');
+      if (!canvas) return;
+
+      var counts = new Array(12).fill(0);
+      books.forEach(function(b){
+        if (b.status !== 'completed') return;
+        var d = (b.endDate || '').trim();
+        if (!d) return;
+        var dt = new Date(d + 'T00:00:00');
+        if (isNaN(dt.getTime())) return;
+        if (dt.getFullYear() !== year) return;
+        counts[dt.getMonth()] += 1;
+      });
+
+      var cum = [];
+      var running = 0;
+      for (var i=0;i<12;i++){ running += counts[i]; cum.push(running); }
+      var labels = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+      drawLineChart(canvas, labels, cum, { stroke: '#2E7D32' });
+    }
+
+    function statusLabel(b) {
+      if (b.status === 'completed') return { text: 'Finished', cls: 'done' };
+      if (b.status === 'reading') return { text: 'Reading', cls: 'reading' };
+      return { text: 'Want', cls: 'want' };
+    }
+
+    function ratingStarsHtml(bookId, rating) {
+      var r = Math.max(0, Math.min(5, parseInt(rating, 10) || 0));
+      var out = '<span class="rating-stars" data-rate="' + escapeHtml(bookId) + '">';
+      for (var i=1;i<=5;i++){
+        out += '<button type="button" class="' + (i <= r ? 'on' : '') + '" data-star="' + i + '" aria-label="Rate ' + i + ' stars">★</button>';
+      }
+      out += '</span>';
+      return out;
+    }
+
+    function renderTemplateTable() {
+      var body = document.getElementById('tplTableBody');
+      if (!body) return;
+
+      if (!books.length) {
+        body.innerHTML = '<tr><td colspan="12" class="template-muted" style="padding: 1rem;">No books yet. Add a book to populate the template.</td></tr>';
+        return;
+      }
+
+      var ordered = books.slice().sort(function(a,b){
+        // completed first, then reading, then want
+        var rank = function(x){ return x.status === 'completed' ? 0 : x.status === 'reading' ? 1 : 2; };
+        return rank(a) - rank(b);
+      });
+
+      body.innerHTML = ordered.map(function(b){
+        var total = Math.max(1, parseInt(b.totalPages, 10) || 0);
+        var current = Math.min(total, Math.max(0, parseInt(b.currentPage, 10) || 0));
+        var pct = total ? Math.round((current/total) * 100) : 0;
+        if (b.status === 'completed') { current = total; pct = 100; }
+        var st = statusLabel(b);
+        var barCls = 'status-bar' + (b.status === 'completed' ? ' done' : '');
+        return (
+          '<tr data-edit="' + escapeHtml(b.id) + '" title="Click to edit">' +
+            '<td><strong>' + escapeHtml(b.title || 'Untitled') + '</strong></td>' +
+            '<td>' + escapeHtml(b.author || '') + '</td>' +
+            '<td>' + escapeHtml(b.recommendedBy || '') + '</td>' +
+            '<td>' + escapeHtml(b.startDate || '') + '</td>' +
+            '<td>' + escapeHtml(b.endDate || '') + '</td>' +
+            '<td>' + String(current) + '</td>' +
+            '<td>' + String(total) + '</td>' +
+            '<td><div class="' + barCls + '"><div style="width:' + pct + '%"></div></div></td>' +
+            '<td><span class="status-pill ' + st.cls + '">' + st.text + '</span></td>' +
+            '<td>' + ratingStarsHtml(b.id, b.rating) + '</td>' +
+            '<td><span class="genre-pill">' + escapeHtml(normalizeGenre(b.genre)) + '</span></td>' +
+            '<td>' + escapeHtml(b.audience || '') + '</td>' +
+          '</tr>'
+        );
+      }).join('');
+
+      // wire: click row to edit (but ignore clicks on rating stars/buttons)
+      body.onclick = function(e) {
+        var target = e.target;
+        if (!target) return;
+        if (target.closest && target.closest('.rating-stars')) return;
+        var tr = target.closest ? target.closest('tr[data-edit]') : null;
+        if (!tr) return;
+        var id = tr.getAttribute('data-edit');
+        if (id) editBook(id);
+      };
+
+      // wire: rating click
+      body.querySelectorAll('.rating-stars').forEach(function(wrap){
+        wrap.addEventListener('click', function(ev){
+          var btn = ev.target && ev.target.closest ? ev.target.closest('button[data-star]') : null;
+          if (!btn) return;
+          ev.preventDefault();
+          ev.stopPropagation();
+          var bookId = wrap.getAttribute('data-rate');
+          var star = parseInt(btn.getAttribute('data-star'), 10) || 0;
+          var book = books.filter(function(x){ return String(x.id) === String(bookId); })[0];
+          if (!book) return;
+          book.rating = star;
+          saveBooks();
+          renderStats();
+        });
+      });
     }
 
     /* ================================================================
