@@ -1,0 +1,1233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Book Tracker — Reading Progress</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&family=IBM+Plex+Sans:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --teal-dark: #005F5F;
+      --teal: #007A7A;
+      --teal-med: #009999;
+      --teal-light: #20B2AA;
+      --teal-xlight: #E0F5F5;
+      --gold: #B8860B;
+      --gold-med: #C49A2B;
+      --gold-light: #E5C568;
+      --gold-xlight: #FFF8E7;
+      --navy: #1C2E4A;
+      --cream: #FFFEF5;
+      --beige: #F5F1E6;
+      --beige-dark: #EDE8D8;
+      --red: #C62828;
+      --green: #2E7D32;
+      --gray-dark: #2C2C2C;
+      --gray-med: #5A5A5A;
+      --gray-light: #D8D8D8;
+      --gray-xlight: #F0F0F0;
+      --shadow-teal: rgba(0,102,102,0.18);
+      --shadow-gold: rgba(184,134,11,0.18);
+    }
+
+    body {
+      font-family: 'IBM Plex Sans', sans-serif;
+      background: var(--beige);
+      color: var(--gray-dark);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    .view { display: none; min-height: 100vh; }
+    .view.active { display: block; }
+
+    .top-nav {
+      background: linear-gradient(135deg, var(--navy) 0%, var(--teal-dark) 100%);
+      padding: 0 2rem;
+      display: flex;
+      align-items: center;
+      gap: 0;
+      border-bottom: 3px solid var(--gold);
+      position: sticky; top: 0; z-index: 900;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+      flex-wrap: wrap;
+    }
+    .nav-brand {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.4rem;
+      font-weight: 900;
+      color: var(--gold-light);
+      letter-spacing: 0.03em;
+      padding: 1rem 1.5rem 1rem 0;
+      border-right: 2px solid rgba(255,255,255,0.2);
+      margin-right: 1rem;
+      white-space: nowrap;
+      cursor: pointer;
+    }
+    .nav-tab {
+      padding: 1rem 1.2rem;
+      color: rgba(255,255,255,0.7);
+      font-size: 0.85rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      cursor: pointer;
+      border-bottom: 3px solid transparent;
+      margin-bottom: -3px;
+      transition: all 0.25s ease;
+      white-space: nowrap;
+    }
+    .nav-tab:hover { color: white; border-bottom-color: rgba(255,255,255,0.4); }
+    .nav-tab.active { color: var(--gold-light); border-bottom-color: var(--gold); }
+
+    .nav-actions {
+      margin-left: auto;
+      display: flex;
+      gap: 0.5rem;
+      padding: 0.5rem 0;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    .nav-actions .btn { font-size: 0.8rem; padding: 0.5rem 1rem; }
+    #sttBtn.listening { background: linear-gradient(135deg, var(--teal) 0%, var(--teal-dark) 100%); color: white; border: 2px solid rgba(255,255,255,0.22); }
+    #sttBtn[disabled] { opacity: 0.55; cursor: not-allowed; }
+
+    .toast {
+      position: fixed; bottom: 2rem; right: 2rem;
+      background: var(--teal-dark); color: white;
+      padding: 0.9rem 1.8rem; border-radius: 10px;
+      font-weight: 600; font-size: 0.95rem;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.3);
+      transform: translateY(100px); opacity: 0;
+      transition: all 0.35s cubic-bezier(0.34,1.56,0.64,1);
+      z-index: 2000;
+    }
+    .toast.show { transform: translateY(0); opacity: 1; }
+
+    #autosaveIndicator {
+      position: fixed; bottom: 2rem; left: 2rem;
+      background: var(--teal); color: white;
+      padding: 0.5rem 1rem; border-radius: 24px;
+      font-size: 0.75rem; font-weight: 600;
+      opacity: 0; transition: opacity 0.4s; z-index: 2000;
+    }
+
+    .card {
+      background: white;
+      border-radius: 14px;
+      box-shadow: 0 4px 24px var(--shadow-teal), 0 0 0 1px rgba(0,122,122,0.08);
+      overflow: hidden;
+      transition: box-shadow 0.3s ease;
+    }
+    .card:hover { box-shadow: 0 8px 36px var(--shadow-teal), 0 0 0 2px var(--teal-light); }
+
+    .card-header {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: white;
+      background: linear-gradient(135deg, var(--teal-dark) 0%, var(--teal-med) 100%);
+      padding: 1rem 1.5rem;
+      border-bottom: 3px solid var(--gold);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+    .card-header.gold {
+      background: linear-gradient(135deg, var(--gold) 0%, var(--gold-med) 100%);
+      border-bottom-color: var(--teal);
+    }
+    .card-body { padding: 1.5rem; }
+
+    input[type="text"], input[type="number"], textarea, select {
+      width: 100%;
+      padding: 0.7rem 1rem;
+      border: 2px solid var(--gray-light);
+      border-radius: 8px;
+      font-family: 'IBM Plex Sans', sans-serif;
+      font-size: 0.95rem;
+      background: var(--cream);
+      color: var(--gray-dark);
+      transition: all 0.25s ease;
+    }
+    input:focus, textarea:focus, select:focus {
+      outline: none;
+      border-color: var(--teal);
+      background: white;
+      box-shadow: 0 0 0 3px rgba(0,153,153,0.12);
+    }
+    textarea { resize: vertical; line-height: 1.7; }
+
+    .btn {
+      padding: 0.7rem 1.4rem;
+      font-size: 0.88rem;
+      font-weight: 600;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-family: 'IBM Plex Sans', sans-serif;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      transition: all 0.25s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+    .btn:hover { transform: translateY(-2px); }
+    .btn-teal { background: linear-gradient(135deg, var(--teal) 0%, var(--teal-dark) 100%); color: white; box-shadow: 0 4px 12px var(--shadow-teal); }
+    .btn-teal:hover { box-shadow: 0 6px 20px var(--shadow-teal); }
+    .btn-gold { background: linear-gradient(135deg, var(--gold-med) 0%, var(--gold) 100%); color: white; }
+    .btn-ghost { background: white; color: var(--teal); border: 2px solid var(--teal); }
+    .btn-red { background: var(--red); color: white; }
+    .btn-sm { padding: 0.45rem 0.9rem; font-size: 0.8rem; }
+
+    .page-hero {
+      background: linear-gradient(135deg, var(--navy) 0%, var(--teal-dark) 60%, var(--teal) 100%);
+      padding: 2.5rem 3rem;
+      color: white;
+      position: relative;
+      overflow: hidden;
+    }
+    .page-hero::before {
+      content: '';
+      position: absolute; inset: 0;
+      background: repeating-linear-gradient(45deg, transparent, transparent 30px, rgba(255,255,255,0.02) 30px, rgba(255,255,255,0.02) 60px);
+    }
+    .page-hero h2 {
+      font-family: 'Playfair Display', serif;
+      font-size: 2.5rem;
+      font-weight: 900;
+      position: relative; z-index: 1;
+      text-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    }
+    .page-hero p {
+      color: rgba(255,255,255,0.75);
+      font-style: italic;
+      margin-top: 0.4rem;
+      font-size: 1rem;
+      position: relative; z-index: 1;
+    }
+    .page-content { padding: 2rem 2.5rem; max-width: 1200px; margin: 0 auto; }
+
+    .badge {
+      display: inline-block;
+      padding: 0.2rem 0.6rem;
+      border-radius: 12px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      font-family: 'IBM Plex Mono', monospace;
+      letter-spacing: 0.03em;
+    }
+    .badge-reading { background: #E3F2FD; color: var(--teal-dark); border: 1.5px solid var(--teal); }
+    .badge-want { background: #FFF8E1; color: #F57F17; border: 1.5px solid var(--gold); }
+    .badge-completed { background: #E8F5E9; color: var(--green); border: 1.5px solid var(--green); }
+
+    .book-item {
+      display: grid;
+      grid-template-columns: 1fr auto auto auto;
+      gap: 1rem;
+      align-items: center;
+      padding: 1rem 1.25rem;
+      border-bottom: 1.5px solid var(--gray-xlight);
+      transition: background 0.2s;
+    }
+    .book-item:last-child { border-bottom: none; }
+    .book-item:hover { background: var(--teal-xlight); border-radius: 8px; }
+    .book-item .book-info { min-width: 0; }
+    .book-item .book-title { font-weight: 700; font-size: 1.1rem; color: var(--navy); margin-bottom: 0.2rem; }
+    .book-item .book-author { font-size: 0.9rem; color: var(--gray-med); }
+    .book-item .book-progress-wrap { min-width: 120px; text-align: right; }
+    .book-item .progress-bar {
+      height: 8px;
+      background: var(--gray-xlight);
+      border-radius: 4px;
+      overflow: hidden;
+      margin-top: 0.35rem;
+    }
+    .book-item .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--teal) 0%, var(--teal-med) 100%);
+      border-radius: 4px;
+      transition: width 0.3s ease;
+    }
+    .book-item .progress-fill.completed { background: linear-gradient(90deg, var(--green) 0%, #4CAF50 100%); }
+    .book-item .progress-text { font-family: 'IBM Plex Mono', monospace; font-size: 0.85rem; color: var(--gray-med); }
+    .book-item .book-actions { display: flex; gap: 0.4rem; }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1.5rem;
+    }
+    .stat-card {
+      background: white;
+      border-radius: 14px;
+      padding: 1.5rem;
+      box-shadow: 0 4px 24px var(--shadow-teal), 0 0 0 1px rgba(0,122,122,0.08);
+      text-align: center;
+    }
+    .stat-card .stat-num { font-family: 'Playfair Display', serif; font-size: 2.5rem; font-weight: 900; color: var(--teal-dark); }
+    .stat-card .stat-label { font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--gray-med); margin-top: 0.25rem; font-weight: 600; }
+
+    .overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.5);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      padding: 2rem;
+    }
+    .overlay.open { display: flex; }
+    .overlay .modal {
+      background: white;
+      border-radius: 14px;
+      max-width: 480px;
+      width: 100%;
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
+    .overlay .modal-header {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.4rem;
+      font-weight: 700;
+      padding: 1.25rem 1.5rem;
+      background: linear-gradient(135deg, var(--teal-dark) 0%, var(--teal-med) 100%);
+      color: white;
+      border-radius: 14px 14px 0 0;
+    }
+    .overlay .modal-body { padding: 1.5rem; }
+    .overlay .form-row { margin-bottom: 1rem; }
+    .overlay .form-row label { display: block; font-size: 0.8rem; font-weight: 600; color: var(--gray-med); margin-bottom: 0.35rem; text-transform: uppercase; letter-spacing: 0.05em; }
+    .overlay .modal-actions { display: flex; gap: 0.75rem; justify-content: flex-end; margin-top: 1.5rem; }
+
+    .chapter-notes-select { max-width: 400px; margin-bottom: 1.5rem; }
+    .chapter-block {
+      background: white;
+      border-radius: 14px;
+      box-shadow: 0 4px 24px var(--shadow-teal), 0 0 0 1px rgba(0,122,122,0.08);
+      margin-bottom: 1.25rem;
+      overflow: hidden;
+    }
+    .chapter-block .chapter-head {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: white;
+      background: linear-gradient(135deg, var(--teal) 0%, var(--teal-med) 100%);
+      padding: 0.75rem 1.25rem;
+      border-bottom: 2px solid var(--gold);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+    .chapter-block .chapter-head .chapter-label { letter-spacing: 0.04em; }
+    .chapter-block .chapter-body { padding: 1rem 1.25rem; }
+    .chapter-block .chapter-body textarea {
+      min-height: 120px;
+      font-size: 0.95rem;
+      line-height: 1.6;
+    }
+    .chapter-block .chapter-body .hint { font-size: 0.8rem; color: var(--gray-med); margin-top: 0.5rem; }
+    .chapter-notes-empty { text-align: center; color: var(--gray-med); padding: 2rem; }
+    .add-chapter-btn { margin-bottom: 1.5rem; }
+  </style>
+</head>
+<body>
+  <nav class="top-nav">
+    <div class="nav-brand" onclick="showView('library')">📚 Book Tracker</div>
+    <div class="nav-tab active" id="nav-library" onclick="showView('library')">My Library</div>
+    <div class="nav-tab" id="nav-notes" onclick="showView('notes')">Chapter Notes</div>
+    <div class="nav-tab" id="nav-stats" onclick="showView('stats')">Stats</div>
+    <div class="nav-actions">
+      <button type="button" class="btn btn-ghost btn-sm" onclick="toggleSpeechToText()" id="sttBtn" title="Speech to text (dictation)">🎙 Dictate</button>
+      <button type="button" class="btn btn-ghost btn-sm" onclick="openCloudSyncModal()" id="cloudSyncBtn" title="Cloud Sync">☁ Sync</button>
+      <button type="button" class="btn btn-gold btn-sm" onclick="exportBooks()">⬇ Export</button>
+      <button type="button" class="btn btn-gold btn-sm" onclick="importBooks()">⬆ Import</button>
+    </div>
+  </nav>
+
+  <div id="autosaveIndicator">✓ Saved</div>
+  <div id="toast" class="toast" aria-live="polite"></div>
+
+  <!-- VIEW: LIBRARY -->
+  <div class="view active" id="view-library">
+    <div class="page-hero">
+      <h2>My Library</h2>
+      <p>Track your reading progress — current page, status, and notes</p>
+    </div>
+    <div class="page-content">
+      <div style="display: flex; justify-content: flex-end; margin-bottom: 1.5rem;">
+        <button type="button" class="btn btn-teal btn-sm" onclick="openBookForm()">+ Add Book</button>
+      </div>
+      <div class="card">
+        <div class="card-header gold">Your Books</div>
+        <div class="card-body" id="bookList">
+          <p id="bookListEmpty" class="book-list-empty" style="text-align:center; color: var(--gray-med); padding: 2rem;">No books yet. Click &quot;Add Book&quot; to start.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- VIEW: CHAPTER NOTES -->
+  <div class="view" id="view-notes">
+    <div class="page-hero">
+      <h2>Chapter Notes</h2>
+      <p>Insights and commentary for every chapter of each book</p>
+    </div>
+    <div class="page-content">
+      <div class="form-row chapter-notes-select">
+        <label for="notesBookSelect">Book</label>
+        <select id="notesBookSelect" onchange="renderChapterNotes()">
+          <option value="">— Select a book —</option>
+        </select>
+      </div>
+      <div id="chapterNotesArea">
+        <p class="chapter-notes-empty">Select a book above to add or edit chapter insights.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- VIEW: STATS -->
+  <div class="view" id="view-stats">
+    <div class="page-hero">
+      <h2>Reading Stats</h2>
+      <p>Summary of your reading progress</p>
+    </div>
+    <div class="page-content">
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-num" id="statTotal">0</div>
+          <div class="stat-label">Total Books</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-num" id="statReading">0</div>
+          <div class="stat-label">Reading</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-num" id="statCompleted">0</div>
+          <div class="stat-label">Completed</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-num" id="statWant">0</div>
+          <div class="stat-label">Want to Read</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-num" id="statPages">0</div>
+          <div class="stat-label">Pages Read</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ADD/EDIT BOOK MODAL -->
+  <div id="bookFormOverlay" class="overlay" onclick="if(event.target===this) closeBookForm()">
+    <div class="modal">
+      <div class="modal-header" id="bookFormTitle">Add Book</div>
+      <div class="modal-body">
+        <input type="hidden" id="bookFormId" value="" />
+        <div class="form-row">
+          <label for="bookTitle">Title</label>
+          <input type="text" id="bookTitle" placeholder="Book title" />
+        </div>
+        <div class="form-row">
+          <label for="bookAuthor">Author</label>
+          <input type="text" id="bookAuthor" placeholder="Author name" />
+        </div>
+        <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+          <div>
+            <label for="bookCurrent">Current page</label>
+            <input type="number" id="bookCurrent" min="0" placeholder="0" />
+          </div>
+          <div>
+            <label for="bookTotal">Total pages</label>
+            <input type="number" id="bookTotal" min="1" placeholder="0" />
+          </div>
+        </div>
+        <div class="form-row">
+          <label for="bookStatus">Status</label>
+          <select id="bookStatus">
+            <option value="want">Want to read</option>
+            <option value="reading">Reading</option>
+            <option value="completed">Completed</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <label for="bookNotes">Notes</label>
+          <textarea id="bookNotes" rows="3" placeholder="Optional notes…"></textarea>
+        </div>
+        <div class="form-row">
+          <label for="bookPdfUrl">PDF link (optional)</label>
+          <input type="url" id="bookPdfUrl" placeholder="https://… or file path to the book PDF" />
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-ghost btn-sm" onclick="closeBookForm()">Cancel</button>
+          <button type="button" class="btn btn-teal btn-sm" onclick="saveBookFromForm()">Save</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CLOUD SYNC MODAL -->
+  <div id="cloudSyncOverlay" class="overlay" onclick="if(event.target===this) closeCloudSyncModal()">
+    <div class="modal" style="max-width:560px;">
+      <div class="modal-header">☁ Cloud Sync</div>
+      <div class="modal-body">
+        <p style="color:var(--gray-med);font-size:0.9rem;margin-bottom:1rem;">
+          Sync your Book Tracker across devices using <strong>Firebase Realtime Database</strong> (free tier).
+        </p>
+        <div class="form-row">
+          <label for="syncIdInput">Sync ID (share this to sync other devices)</label>
+          <div style="display:flex; gap:0.5rem; align-items:center;">
+            <input type="text" id="syncIdInput" placeholder="e.g. my-books-2026" style="flex:1;" />
+            <button type="button" class="btn btn-teal btn-sm" onclick="generateSyncId()">Generate</button>
+          </div>
+        </div>
+        <div class="form-row">
+          <label for="firebaseUrlInput">Firebase Database URL</label>
+          <input type="text" id="firebaseUrlInput" placeholder="https://YOUR-PROJECT.firebaseio.com" />
+        </div>
+        <div class="form-row" style="display:flex; align-items:center; gap:0.75rem;">
+          <input type="checkbox" id="cloudSyncEnabled" />
+          <label for="cloudSyncEnabled" style="margin:0; text-transform:none; letter-spacing:0; font-weight:700;">Enable cloud sync</label>
+        </div>
+        <p style="font-size:0.8rem;color:var(--gray-med); line-height:1.5;">
+          Create a free project at <a href="https://console.firebase.google.com" target="_blank" rel="noopener">Firebase Console</a>
+          → Realtime Database → copy the database URL.
+        </p>
+        <p style="font-size:0.8rem;color:var(--gray-med); line-height:1.5; margin-top:0.5rem;">
+          Note: Dictation works best over HTTPS (GitHub Pages). Some browsers block speech-to-text on <code>file://</code>.
+        </p>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-ghost btn-sm" onclick="closeCloudSyncModal()">Close</button>
+          <button type="button" class="btn btn-teal btn-sm" onclick="saveCloudSyncConfig()">Save</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const STORAGE_KEY = 'booktracker-books';
+    const SYNC_CONFIG_KEY = 'booktracker-sync-config';
+    let books = [];
+
+    function showToast(msg) {
+      const el = document.getElementById('toast');
+      if (!el) return;
+      el.textContent = msg;
+      el.classList.add('show');
+      clearTimeout(el._t);
+      el._t = setTimeout(function() { el.classList.remove('show'); }, 2800);
+    }
+    function showAutoSaveIndicator() {
+      const el = document.getElementById('autosaveIndicator');
+      if (!el) return;
+      el.style.opacity = '1';
+      clearTimeout(el._t);
+      el._t = setTimeout(function() { el.style.opacity = '0'; }, 1500);
+    }
+
+    /* ================================================================
+      EXPORT / IMPORT (backup)
+    ================================================================ */
+    function exportBooks() {
+      try {
+        const payload = {
+          exportedAt: new Date().toISOString(),
+          books: books
+        };
+        const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'book-tracker-backup-' + new Date().toISOString().slice(0, 10) + '.json';
+        a.click();
+        URL.revokeObjectURL(url);
+        showToast('✅ Exported');
+      } catch (e) {
+        showToast('Export failed');
+      }
+    }
+
+    function importBooks() {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = 'application/json,.json';
+      input.onchange = function(e) {
+        const file = e.target.files && e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function(evt) {
+          try {
+            const parsed = JSON.parse(evt.target.result);
+            const arr = Array.isArray(parsed) ? parsed : (Array.isArray(parsed.books) ? parsed.books : null);
+            if (!arr) throw new Error('Invalid');
+            books = arr;
+            books.forEach(function(b) { if (!Array.isArray(b.chapters)) b.chapters = []; });
+            saveBooks();
+            renderBookList();
+            fillNotesBookSelect();
+            showToast('✅ Imported');
+          } catch {
+            showToast('Invalid backup file');
+          }
+        };
+        reader.readAsText(file);
+      };
+      input.click();
+    }
+
+    /* ================================================================
+      CLOUD SYNC — Firebase Realtime Database (REST)
+    ================================================================ */
+    let _cloudPollTimer = null;
+    let _cloudLastPayload = '';
+    let _cloudSyncLastError = '';
+
+    function getSyncConfig() {
+      try {
+        const raw = localStorage.getItem(SYNC_CONFIG_KEY);
+        if (!raw) return null;
+        const c = JSON.parse(raw);
+        if (c && c.syncId && c.databaseURL) return {
+          syncId: c.syncId,
+          databaseURL: c.databaseURL,
+          enabled: !!c.enabled
+        };
+        return null;
+      } catch { return null; }
+    }
+
+    function cloudEnabled() {
+      const cfg = getSyncConfig();
+      return !!(cfg && cfg.enabled);
+    }
+
+    function cloudBaseUrl() {
+      const cfg = getSyncConfig();
+      if (!cfg || !cfg.enabled || !cfg.syncId || !cfg.databaseURL) return '';
+      return cfg.databaseURL.replace(/\/+$/, '') + '/booktracker/' + encodeURIComponent(cfg.syncId);
+    }
+
+    function cloudBooksUrl() {
+      const base = cloudBaseUrl();
+      if (!base) return '';
+      return base + '/books.json';
+    }
+
+    async function cloudPutBooks(value) {
+      const url = cloudBooksUrl();
+      if (!url) return false;
+      const r = await fetch(url, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(value)
+      });
+      if (!r.ok) throw new Error('Cloud write failed (' + r.status + ')');
+      return true;
+    }
+
+    async function cloudGetBooks() {
+      const url = cloudBooksUrl();
+      if (!url) return null;
+      const r = await fetch(url);
+      if (!r.ok) throw new Error('Cloud read failed (' + r.status + ')');
+      return await r.json();
+    }
+
+    function stopCloudPolling() {
+      if (_cloudPollTimer) clearInterval(_cloudPollTimer);
+      _cloudPollTimer = null;
+    }
+
+    async function pollCloudUpdates() {
+      if (!cloudEnabled()) return;
+      try {
+        const remote = await cloudGetBooks();
+        const payload = JSON.stringify(remote || []);
+        if (payload === _cloudLastPayload) return;
+        _cloudLastPayload = payload;
+        if (Array.isArray(remote)) {
+          books = remote;
+          books.forEach(function(b) { if (!Array.isArray(b.chapters)) b.chapters = []; });
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(books));
+          renderBookList();
+          fillNotesBookSelect();
+          renderStats();
+          showToast('☁ Synced from cloud');
+        }
+        _cloudSyncLastError = '';
+      } catch (e) {
+        _cloudSyncLastError = e && e.message ? e.message : 'Cloud poll failed';
+      }
+    }
+
+    function startCloudPolling() {
+      stopCloudPolling();
+      if (!cloudEnabled()) return;
+      pollCloudUpdates();
+      _cloudPollTimer = setInterval(pollCloudUpdates, 5000);
+    }
+
+    function openCloudSyncModal() {
+      const cfg = getSyncConfig();
+      document.getElementById('syncIdInput').value = cfg ? cfg.syncId : '';
+      document.getElementById('firebaseUrlInput').value = cfg ? cfg.databaseURL : '';
+      document.getElementById('cloudSyncEnabled').checked = cfg ? cfg.enabled : false;
+      document.getElementById('cloudSyncOverlay').classList.add('open');
+    }
+    function closeCloudSyncModal() {
+      document.getElementById('cloudSyncOverlay').classList.remove('open');
+    }
+    function generateSyncId() {
+      document.getElementById('syncIdInput').value = 'books-' + Date.now();
+    }
+
+    async function saveCloudSyncConfig() {
+      const syncId = (document.getElementById('syncIdInput').value || '').trim().replace(/[^a-zA-Z0-9_-]/g, '-') || ('books-' + Date.now());
+      const databaseURL = (document.getElementById('firebaseUrlInput').value || '').trim().replace(/\/+$/, '');
+      const enabled = !!document.getElementById('cloudSyncEnabled').checked;
+      if (!databaseURL && enabled) { showToast('Enter Firebase Database URL'); return; }
+      if (enabled && !/^https:\/\/.+(\.firebaseio\.com|\.firebasedatabase\.app)$/.test(databaseURL)) {
+        showToast('Use full Firebase Realtime Database URL');
+        return;
+      }
+      const cfg = { syncId, databaseURL, enabled };
+      localStorage.setItem(SYNC_CONFIG_KEY, JSON.stringify(cfg));
+
+      const btn = document.getElementById('cloudSyncBtn');
+      if (btn) {
+        btn.classList.toggle('btn-teal', enabled);
+        btn.classList.toggle('btn-ghost', !enabled);
+      }
+
+      if (enabled) {
+        try {
+          // probe
+          const base = cloudBaseUrl();
+          const probeUrl = base + '/__probe__.json';
+          const r = await fetch(probeUrl, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ok: 1, at: Date.now() }) });
+          if (!r.ok) throw new Error('Probe failed (' + r.status + ')');
+          // upload current books
+          await cloudPutBooks(books);
+          _cloudLastPayload = JSON.stringify(books || []);
+          startCloudPolling();
+          showToast('☁ Cloud sync enabled');
+          closeCloudSyncModal();
+        } catch (e) {
+          _cloudSyncLastError = e && e.message ? e.message : 'Cloud sync failed';
+          localStorage.setItem(SYNC_CONFIG_KEY, JSON.stringify({ syncId, databaseURL, enabled: false }));
+          document.getElementById('cloudSyncEnabled').checked = false;
+          showToast('Cloud sync failed: ' + _cloudSyncLastError);
+        }
+      } else {
+        stopCloudPolling();
+        _cloudLastPayload = '';
+        closeCloudSyncModal();
+        showToast('Cloud sync disabled');
+      }
+    }
+
+    function loadBooks() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          books = Array.isArray(parsed) ? parsed : [];
+        } else {
+          books = [];
+        }
+        books.forEach(function(b) {
+          if (!Array.isArray(b.chapters)) b.chapters = [];
+        });
+      } catch (e) {
+        books = [];
+      }
+    }
+
+    function saveBooks() {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(books));
+        showAutoSaveIndicator();
+        if (cloudEnabled()) {
+          cloudPutBooks(books).then(function() {
+            _cloudLastPayload = JSON.stringify(books || []);
+          }).catch(function(e) {
+            _cloudSyncLastError = e && e.message ? e.message : 'Cloud write failed';
+          });
+        }
+        return true;
+      } catch (e) {
+        showToast('Could not save');
+        return false;
+      }
+    }
+
+    function showView(name) {
+      document.querySelectorAll('.view').forEach(function(v) { v.classList.remove('active'); });
+      document.querySelectorAll('.nav-tab').forEach(function(t) { t.classList.remove('active'); });
+      var view = document.getElementById('view-' + name);
+      var tab = document.getElementById('nav-' + name);
+      if (view) view.classList.add('active');
+      if (tab) tab.classList.add('active');
+      if (name === 'library') renderBookList();
+      if (name === 'notes') { fillNotesBookSelect(); renderChapterNotes(); }
+      if (name === 'stats') renderStats();
+    }
+
+    function renderBookList() {
+      var list = document.getElementById('bookList');
+      if (!list) return;
+
+      var reading = books.filter(function(b) { return b.status === 'reading'; });
+      var completed = books.filter(function(b) { return b.status === 'completed'; });
+      var want = books.filter(function(b) { return b.status === 'want'; });
+      var ordered = reading.concat(completed).concat(want);
+
+      if (ordered.length === 0) {
+        list.innerHTML = '<p class="book-list-empty" style="text-align:center; color: var(--gray-med); padding: 2rem;">No books yet. Click &quot;Add Book&quot; to start.</p>';
+        return;
+      }
+
+      list.innerHTML = ordered.map(function(b) {
+        var total = Math.max(1, parseInt(b.totalPages, 10) || 0);
+        var current = Math.min(total, Math.max(0, parseInt(b.currentPage, 10) || 0));
+        var pct = total ? Math.round((current / total) * 100) : 0;
+        if (b.status === 'completed') { current = total; pct = 100; }
+        var badgeClass = 'badge-reading';
+        if (b.status === 'completed') badgeClass = 'badge-completed';
+        if (b.status === 'want') badgeClass = 'badge-want';
+        var progressClass = b.status === 'completed' ? 'progress-fill completed' : 'progress-fill';
+        return (
+          '<div class="book-item" data-id="' + (b.id || '') + '">' +
+            '<div class="book-info">' +
+              '<div class="book-title">' + escapeHtml(b.title || 'Untitled') + '</div>' +
+              '<div class="book-author">' + escapeHtml(b.author || '') + '</div>' +
+              '<div class="progress-bar"><div class="' + progressClass + '" style="width:' + pct + '%"></div></div>' +
+            '</div>' +
+            '<div class="book-progress-wrap">' +
+              '<span class="progress-text">' + current + ' / ' + total + '</span>' +
+              '<div><span class="badge ' + badgeClass + '">' + (b.status === 'reading' ? 'Reading' : b.status === 'completed' ? 'Completed' : 'Want to read') + '</span></div>' +
+            '</div>' +
+            '<div class="book-actions">' +
+              (b.pdfUrl ? '<a href="' + escapeHtml(b.pdfUrl) + '" target="_blank" rel="noopener" class="btn btn-ghost btn-sm">Open PDF</a>' : '') +
+              '<button type="button" class="btn btn-gold btn-sm" onclick="exportBookAsPdf(\'' + (b.id || '') + '\')">Save as PDF</button>' +
+              '<button type="button" class="btn btn-teal btn-sm" onclick="setCurrentPage(\'' + (b.id || '') + '\')">Update page</button>' +
+              '<button type="button" class="btn btn-ghost btn-sm" onclick="editBook(\'' + (b.id || '') + '\')">Edit</button>' +
+              '<button type="button" class="btn btn-red btn-sm" onclick="deleteBook(\'' + (b.id || '') + '\')">Delete</button>' +
+            '</div>' +
+          '</div>'
+        );
+      }).join('');
+    }
+
+    function escapeHtml(s) {
+      if (s == null) return '';
+      var div = document.createElement('div');
+      div.textContent = s;
+      return div.innerHTML;
+    }
+
+    function openBookForm(editId) {
+      document.getElementById('bookFormTitle').textContent = editId ? 'Edit Book' : 'Add Book';
+      document.getElementById('bookFormId').value = editId || '';
+      document.getElementById('bookTitle').value = '';
+      document.getElementById('bookAuthor').value = '';
+      document.getElementById('bookCurrent').value = '';
+      document.getElementById('bookTotal').value = '';
+      document.getElementById('bookStatus').value = 'want';
+      document.getElementById('bookNotes').value = '';
+      document.getElementById('bookPdfUrl').value = '';
+      if (editId) {
+        var b = books.filter(function(x) { return String(x.id) === String(editId); })[0];
+        if (b) {
+          document.getElementById('bookTitle').value = b.title || '';
+          document.getElementById('bookAuthor').value = b.author || '';
+          document.getElementById('bookCurrent').value = b.currentPage != null ? b.currentPage : '';
+          document.getElementById('bookTotal').value = b.totalPages != null ? b.totalPages : '';
+          document.getElementById('bookStatus').value = b.status || 'want';
+          document.getElementById('bookNotes').value = b.notes || '';
+          document.getElementById('bookPdfUrl').value = b.pdfUrl || '';
+        }
+      }
+      document.getElementById('bookFormOverlay').classList.add('open');
+    }
+
+    function closeBookForm() {
+      document.getElementById('bookFormOverlay').classList.remove('open');
+    }
+
+    function saveBookFromForm() {
+      var id = document.getElementById('bookFormId').value;
+      var title = (document.getElementById('bookTitle').value || '').trim();
+      var author = (document.getElementById('bookAuthor').value || '').trim();
+      var current = document.getElementById('bookCurrent').value;
+      var total = document.getElementById('bookTotal').value;
+      var status = document.getElementById('bookStatus').value;
+      var notes = (document.getElementById('bookNotes').value || '').trim();
+      var pdfUrl = (document.getElementById('bookPdfUrl').value || '').trim();
+
+      if (!title) { showToast('Enter a title'); return; }
+      var totalNum = Math.max(1, parseInt(total, 10) || 0);
+      var currentNum = Math.min(totalNum, Math.max(0, parseInt(current, 10) || 0));
+      if (status === 'completed') currentNum = totalNum;
+
+      if (id) {
+        var idx = books.findIndex(function(b) { return String(b.id) === String(id); });
+        if (idx >= 0) {
+          var existing = books[idx];
+          books[idx] = { id: existing.id, title: title, author: author, currentPage: currentNum, totalPages: totalNum, status: status, notes: notes, pdfUrl: pdfUrl, chapters: existing.chapters || [] };
+        }
+      } else {
+        books.push({ id: Date.now().toString(), title: title, author: author, currentPage: currentNum, totalPages: totalNum, status: status, notes: notes, pdfUrl: pdfUrl, chapters: [] });
+      }
+      saveBooks();
+      closeBookForm();
+      renderBookList();
+      showToast('Saved');
+    }
+
+    function editBook(id) {
+      openBookForm(id);
+    }
+
+    function setCurrentPage(id) {
+      var b = books.filter(function(x) { return String(x.id) === String(id); })[0];
+      if (!b) return;
+      var total = Math.max(1, parseInt(b.totalPages, 10) || 0);
+      var cur = Math.min(total, Math.max(0, parseInt(b.currentPage, 10) || 0));
+      var v = window.prompt('Current page (1–' + total + ')', cur);
+      if (v === null) return;
+      var num = parseInt(v, 10);
+      if (!isNaN(num) && num >= 0) {
+        b.currentPage = Math.min(total, num);
+        if (b.currentPage >= total) b.status = 'completed';
+        saveBooks();
+        renderBookList();
+        showToast('Updated');
+      }
+    }
+
+    function exportBookAsPdf(bookId) {
+      var book = books.filter(function(b) { return b.id === bookId; })[0];
+      if (!book) { showToast('Book not found'); return; }
+      var total = Math.max(1, parseInt(book.totalPages, 10) || 0);
+      var current = Math.min(total, Math.max(0, parseInt(book.currentPage, 10) || 0));
+      if (book.status === 'completed') current = total;
+      var chapters = book.chapters || [];
+      var parts = [];
+      parts.push('<h1>' + escapeHtml(book.title || 'Untitled') + '</h1>');
+      parts.push('<p><strong>Author:</strong> ' + escapeHtml(book.author || '—') + '</p>');
+      parts.push('<p><strong>Progress:</strong> ' + current + ' / ' + total + ' pages &nbsp;|&nbsp; <strong>Status:</strong> ' + (book.status === 'reading' ? 'Reading' : book.status === 'completed' ? 'Completed' : 'Want to read') + '</p>');
+      if (book.notes) parts.push('<h2>Notes</h2><p>' + escapeHtml(book.notes).replace(/\n/g, '<br>') + '</p>');
+      if (chapters.length) {
+        parts.push('<h2>Chapter notes &amp; insights</h2>');
+        chapters.forEach(function(c) {
+          parts.push('<h3>' + escapeHtml(c.label || 'Chapter') + '</h3>');
+          parts.push(c.notes ? '<p>' + escapeHtml(c.notes).replace(/\n/g, '<br>') + '</p>' : '<p><em>No notes yet.</em></p>');
+        });
+      }
+      var html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>' + escapeHtml(book.title || 'Book') + ' — Export</title>' +
+        '<style>body{font-family:Georgia,serif;max-width:700px;margin:2rem auto;padding:0 1.5rem;line-height:1.6;color:#222;} h1{font-size:1.8rem;border-bottom:2px solid #005F5F;} h2{font-size:1.3rem;margin-top:2rem;color:#005F5F;} h3{font-size:1.1rem;margin-top:1.5rem;} p{margin:0.5rem 0;}</style></head><body>' +
+        parts.join('') +
+        '</body></html>';
+      var w = window.open('', '_blank');
+      w.document.write(html);
+      w.document.close();
+      w.focus();
+      setTimeout(function() { w.print(); }, 300);
+    }
+
+    function deleteBook(id) {
+      if (!window.confirm('Remove this book from your library?')) return;
+      books = books.filter(function(b) { return String(b.id) !== String(id); });
+      saveBooks();
+      renderBookList();
+      showToast('Removed');
+    }
+
+    var _chapterSaveTimer = null;
+
+    function fillNotesBookSelect() {
+      var sel = document.getElementById('notesBookSelect');
+      if (!sel) return;
+      var current = sel.value;
+      sel.innerHTML = '<option value="">— Select a book —</option>' +
+        books.map(function(b) { return '<option value="' + escapeHtml(b.id) + '">' + escapeHtml(b.title || 'Untitled') + (b.author ? ' — ' + escapeHtml(b.author) : '') + '</option>'; }).join('');
+      if (current && books.some(function(b) { return b.id === current; })) sel.value = current;
+    }
+
+    function renderChapterNotes() {
+      var area = document.getElementById('chapterNotesArea');
+      var bookId = (document.getElementById('notesBookSelect') || {}).value;
+      if (!area) return;
+      if (!bookId) {
+        area.innerHTML = '<p class="chapter-notes-empty">Select a book above to add or edit chapter insights.</p>';
+        return;
+      }
+      var book = books.filter(function(b) { return b.id === bookId; })[0];
+      if (!book) {
+        area.innerHTML = '<p class="chapter-notes-empty">Book not found.</p>';
+        return;
+      }
+      var ch = book.chapters || [];
+      var html = '<div class="add-chapter-btn" style="display:flex; align-items:center; gap:1rem; flex-wrap:wrap;">' +
+        '<button type="button" class="btn btn-teal btn-sm" onclick="addChapterFromBtn(this)">+ Add chapter</button>' +
+        '<button type="button" class="btn btn-gold btn-sm" onclick="exportBookAsPdf(\'' + escapeHtml(bookId) + '\')">Save book + notes as PDF</button>' +
+        '</div>';
+      if (ch.length === 0) {
+        html += '<p class="chapter-notes-empty">No chapters yet. Click &quot;Add chapter&quot; to start recording insights for each chapter.</p>';
+      } else {
+        ch.forEach(function(c, idx) {
+          var chId = (c.id || idx).toString();
+          var safeLabel = escapeHtml(c.label || ('Chapter ' + (idx + 1)));
+          html += (
+            '<div class="chapter-block" data-book="' + escapeHtml(bookId) + '" data-chapter="' + escapeHtml(chId) + '">' +
+              '<div class="chapter-head">' +
+                '<span class="chapter-label">' + safeLabel + '</span>' +
+                '<button type="button" class="btn btn-red btn-sm btn-xs" onclick="deleteChapterFromBtn(this)">Delete</button>' +
+              '</div>' +
+              '<div class="chapter-body">' +
+                '<textarea placeholder="Insights, quotes, and commentary from this chapter…" data-book-id="' + escapeHtml(bookId) + '" data-chapter-id="' + escapeHtml(chId) + '" oninput="scheduleChapterSaveFromInput(this)">' + escapeHtml(c.notes || '') + '</textarea>' +
+                '<p class="hint">Auto-saved as you type.</p>' +
+              '</div>' +
+            '</div>'
+          );
+        });
+      }
+      area.innerHTML = html;
+    }
+
+    function scheduleChapterSaveFromInput(textarea) {
+      var bookId = textarea && textarea.getAttribute('data-book-id');
+      var chapterId = textarea && textarea.getAttribute('data-chapter-id');
+      if (!bookId || !chapterId) return;
+      clearTimeout(_chapterSaveTimer);
+      var value = textarea.value;
+      _chapterSaveTimer = setTimeout(function() {
+        saveChapterNote(bookId, chapterId, value);
+      }, 800);
+    }
+
+    function addChapterFromBtn(btn) {
+      var bookId = (document.getElementById('notesBookSelect') || {}).value;
+      if (bookId) addChapter(bookId);
+    }
+
+    function deleteChapterFromBtn(btn) {
+      var block = btn && btn.closest && btn.closest('.chapter-block');
+      if (!block) return;
+      var bookId = block.getAttribute('data-book');
+      var chapterId = block.getAttribute('data-chapter');
+      if (bookId && chapterId) deleteChapter(bookId, chapterId);
+    }
+
+    function saveChapterNote(bookId, chapterId, notes) {
+      var book = books.filter(function(b) { return b.id === bookId; })[0];
+      if (!book || !book.chapters) return;
+      var ch = book.chapters.find(function(c) { return String(c.id) === String(chapterId); });
+      if (ch) {
+        ch.notes = notes || '';
+        saveBooks();
+      }
+    }
+
+    function addChapter(bookId) {
+      var book = books.filter(function(b) { return b.id === bookId; })[0];
+      if (!book) return;
+      if (!book.chapters) book.chapters = [];
+      var num = book.chapters.length + 1;
+      book.chapters.push({ id: Date.now().toString(), label: 'Chapter ' + num, notes: '' });
+      saveBooks();
+      renderChapterNotes();
+      showToast('Chapter added');
+    }
+
+    function deleteChapter(bookId, chapterId) {
+      if (!window.confirm('Remove this chapter and its notes?')) return;
+      var book = books.filter(function(b) { return b.id === bookId; })[0];
+      if (!book || !book.chapters) return;
+      book.chapters = book.chapters.filter(function(c) { return String(c.id) !== String(chapterId); });
+      saveBooks();
+      renderChapterNotes();
+      showToast('Chapter removed');
+    }
+
+    function renderStats() {
+      var total = books.length;
+      var reading = books.filter(function(b) { return b.status === 'reading'; }).length;
+      var completed = books.filter(function(b) { return b.status === 'completed'; }).length;
+      var want = books.filter(function(b) { return b.status === 'want'; }).length;
+      var pages = books.reduce(function(sum, b) {
+        var cur = parseInt(b.currentPage, 10) || 0;
+        return sum + (b.status === 'completed' ? (parseInt(b.totalPages, 10) || 0) : cur);
+      }, 0);
+
+      var el = document.getElementById('statTotal'); if (el) el.textContent = total;
+      el = document.getElementById('statReading'); if (el) el.textContent = reading;
+      el = document.getElementById('statCompleted'); if (el) el.textContent = completed;
+      el = document.getElementById('statWant'); if (el) el.textContent = want;
+      el = document.getElementById('statPages'); if (el) el.textContent = pages.toLocaleString();
+    }
+
+    /* ================================================================
+      SPEECH TO TEXT (Web Speech API)
+    ================================================================ */
+    let _sttRec = null;
+    let _sttListening = false;
+    let _sttTarget = null;
+    let _sttLastTarget = null;
+
+    function speechToTextSupported() {
+      return !!(window.SpeechRecognition || window.webkitSpeechRecognition);
+    }
+
+    function isTextTarget(el) {
+      if (!el) return false;
+      if (el.isContentEditable) return true;
+      var tag = (el.tagName || '').toLowerCase();
+      if (tag === 'textarea') return true;
+      if (tag === 'input') {
+        var type = (el.getAttribute('type') || 'text').toLowerCase();
+        return type === 'text' || type === 'search' || type === 'email' || type === 'tel' || type === 'url' || type === 'password' || type === 'number';
+      }
+      return false;
+    }
+
+    function getActiveTextTarget() {
+      var el = document.activeElement;
+      return isTextTarget(el) ? el : null;
+    }
+
+    function insertTextAtCursor(el, text) {
+      if (!el || !text) return;
+      if (el.isContentEditable) {
+        var sel = window.getSelection();
+        if (!sel) { el.textContent = (el.textContent || '') + text; return; }
+        var range = sel.rangeCount ? sel.getRangeAt(0) : document.createRange();
+        range.deleteContents();
+        range.insertNode(document.createTextNode(text));
+        range.collapse(false);
+        sel.removeAllRanges();
+        sel.addRange(range);
+        return;
+      }
+
+      var start = (typeof el.selectionStart === 'number') ? el.selectionStart : el.value.length;
+      var end = (typeof el.selectionEnd === 'number') ? el.selectionEnd : el.value.length;
+      var before = el.value.slice(0, start);
+      var after = el.value.slice(end);
+      var spacer = (before && !before.endsWith(' ') && text && !text.startsWith(' ')) ? ' ' : '';
+      el.value = before + spacer + text + after;
+      var pos = (before + spacer + text).length;
+      try { el.setSelectionRange(pos, pos); } catch {}
+    }
+
+    function setSttButtonState(listening) {
+      var btn = document.getElementById('sttBtn');
+      if (!btn) return;
+      btn.classList.toggle('listening', !!listening);
+      btn.textContent = listening ? '⏺ Stop' : '🎙 Dictate';
+      btn.title = listening ? 'Stop dictation' : 'Speech to text (dictation)';
+    }
+
+    function stopSpeechToText() {
+      try { if (_sttRec) _sttRec.stop(); } catch {}
+      _sttListening = false;
+      _sttTarget = null;
+      setSttButtonState(false);
+    }
+
+    function toggleSpeechToText() {
+      if (_sttListening) { stopSpeechToText(); return; }
+      if (!speechToTextSupported()) { showToast('Speech to text not supported in this browser.'); return; }
+      if (!window.isSecureContext) { showToast('Speech to text needs HTTPS (file:// may be blocked).'); return; }
+
+      var target = getActiveTextTarget() || (_sttLastTarget && document.contains(_sttLastTarget) ? _sttLastTarget : null);
+      if (!target) { showToast('Click into a text field first, then press Dictate.'); return; }
+      _sttTarget = target;
+      try { _sttTarget.focus && _sttTarget.focus(); } catch {}
+
+      var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+      var rec = new SR();
+      _sttRec = rec;
+      rec.lang = (navigator.language || 'en-US');
+      rec.interimResults = true;
+      rec.continuous = false;
+      rec.maxAlternatives = 1;
+
+      var hadAnyFinal = false;
+      rec.onresult = function(event) {
+        var finalText = '';
+        for (var i = event.resultIndex; i < event.results.length; i++) {
+          var res = event.results[i];
+          var t = (res[0] && res[0].transcript) ? res[0].transcript : '';
+          if (res.isFinal) finalText += t;
+        }
+        if (finalText) {
+          hadAnyFinal = true;
+          insertTextAtCursor(_sttTarget, finalText.trim());
+        }
+      };
+      rec.onerror = function(e) {
+        var msg =
+          e && e.error === 'not-allowed' ? 'Mic permission denied (allow microphone access).' :
+          e && e.error === 'no-speech' ? 'No speech detected. Try again.' :
+          e && e.error === 'audio-capture' ? 'No microphone found.' :
+          ('Speech to text error' + (e && e.error ? ': ' + e.error : ''));
+        showToast(msg);
+        stopSpeechToText();
+      };
+      rec.onend = function() {
+        _sttListening = false;
+        setSttButtonState(false);
+        if (!hadAnyFinal) showToast('Dictation stopped. If nothing was inserted, check microphone permission.');
+      };
+
+      try {
+        _sttListening = true;
+        setSttButtonState(true);
+        showToast('Listening… speak now.');
+        rec.start();
+      } catch {
+        showToast('Could not start dictation.');
+        stopSpeechToText();
+      }
+    }
+
+    loadBooks();
+    renderBookList();
+    renderStats();
+
+    // Enable/disable STT button based on browser support
+    window.addEventListener('DOMContentLoaded', function() {
+      document.addEventListener('focusin', function(e) {
+        var t = e && e.target;
+        if (isTextTarget(t)) _sttLastTarget = t;
+      }, true);
+
+      var sttBtn = document.getElementById('sttBtn');
+      if (sttBtn && !speechToTextSupported()) {
+        sttBtn.disabled = true;
+        sttBtn.title = 'Speech to text not supported in this browser';
+      }
+
+      // If sync is enabled, start polling and pull latest
+      var cfg = getSyncConfig();
+      var syncBtn = document.getElementById('cloudSyncBtn');
+      if (syncBtn) {
+        syncBtn.classList.toggle('btn-teal', !!(cfg && cfg.enabled));
+        syncBtn.classList.toggle('btn-ghost', !(cfg && cfg.enabled));
+      }
+      startCloudPolling();
+    });
+  </script>
+</body>
+</html>

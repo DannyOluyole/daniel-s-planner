@@ -1,0 +1,2412 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>French Trainer — TCF/TEF Prep</title>
+    <meta name="description" content="A self-contained French training system for TCF/TEF: listening, speaking, writing, reading, vocab + grammar, progress tracking, dictation, and optional cloud sync." />
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&family=IBM+Plex+Sans:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+      *, *::before, *::after { box-sizing: border-box; }
+      :root {
+        --teal-dark: #005F5F;
+        --teal: #007A7A;
+        --teal-med: #009999;
+        --teal-light: #20B2AA;
+        --teal-xlight: #E0F5F5;
+        --gold: #B8860B;
+        --gold-med: #C49A2B;
+        --gold-light: #E5C568;
+        --gold-xlight: #FFF8E7;
+        --navy: #1C2E4A;
+        --cream: #FFFEF5;
+        --beige: #F5F1E6;
+        --beige-dark: #EDE8D8;
+        --red: #C62828;
+        --orange: #E65100;
+        --blue: #1565C0;
+        --green: #2E7D32;
+        --gray-dark: #2C2C2C;
+        --gray-med: #5A5A5A;
+        --gray-light: #D8D8D8;
+        --gray-xlight: #F0F0F0;
+        --white: #FFFFFF;
+        --shadow-teal: rgba(0,102,102,0.18);
+        --shadow-gold: rgba(184,134,11,0.18);
+        --shadow-dark: rgba(0,0,0,0.12);
+      }
+
+      body {
+        font-family: 'IBM Plex Sans', sans-serif;
+        background: var(--beige);
+        color: var(--gray-dark);
+        min-height: 100vh;
+        overflow-x: hidden;
+      }
+
+      .view { display: none; min-height: 100vh; }
+      .view.active { display: block; }
+
+      .top-nav {
+        background: linear-gradient(135deg, var(--navy) 0%, var(--teal-dark) 100%);
+        padding: 0 1.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0;
+        border-bottom: 3px solid var(--gold);
+        position: sticky; top: 0; z-index: 900;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        flex-wrap: wrap;
+      }
+
+      .nav-brand {
+        font-family: 'Playfair Display', serif;
+        font-size: 1.15rem;
+        font-weight: 900;
+        color: var(--gold-light);
+        letter-spacing: 0.03em;
+        padding: 1rem 1.2rem 1rem 0;
+        border-right: 2px solid rgba(255,255,255,0.2);
+        margin-right: 1rem;
+        white-space: nowrap;
+        cursor: pointer;
+      }
+
+      .nav-tab {
+        padding: 1rem 1rem;
+        color: rgba(255,255,255,0.72);
+        font-size: 0.82rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.07em;
+        cursor: pointer;
+        border-bottom: 3px solid transparent;
+        margin-bottom: -3px;
+        transition: all 0.25s ease;
+        white-space: nowrap;
+      }
+      .nav-tab:hover { color: white; border-bottom-color: rgba(255,255,255,0.35); }
+      .nav-tab.active { color: var(--gold-light); border-bottom-color: var(--gold); }
+
+      .nav-actions {
+        margin-left: auto;
+        display: flex;
+        gap: 0.5rem;
+        padding: 0.55rem 0;
+        flex-wrap: wrap;
+      }
+
+      .toast {
+        position: fixed; bottom: 2rem; right: 2rem;
+        background: var(--teal-dark); color: white;
+        padding: 0.9rem 1.4rem; border-radius: 10px;
+        font-weight: 700; font-size: 0.92rem;
+        box-shadow: 0 8px 30px rgba(0,0,0,0.3);
+        transform: translateY(100px); opacity: 0;
+        transition: all 0.35s cubic-bezier(0.34,1.56,0.64,1);
+        z-index: 2000;
+        max-width: 520px;
+      }
+      .toast.show { transform: translateY(0); opacity: 1; }
+
+      #autosaveIndicator {
+        position: fixed; bottom: 2rem; left: 2rem;
+        background: var(--teal); color: white;
+        padding: 0.5rem 1rem; border-radius: 24px;
+        font-size: 0.75rem; font-weight: 700;
+        opacity: 0; transition: opacity 0.4s; z-index: 2000;
+      }
+
+      .page-hero {
+        background: linear-gradient(135deg, var(--navy) 0%, var(--teal-dark) 60%, var(--teal) 100%);
+        padding: 2.2rem 2.4rem;
+        color: white;
+        position: relative;
+        overflow: hidden;
+      }
+      .page-hero::before {
+        content: '';
+        position: absolute; inset: 0;
+        background: repeating-linear-gradient(45deg, transparent, transparent 30px, rgba(255,255,255,0.02) 30px, rgba(255,255,255,0.02) 60px);
+      }
+      .page-hero::after {
+        content: '';
+        position: absolute; right: -4rem; top: -4rem;
+        width: 18rem; height: 18rem;
+        background: radial-gradient(circle, rgba(196,154,43,0.25) 0%, transparent 70%);
+      }
+      .page-hero h2 {
+        font-family: 'Playfair Display', serif;
+        font-size: 2.2rem;
+        font-weight: 900;
+        position: relative; z-index: 1;
+        text-shadow: 0 2px 8px rgba(0,0,0,0.3);
+      }
+      .page-hero p {
+        color: rgba(255,255,255,0.78);
+        font-style: italic;
+        margin-top: 0.45rem;
+        font-size: 0.98rem;
+        position: relative; z-index: 1;
+        line-height: 1.55;
+        max-width: 900px;
+      }
+
+      .page-content { padding: 1.75rem 2.2rem; max-width: 1400px; margin: 0 auto; }
+
+      .card {
+        background: white;
+        border-radius: 14px;
+        box-shadow: 0 4px 24px var(--shadow-teal), 0 0 0 1px rgba(0,122,122,0.08);
+        overflow: hidden;
+        transition: box-shadow 0.3s ease;
+      }
+      .card:hover { box-shadow: 0 8px 36px var(--shadow-teal), 0 0 0 2px var(--teal-light); }
+
+      .card-header {
+        font-family: 'Playfair Display', serif;
+        font-size: 1.18rem;
+        font-weight: 800;
+        color: white;
+        background: linear-gradient(135deg, var(--teal-dark) 0%, var(--teal-med) 100%);
+        padding: 1rem 1.25rem;
+        border-bottom: 3px solid var(--gold);
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.8rem;
+      }
+      .card-header.gold { background: linear-gradient(135deg, var(--gold) 0%, var(--gold-med) 100%); border-bottom-color: var(--teal); }
+      .card-header.navy { background: linear-gradient(135deg, var(--navy) 0%, #2a4a6e 100%); border-bottom-color: var(--gold); }
+      .card-body { padding: 1.25rem; }
+
+      input[type="text"], input[type="number"], input[type="date"], textarea, select {
+        width: 100%;
+        padding: 0.7rem 1rem;
+        border: 2px solid var(--gray-light);
+        border-radius: 8px;
+        font-family: 'IBM Plex Sans', sans-serif;
+        font-size: 0.95rem;
+        background: var(--cream);
+        color: var(--gray-dark);
+        transition: all 0.25s ease;
+      }
+      input:focus, textarea:focus, select:focus {
+        outline: none;
+        border-color: var(--teal);
+        background: white;
+        box-shadow: 0 0 0 3px rgba(0,153,153,0.12);
+      }
+      textarea { resize: vertical; line-height: 1.7; }
+
+      .btn {
+        padding: 0.7rem 1.1rem;
+        font-size: 0.85rem;
+        font-weight: 700;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        font-family: 'IBM Plex Sans', sans-serif;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        transition: all 0.25s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.45rem;
+        white-space: nowrap;
+      }
+      .btn:hover { transform: translateY(-2px); }
+      .btn-teal { background: linear-gradient(135deg, var(--teal) 0%, var(--teal-dark) 100%); color: white; box-shadow: 0 4px 12px var(--shadow-teal); }
+      .btn-gold { background: linear-gradient(135deg, var(--gold-med) 0%, var(--gold) 100%); color: white; box-shadow: 0 4px 12px var(--shadow-gold); }
+      .btn-ghost { background: white; color: var(--teal); border: 2px solid var(--teal); }
+      .btn-red { background: var(--red); color: white; }
+      .btn-sm { padding: 0.45rem 0.85rem; font-size: 0.78rem; }
+
+      #sttBtn.listening { background: linear-gradient(135deg, var(--teal) 0%, var(--teal-dark) 100%); color: white; border: 2px solid rgba(255,255,255,0.22); }
+      #sttBtn[disabled] { opacity: 0.55; cursor: not-allowed; }
+
+      .grid { display: grid; grid-template-columns: 1fr; gap: 1.2rem; }
+      @media (min-width: 980px) {
+        .grid.two { grid-template-columns: 1fr 1fr; }
+        .grid.three { grid-template-columns: 1.2fr 1fr 1fr; }
+      }
+
+      .muted { color: var(--gray-med); }
+      .mono { font-family: 'IBM Plex Mono', monospace; }
+      .divider { height: 2px; background: linear-gradient(90deg, var(--teal) 0%, var(--gold) 50%, transparent 100%); border: 0; margin: 1rem 0; }
+
+      .kpi-row { display: grid; grid-template-columns: 1fr; gap: 0.8rem; }
+      @media (min-width: 820px) { .kpi-row { grid-template-columns: 1fr 1fr 1fr; } }
+      .kpi {
+        background: var(--cream);
+        border: 2px solid var(--gray-light);
+        border-radius: 12px;
+        padding: 0.95rem 1rem;
+      }
+      .kpi .k { font-size: 0.78rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--gray-med); font-weight: 900; }
+      .kpi .v { margin-top: 0.25rem; font-size: 1.3rem; font-weight: 900; font-family: 'IBM Plex Mono', monospace; color: var(--teal-dark); }
+      .kpi .s { margin-top: 0.25rem; font-size: 0.86rem; color: var(--gray-med); line-height: 1.45; }
+      .kpi.bad .v { color: var(--red); }
+
+      .pill {
+        display: inline-block;
+        padding: 0.25rem 0.6rem;
+        border-radius: 999px;
+        border: 1.5px solid var(--gray-light);
+        background: white;
+        font-size: 0.78rem;
+        font-weight: 900;
+        letter-spacing: 0.03em;
+      }
+      .pill.teal { border-color: rgba(0,122,122,0.35); color: var(--teal-dark); background: rgba(0,153,153,0.06); }
+      .pill.gold { border-color: rgba(184,134,11,0.35); color: var(--gold); background: rgba(196,154,43,0.07); }
+      .pill.red { border-color: rgba(198,40,40,0.35); color: var(--red); background: rgba(198,40,40,0.06); }
+
+      .q {
+        border: 1.5px solid var(--gray-xlight);
+        border-radius: 12px;
+        padding: 1rem;
+        background: var(--cream);
+      }
+      .q .qt { font-weight: 900; color: var(--navy); }
+      .q .qd { margin-top: 0.35rem; color: var(--gray-med); line-height: 1.55; }
+      .opts { margin-top: 0.75rem; display: grid; gap: 0.5rem; }
+      .opt {
+        display: flex; gap: 0.55rem; align-items: flex-start;
+        padding: 0.65rem 0.75rem;
+        border: 2px solid var(--gray-light);
+        background: white;
+        border-radius: 10px;
+        cursor: pointer;
+        transition: background 0.2s, border-color 0.2s;
+      }
+      .opt:hover { background: rgba(0,153,153,0.06); border-color: rgba(0,122,122,0.45); }
+      .opt input { margin-top: 0.15rem; }
+
+      .row { display: grid; grid-template-columns: 1fr; gap: 0.8rem; }
+      @media (min-width: 900px) { .row.two { grid-template-columns: 1fr 1fr; } }
+
+      .list { display: grid; gap: 0.8rem; }
+      .item {
+        border: 1.5px solid var(--gray-xlight);
+        border-radius: 12px;
+        padding: 0.9rem 1rem;
+        background: white;
+        display: flex;
+        justify-content: space-between;
+        gap: 1rem;
+        align-items: flex-start;
+      }
+      .item .t { font-weight: 900; color: var(--navy); }
+      .item .d { margin-top: 0.25rem; color: var(--gray-med); font-size: 0.9rem; line-height: 1.45; white-space: pre-wrap; }
+
+      .canvaswrap{
+        border: 1.5px solid var(--gray-light);
+        border-radius: 14px;
+        background: var(--cream);
+        padding: 12px;
+      }
+      canvas{ width: 100%; height: 240px; display:block; }
+
+      .overlay {
+        position: fixed; inset: 0;
+        background: rgba(0,0,0,0.55);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 1200;
+        padding: 1.25rem;
+      }
+      .overlay.open { display: flex; }
+      .modal {
+        background: white;
+        border-radius: 14px;
+        max-width: 720px;
+        width: 100%;
+        max-height: 90vh;
+        overflow-y: auto;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      }
+      .modal-header {
+        font-family: 'Playfair Display', serif;
+        font-size: 1.3rem;
+        font-weight: 800;
+        padding: 1.1rem 1.25rem;
+        background: linear-gradient(135deg, var(--teal-dark) 0%, var(--teal-med) 100%);
+        color: white;
+        border-radius: 14px 14px 0 0;
+      }
+      .modal-body { padding: 1.25rem; }
+      .modal-actions { display: flex; gap: 0.75rem; justify-content: flex-end; margin-top: 1.1rem; flex-wrap: wrap; }
+
+      @media (max-width: 900px) {
+        .page-content { padding: 1.2rem 1rem; }
+        .page-hero { padding: 1.6rem 1.2rem; }
+        .page-hero h2 { font-size: 1.7rem; }
+        .top-nav { padding: 0 1rem; }
+      }
+    </style>
+  </head>
+  <body>
+    <nav class="top-nav">
+      <div class="nav-brand" onclick="showView('dashboard')">🇫🇷 French Trainer</div>
+      <div class="nav-tab active" id="nav-dashboard" onclick="showView('dashboard')">Dashboard</div>
+      <div class="nav-tab" id="nav-listening" onclick="showView('listening')">Listening</div>
+      <div class="nav-tab" id="nav-speaking" onclick="showView('speaking')">Speaking</div>
+      <div class="nav-tab" id="nav-writing" onclick="showView('writing')">Writing</div>
+      <div class="nav-tab" id="nav-reading" onclick="showView('reading')">Reading</div>
+      <div class="nav-tab" id="nav-vocab" onclick="showView('vocab')">Vocab</div>
+      <div class="nav-tab" id="nav-grammar" onclick="showView('grammar')">Grammar</div>
+      <div class="nav-tab" id="nav-settings" onclick="showView('settings')">Settings</div>
+      <div class="nav-actions">
+        <button type="button" class="btn btn-ghost btn-sm" onclick="toggleSpeechToText()" id="sttBtn" title="Speech to text (dictation)">🎙 Dictate</button>
+        <button type="button" class="btn btn-ghost btn-sm" onclick="openCloudSyncModal()" id="cloudSyncBtn" title="Cloud Sync">☁ Sync</button>
+        <button type="button" class="btn btn-gold btn-sm" onclick="exportAll()">⬇ Export</button>
+        <button type="button" class="btn btn-gold btn-sm" onclick="importAll()">⬆ Import</button>
+      </div>
+    </nav>
+
+    <div class="toast" id="toast" aria-live="polite"></div>
+    <div id="autosaveIndicator">✓ Saved</div>
+
+    <!-- DASHBOARD -->
+    <div class="view active" id="view-dashboard">
+      <div class="page-hero">
+        <h2>TCF / TEF Trainer</h2>
+        <p>
+          A focused, exam-oriented system to improve <strong>listening</strong>, <strong>speaking</strong>,
+          <strong>writing</strong>, and <strong>reading</strong>, with vocabulary + grammar drills and progress tracking.
+        </p>
+      </div>
+      <div class="page-content">
+        <div class="grid two">
+          <div class="card">
+            <div class="card-header gold">Today’s plan <span class="pill gold" id="dashExamPill">Exam</span></div>
+            <div class="card-body">
+              <div class="kpi-row" style="margin-bottom:1rem;">
+                <div class="kpi"><div class="k">Target</div><div class="v" id="kpiTarget">—</div><div class="s">Daily minutes you aim to complete.</div></div>
+                <div class="kpi"><div class="k">Done today</div><div class="v" id="kpiDoneToday">—</div><div class="s">Logged practice minutes today.</div></div>
+                <div class="kpi"><div class="k">Streak</div><div class="v" id="kpiStreak">—</div><div class="s">Days in a row with any practice.</div></div>
+                <div class="kpi"><div class="k">Days to test</div><div class="v" id="kpiCountdown">—</div><div class="s">Countdown to your exam date.</div></div>
+              </div>
+              <div class="row two">
+                <div class="q">
+                  <div class="qt">Fast start (15–25 minutes)</div>
+                  <div class="qd">
+                    - 1 listening mini-dialogue + 3 questions<br>
+                    - 1 speaking prompt (record 60–90s)<br>
+                    - 1 vocab review (10 cards)
+                  </div>
+                  <div style="margin-top:0.75rem; display:flex; gap:0.6rem; flex-wrap:wrap;">
+                    <button class="btn btn-teal btn-sm" onclick="showView('listening')">Start listening</button>
+                    <button class="btn btn-teal btn-sm" onclick="showView('speaking')">Start speaking</button>
+                    <button class="btn btn-teal btn-sm" onclick="showView('vocab')">Review vocab</button>
+                  </div>
+                </div>
+                <div class="q">
+                  <div class="qt">Exam strategy (high impact)</div>
+                  <div class="qd">
+                    - Prioritize <strong>comprehension</strong> over perfection.<br>
+                    - Use timing: answer, move on, avoid getting stuck.<br>
+                    - For speaking/writing: structure first, then details.
+                  </div>
+                  <hr class="divider">
+                  <div class="qd">
+                    Tip: Use 🎙 Dictate to speak into the focused text field (works best over HTTPS / Chrome or Edge).
+                  </div>
+                </div>
+              </div>
+              <hr class="divider">
+              <div class="row two">
+                <div>
+                  <label class="muted" style="font-size:0.85rem; font-weight:900; letter-spacing:0.06em; text-transform:uppercase;">Quick log (minutes + note)</label>
+                  <div style="display:grid; grid-template-columns: 120px 1fr; gap: 0.6rem; margin-top:0.5rem;">
+                    <input type="number" id="quickMinutes" min="0" placeholder="Minutes" />
+                    <input type="text" id="quickNote" placeholder="What did you practice?" />
+                  </div>
+                  <div style="margin-top:0.6rem; display:flex; gap:0.6rem; flex-wrap:wrap;">
+                    <select id="quickSkill" style="max-width:220px;">
+                      <option value="listening">Listening</option>
+                      <option value="speaking">Speaking</option>
+                      <option value="writing">Writing</option>
+                      <option value="reading">Reading</option>
+                      <option value="vocab">Vocab</option>
+                      <option value="grammar">Grammar</option>
+                    </select>
+                    <button class="btn btn-gold btn-sm" onclick="addQuickSession()">Add</button>
+                  </div>
+                </div>
+                <div>
+                  <label class="muted" style="font-size:0.85rem; font-weight:900; letter-spacing:0.06em; text-transform:uppercase;">Recent activity</label>
+                  <div class="list" id="recentSessions" style="margin-top:0.5rem;"></div>
+                </div>
+              </div>
+              <hr class="divider">
+              <div class="q">
+                <div class="qt">B2 plan (8 weeks)</div>
+                <div class="qd muted">A practical schedule from today → test day. Adjust daily target minutes in Settings.</div>
+                <div id="b2Plan" style="margin-top:0.75rem; display:grid; gap:0.6rem;"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">Progress overview <span class="pill teal" id="dashLevelPill">Level</span></div>
+            <div class="card-body">
+              <div class="canvaswrap"><canvas id="dashChart"></canvas></div>
+              <div class="muted" style="margin-top:0.75rem; line-height:1.5;">
+                This chart shows your practice minutes per day (last 14 days).
+                Consistency matters more than “perfect” sessions.
+              </div>
+              <hr class="divider">
+              <div class="kpi-row">
+                <div class="kpi"><div class="k">Listening avg (7d)</div><div class="v" id="kpiL7">—</div><div class="s">Minutes/day</div></div>
+                <div class="kpi"><div class="k">Speaking avg (7d)</div><div class="v" id="kpiS7">—</div><div class="s">Minutes/day</div></div>
+                <div class="kpi"><div class="k">Writing avg (7d)</div><div class="v" id="kpiW7">—</div><div class="s">Minutes/day</div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- LISTENING -->
+    <div class="view" id="view-listening">
+      <div class="page-hero">
+        <h2>🎧 Listening (Compréhension orale)</h2>
+        <p>Practice with mini-dialogues (TTS), comprehension questions, and dictation. Track your score and time.</p>
+      </div>
+      <div class="page-content">
+        <div class="grid two">
+          <div class="card">
+            <div class="card-header gold">Mini-dialogue</div>
+            <div class="card-body">
+              <div class="row two">
+                <div>
+                  <label class="muted" style="font-size:0.85rem; font-weight:900; text-transform:uppercase; letter-spacing:0.06em;">Exercise</label>
+                  <select id="listenExerciseSelect" onchange="loadListeningExercise()"></select>
+                </div>
+                <div>
+                  <label class="muted" style="font-size:0.85rem; font-weight:900; text-transform:uppercase; letter-spacing:0.06em;">Audio</label>
+                  <div style="display:flex; gap:0.6rem; flex-wrap:wrap;">
+                    <button class="btn btn-teal btn-sm" type="button" onclick="playListening()">▶ Play</button>
+                    <button class="btn btn-ghost btn-sm" type="button" onclick="stopSpeaking()">⏹ Stop</button>
+                    <button class="btn btn-ghost btn-sm" type="button" onclick="toggleTranscript()">📝 Transcript</button>
+                  </div>
+                </div>
+              </div>
+              <div id="listenTranscriptWrap" class="q" style="display:none; margin-top:1rem;">
+                <div class="qt">Transcript</div>
+                <div class="qd mono" id="listenTranscript"></div>
+              </div>
+
+              <div id="listenQuestions" style="margin-top:1rem; display:grid; gap:0.8rem;"></div>
+              <div style="margin-top:1rem; display:flex; gap:0.6rem; flex-wrap:wrap; align-items:center;">
+                <button class="btn btn-gold btn-sm" type="button" onclick="gradeListening()">Grade</button>
+                <button class="btn btn-ghost btn-sm" type="button" onclick="nextListening()">Next</button>
+                <span class="muted" id="listenScoreLabel"></span>
+              </div>
+              <hr class="divider">
+              <div class="muted" style="line-height:1.6;">
+                Exam tip: Listen for <strong>who/where/when</strong>, the <strong>purpose</strong>, and <strong>key details</strong>. Don’t panic if you miss a word—follow meaning.
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">✍ Dictée (dictation)</div>
+            <div class="card-body">
+              <div class="row two">
+                <div>
+                  <label class="muted" style="font-size:0.85rem; font-weight:900; text-transform:uppercase; letter-spacing:0.06em;">Sentence</label>
+                  <select id="dictationSelect" onchange="loadDictation()"></select>
+                </div>
+                <div>
+                  <label class="muted" style="font-size:0.85rem; font-weight:900; text-transform:uppercase; letter-spacing:0.06em;">Actions</label>
+                  <div style="display:flex; gap:0.6rem; flex-wrap:wrap;">
+                    <button class="btn btn-teal btn-sm" type="button" onclick="playDictation()">▶ Play</button>
+                    <button class="btn btn-ghost btn-sm" type="button" onclick="revealDictation()">👁 Reveal</button>
+                  </div>
+                </div>
+              </div>
+              <div class="q" style="margin-top:1rem;">
+                <div class="qt">Type what you hear</div>
+                <textarea id="dictationInput" rows="4" placeholder="Type the sentence here…"></textarea>
+                <div style="margin-top:0.75rem; display:flex; gap:0.6rem; flex-wrap:wrap; align-items:center;">
+                  <button class="btn btn-gold btn-sm" type="button" onclick="gradeDictation()">Check</button>
+                  <button class="btn btn-ghost btn-sm" type="button" onclick="clearDictation()">Clear</button>
+                  <span class="muted" id="dictationScoreLabel"></span>
+                </div>
+              </div>
+              <div class="q" style="margin-top:1rem; display:none;" id="dictationAnswerWrap">
+                <div class="qt">Answer</div>
+                <div class="qd mono" id="dictationAnswer"></div>
+              </div>
+              <div class="muted" style="margin-top:0.85rem; line-height:1.6;">
+                Tip: Listen once for meaning, then again for endings (e.g., <span class="mono">-e, -s, -ent</span>) and prepositions (<span class="mono">à / de / en / au</span>).
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SPEAKING -->
+    <div class="view" id="view-speaking">
+      <div class="page-hero">
+        <h2>🗣 Speaking (Expression orale)</h2>
+        <p>Timed prompts like TCF/TEF tasks. Record yourself, transcribe (speech-to-text), and self-score with a checklist.</p>
+      </div>
+      <div class="page-content">
+        <div class="grid two">
+          <div class="card">
+            <div class="card-header gold">Prompt</div>
+            <div class="card-body">
+              <div class="row two">
+                <div>
+                  <label class="muted" style="font-size:0.85rem; font-weight:900; text-transform:uppercase; letter-spacing:0.06em;">Task type</label>
+                  <select id="speakTaskType" onchange="loadSpeakingPrompt()">
+                    <option value="interview">Interview (short answers)</option>
+                    <option value="roleplay">Role-play (problem/solution)</option>
+                    <option value="argument">Argument (opinion + reasons)</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="muted" style="font-size:0.85rem; font-weight:900; text-transform:uppercase; letter-spacing:0.06em;">Prompt</label>
+                  <select id="speakPromptSelect" onchange="loadSpeakingPrompt()"></select>
+                </div>
+              </div>
+
+              <div class="q" style="margin-top:1rem;">
+                <div class="qt">What to do</div>
+                <div class="qd" id="speakPromptText"></div>
+                <div class="qd muted" style="margin-top:0.6rem;">
+                  Suggested structure: <span class="mono" id="speakStructure"></span>
+                </div>
+              </div>
+
+              <div style="margin-top:1rem; display:flex; gap:0.6rem; flex-wrap:wrap; align-items:center;">
+                <button class="btn btn-teal btn-sm" type="button" onclick="startSpeakingTimer()">⏱ Start</button>
+                <button class="btn btn-ghost btn-sm" type="button" onclick="stopSpeakingTimer()">⏹ Stop</button>
+                <button class="btn btn-ghost btn-sm" type="button" onclick="startRecording()">⏺ Record</button>
+                <button class="btn btn-ghost btn-sm" type="button" onclick="stopRecording()">⏹ Recording</button>
+                <span class="pill teal mono" id="speakTimer">00:00</span>
+              </div>
+
+              <div class="q" style="margin-top:1rem;">
+                <div class="qt">Your transcript (optional)</div>
+                <div class="qd muted">Use 🎙 Dictate into this box while speaking slowly (for practice), or type after recording.</div>
+                <textarea id="speakTranscript" rows="6" placeholder="Paste/type your transcript here…"></textarea>
+                <div style="margin-top:0.75rem; display:flex; gap:0.6rem; flex-wrap:wrap; align-items:center;">
+                  <button class="btn btn-gold btn-sm" type="button" onclick="saveSpeakingAttempt()">Save attempt</button>
+                  <button class="btn btn-ghost btn-sm" type="button" onclick="clearSpeaking()">Clear</button>
+                  <a id="recordingDownload" class="btn btn-ghost btn-sm" href="#" download="speaking.webm" style="display:none;">⬇ Download recording</a>
+                </div>
+              </div>
+
+              <div class="q" style="margin-top:1rem;">
+                <div class="qt">Self-score checklist (quick)</div>
+                <div class="qd">
+                  <label style="display:block; margin-top:0.35rem;"><input type="checkbox" id="chkPron" /> Pronunciation understandable</label>
+                  <label style="display:block; margin-top:0.35rem;"><input type="checkbox" id="chkFluency" /> Fluent enough (few long pauses)</label>
+                  <label style="display:block; margin-top:0.35rem;"><input type="checkbox" id="chkGrammar" /> Grammar mostly correct</label>
+                  <label style="display:block; margin-top:0.35rem;"><input type="checkbox" id="chkVocab" /> Vocabulary appropriate</label>
+                  <label style="display:block; margin-top:0.35rem;"><input type="checkbox" id="chkStructure" /> Clear structure (intro → points → conclusion)</label>
+                </div>
+              </div>
+
+              <div class="muted" style="margin-top:0.85rem; line-height:1.6;">
+                Exam tip: Say <strong>simple correct sentences</strong> rather than complex incorrect ones. Use connectors: <span class="mono">d’abord, ensuite, en plus, pourtant, donc, enfin</span>.
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">Saved speaking attempts</div>
+            <div class="card-body">
+              <div class="list" id="speakingAttempts"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- WRITING -->
+    <div class="view" id="view-writing">
+      <div class="page-hero">
+        <h2>✍ Writing (Expression écrite)</h2>
+        <p>Timed writing prompts (email, opinion, complaint). Track word count and keep a library of responses.</p>
+      </div>
+      <div class="page-content">
+        <div class="grid two">
+          <div class="card">
+            <div class="card-header gold">Prompt + editor</div>
+            <div class="card-body">
+              <div class="row two">
+                <div>
+                  <label class="muted" style="font-size:0.85rem; font-weight:900; text-transform:uppercase; letter-spacing:0.06em;">Prompt</label>
+                  <select id="writePromptSelect" onchange="loadWritingPrompt()"></select>
+                </div>
+                <div>
+                  <label class="muted" style="font-size:0.85rem; font-weight:900; text-transform:uppercase; letter-spacing:0.06em;">Timer</label>
+                  <div style="display:flex; gap:0.6rem; flex-wrap:wrap; align-items:center;">
+                    <button class="btn btn-teal btn-sm" type="button" onclick="startWritingTimer()">⏱ Start</button>
+                    <button class="btn btn-ghost btn-sm" type="button" onclick="stopWritingTimer()">⏹ Stop</button>
+                    <span class="pill teal mono" id="writeTimer">00:00</span>
+                    <span class="pill gold mono" id="writeWords">0 words</span>
+                  </div>
+                </div>
+              </div>
+              <div class="q" style="margin-top:1rem;">
+                <div class="qt">Task</div>
+                <div class="qd" id="writePromptText"></div>
+              </div>
+              <div style="margin-top:1rem;">
+                <textarea id="writeText" rows="12" placeholder="Write here… (use simple structures and connectors)"></textarea>
+              </div>
+              <div style="margin-top:0.85rem; display:flex; gap:0.6rem; flex-wrap:wrap; align-items:center;">
+                <button class="btn btn-gold btn-sm" type="button" onclick="saveWriting()">Save writing</button>
+                <button class="btn btn-ghost btn-sm" type="button" onclick="clearWriting()">Clear</button>
+              </div>
+              <hr class="divider">
+              <div class="muted" style="line-height:1.65;">
+                Quick structure:
+                <span class="mono">Bonjour…</span> (context) →
+                <span class="mono">Je vous écris pour…</span> →
+                (2–3 points) →
+                <span class="mono">Je vous remercie… Cordialement</span>.
+              </div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header">Saved writings</div>
+            <div class="card-body">
+              <div class="list" id="writingList"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- READING -->
+    <div class="view" id="view-reading">
+      <div class="page-hero">
+        <h2>📖 Reading (Compréhension écrite)</h2>
+        <p>Short passages with exam-style questions. Train scanning, inference, and key detail extraction.</p>
+      </div>
+      <div class="page-content">
+        <div class="grid two">
+          <div class="card">
+            <div class="card-header gold">Passage</div>
+            <div class="card-body">
+              <div class="row two">
+                <div>
+                  <label class="muted" style="font-size:0.85rem; font-weight:900; text-transform:uppercase; letter-spacing:0.06em;">Text</label>
+                  <select id="readPassageSelect" onchange="loadReading()"></select>
+                </div>
+                <div>
+                  <label class="muted" style="font-size:0.85rem; font-weight:900; text-transform:uppercase; letter-spacing:0.06em;">Actions</label>
+                  <div style="display:flex; gap:0.6rem; flex-wrap:wrap;">
+                    <button class="btn btn-teal btn-sm" type="button" onclick="loadReading()">Load</button>
+                    <button class="btn btn-gold btn-sm" type="button" onclick="gradeReading()">Grade</button>
+                  </div>
+                </div>
+              </div>
+              <div class="q" style="margin-top:1rem;">
+                <div class="qt" id="readTitle">—</div>
+                <div class="qd" id="readText" style="white-space:pre-wrap;"></div>
+              </div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header">Questions</div>
+            <div class="card-body">
+              <div id="readQuestions" style="display:grid; gap:0.8rem;"></div>
+              <div style="margin-top:0.85rem; display:flex; gap:0.6rem; flex-wrap:wrap; align-items:center;">
+                <button class="btn btn-ghost btn-sm" type="button" onclick="nextReading()">Next</button>
+                <span class="muted" id="readScoreLabel"></span>
+              </div>
+              <hr class="divider">
+              <div class="muted" style="line-height:1.6;">
+                Exam tip: Read the questions first. Underline keywords. Don’t translate word-by-word; aim for meaning.
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- VOCAB -->
+    <div class="view" id="view-vocab">
+      <div class="page-hero">
+        <h2>🧠 Vocabulary (SRS flashcards)</h2>
+        <p>Spaced repetition flashcards with quick review. Add your own words from reading/listening.</p>
+      </div>
+      <div class="page-content">
+        <div class="grid two">
+          <div class="card">
+            <div class="card-header gold">Review</div>
+            <div class="card-body">
+              <div class="q">
+                <div class="qt">Card</div>
+                <div class="qd" id="cardFront" style="font-size:1.15rem; font-weight:900; color:var(--navy);">—</div>
+                <div class="qd muted" id="cardMeta"></div>
+                <div style="margin-top:0.85rem;">
+                  <button class="btn btn-ghost btn-sm" type="button" onclick="flipCard()">👁 Show answer</button>
+                </div>
+                <div id="cardBackWrap" style="display:none; margin-top:0.85rem;">
+                  <div class="qd mono" id="cardBack">—</div>
+                  <div style="margin-top:0.85rem; display:flex; gap:0.5rem; flex-wrap:wrap;">
+                    <button class="btn btn-teal btn-sm" type="button" onclick="gradeCard(3)">Easy</button>
+                    <button class="btn btn-gold btn-sm" type="button" onclick="gradeCard(2)">Good</button>
+                    <button class="btn btn-ghost btn-sm" type="button" onclick="gradeCard(1)">Hard</button>
+                    <button class="btn btn-red btn-sm" type="button" onclick="gradeCard(0)">Again</button>
+                  </div>
+                </div>
+              </div>
+              <div class="muted" style="margin-top:0.85rem; line-height:1.55;">
+                Tip: Keep cards simple. One meaning per card. Add an example sentence when possible.
+              </div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header">Add cards</div>
+            <div class="card-body">
+              <div class="row two">
+                <div>
+                  <label class="muted" style="font-size:0.85rem; font-weight:900; text-transform:uppercase; letter-spacing:0.06em;">French</label>
+                  <input type="text" id="newFront" placeholder="e.g. pourtant" />
+                </div>
+                <div>
+                  <label class="muted" style="font-size:0.85rem; font-weight:900; text-transform:uppercase; letter-spacing:0.06em;">Meaning / example</label>
+                  <input type="text" id="newBack" placeholder="however; Pourtant, il est venu." />
+                </div>
+              </div>
+              <div style="margin-top:0.85rem; display:flex; gap:0.6rem; flex-wrap:wrap;">
+                <button class="btn btn-gold btn-sm" type="button" onclick="addCard()">Add</button>
+                <button class="btn btn-ghost btn-sm" type="button" onclick="seedDeck()">Add starter deck</button>
+              </div>
+              <hr class="divider">
+              <div class="list" id="cardList"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- GRAMMAR -->
+    <div class="view" id="view-grammar">
+      <div class="page-hero">
+        <h2>📚 Grammar drills</h2>
+        <p>High-frequency grammar patterns for TCF/TEF. Drill quickly, review mistakes, improve accuracy.</p>
+      </div>
+      <div class="page-content">
+        <div class="grid two">
+          <div class="card">
+            <div class="card-header gold">Drill</div>
+            <div class="card-body">
+              <div class="row two">
+                <div>
+                  <label class="muted" style="font-size:0.85rem; font-weight:900; text-transform:uppercase; letter-spacing:0.06em;">Topic</label>
+                  <select id="gramTopic" onchange="loadGrammarQuestion()">
+                    <option value="articles">Articles (le/la/les, du/de la)</option>
+                    <option value="prepositions">Prepositions (à/de/en/chez)</option>
+                    <option value="pronouns">Pronouns (y, en, lui/leur)</option>
+                    <option value="tenses">Tenses (présent/passé composé/imparfait)</option>
+                    <option value="agreements">Agreements (gender/number)</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="muted" style="font-size:0.85rem; font-weight:900; text-transform:uppercase; letter-spacing:0.06em;">Actions</label>
+                  <div style="display:flex; gap:0.6rem; flex-wrap:wrap;">
+                    <button class="btn btn-teal btn-sm" type="button" onclick="loadGrammarQuestion()">New</button>
+                    <button class="btn btn-gold btn-sm" type="button" onclick="checkGrammar()">Check</button>
+                  </div>
+                </div>
+              </div>
+              <div class="q" style="margin-top:1rem;">
+                <div class="qt" id="gramPrompt">—</div>
+                <div class="qd muted">Fill the blank(s). Use accents if you can (not mandatory for checking).</div>
+                <input type="text" id="gramAnswer" placeholder="Type answer…" style="margin-top:0.75rem;" />
+                <div class="qd" id="gramFeedback" style="margin-top:0.75rem;"></div>
+              </div>
+              <div class="muted" style="margin-top:0.85rem; line-height:1.6;">
+                Tip: Accuracy is crucial. Write short correct phrases: <span class="mono">Je suis allé(e)… / J’y vais / J’en ai besoin</span>.
+              </div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header">Mistakes (recent)</div>
+            <div class="card-body">
+              <div class="list" id="mistakeList"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SETTINGS -->
+    <div class="view" id="view-settings">
+      <div class="page-hero">
+        <h2>⚙ Settings</h2>
+        <p>Choose exam mode, set daily target, configure voices, and enable cloud sync.</p>
+      </div>
+      <div class="page-content">
+        <div class="grid two">
+          <div class="card">
+            <div class="card-header gold">Profile</div>
+            <div class="card-body">
+              <div class="row two">
+                <div>
+                  <label class="muted" style="font-size:0.85rem; font-weight:900; text-transform:uppercase; letter-spacing:0.06em;">Exam</label>
+                  <select id="setExam" onchange="saveSettings()">
+                    <option value="TCF">TCF</option>
+                    <option value="TEF">TEF</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="muted" style="font-size:0.85rem; font-weight:900; text-transform:uppercase; letter-spacing:0.06em;">Target level</label>
+                  <select id="setLevel" onchange="saveSettings()">
+                    <option value="A2">A2</option>
+                    <option value="B1">B1</option>
+                    <option value="B2" selected>B2</option>
+                    <option value="C1">C1</option>
+                  </select>
+                </div>
+              </div>
+              <div class="row two" style="margin-top:0.85rem;">
+                <div>
+                  <label class="muted" style="font-size:0.85rem; font-weight:900; text-transform:uppercase; letter-spacing:0.06em;">Daily target minutes</label>
+                  <input id="setTargetMinutes" type="number" min="0" max="600" placeholder="e.g. 60" oninput="saveSettingsDebounced()" />
+                </div>
+                <div>
+                  <label class="muted" style="font-size:0.85rem; font-weight:900; text-transform:uppercase; letter-spacing:0.06em;">Language (dictation)</label>
+                  <select id="setSttLang" onchange="saveSettings()">
+                    <option value="fr-FR">fr-FR</option>
+                    <option value="fr-CA">fr-CA</option>
+                  </select>
+                </div>
+              </div>
+              <div class="row two" style="margin-top:0.85rem;">
+                <div>
+                  <label class="muted" style="font-size:0.85rem; font-weight:900; text-transform:uppercase; letter-spacing:0.06em;">Test date</label>
+                  <input id="setTestDate" type="date" onchange="saveSettings()" />
+                </div>
+                <div>
+                  <label class="muted" style="font-size:0.85rem; font-weight:900; text-transform:uppercase; letter-spacing:0.06em;">Level filter</label>
+                  <div style="display:flex; gap:0.75rem; align-items:center; flex-wrap:wrap; padding:0.5rem 0;">
+                    <label style="display:flex; align-items:center; gap:0.55rem; font-weight:800; color:var(--gray-med);">
+                      <input type="checkbox" id="setStretch" onchange="saveSettings()" />
+                      Include C1 stretch content
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              <hr class="divider">
+              <div class="row two">
+                <div>
+                  <label class="muted" style="font-size:0.85rem; font-weight:900; text-transform:uppercase; letter-spacing:0.06em;">TTS voice</label>
+                  <select id="ttsVoiceSelect" onchange="saveSettings()"></select>
+                </div>
+                <div>
+                  <label class="muted" style="font-size:0.85rem; font-weight:900; text-transform:uppercase; letter-spacing:0.06em;">TTS rate</label>
+                  <input id="ttsRate" type="number" min="0.6" max="1.3" step="0.05" oninput="saveSettingsDebounced()" />
+                </div>
+              </div>
+
+              <div class="muted" style="margin-top:0.85rem; line-height:1.6;">
+                Note: Speech-to-text typically works best on Chrome/Edge over HTTPS (GitHub Pages). It may not work on some browsers.
+              </div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header">Data</div>
+            <div class="card-body">
+              <div class="muted" style="line-height:1.6;">
+                Your data is stored in your browser. Use Export/Import for backups.
+              </div>
+              <div style="margin-top:0.85rem; display:flex; gap:0.6rem; flex-wrap:wrap;">
+                <button class="btn btn-gold btn-sm" type="button" onclick="exportAll()">⬇ Export</button>
+                <button class="btn btn-gold btn-sm" type="button" onclick="importAll()">⬆ Import</button>
+                <button class="btn btn-red btn-sm" type="button" onclick="resetAll()">⚠ Reset</button>
+              </div>
+              <hr class="divider">
+              <div class="muted" style="line-height:1.6;">
+                GitHub Pages URL for this page (if hosted in your repo):
+                <div class="mono" style="margin-top:0.35rem;">/french_tcf_tef_trainer.html</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CLOUD SYNC MODAL -->
+    <div id="cloudSyncOverlay" class="overlay" onclick="if(event.target===this) closeCloudSyncModal()">
+      <div class="modal" style="max-width:560px;">
+        <div class="modal-header">☁ Cloud Sync</div>
+        <div class="modal-body">
+          <p style="color:var(--gray-med);font-size:0.9rem;margin-bottom:1rem;">
+            Sync your French Trainer across devices using <strong>Firebase Realtime Database</strong> (free tier).
+          </p>
+          <div style="margin-bottom:1rem;">
+            <label style="display:block;font-weight:800;margin-bottom:0.4rem;font-size:0.85rem; letter-spacing:0.06em; text-transform:uppercase; color:var(--gray-med);">Sync ID</label>
+            <div style="display:flex;gap:0.5rem;">
+              <input type="text" id="syncIdInput" placeholder="e.g. my-french-2026" style="flex:1;" />
+              <button class="btn btn-teal btn-sm" type="button" onclick="generateSyncId()">Generate</button>
+            </div>
+          </div>
+          <div style="margin-bottom:1rem;">
+            <label style="display:block;font-weight:800;margin-bottom:0.4rem;font-size:0.85rem; letter-spacing:0.06em; text-transform:uppercase; color:var(--gray-med);">Firebase Database URL</label>
+            <input type="text" id="firebaseUrlInput" placeholder="https://YOUR-PROJECT.firebaseio.com" />
+          </div>
+          <div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:1rem;">
+            <input type="checkbox" id="cloudSyncEnabled" />
+            <label for="cloudSyncEnabled" style="font-weight:800;">Enable cloud sync</label>
+          </div>
+          <p style="font-size:0.8rem;color:var(--gray-med);line-height:1.5;">
+            Create a free project at <a href="https://console.firebase.google.com" target="_blank" rel="noopener">Firebase Console</a> →
+            Realtime Database → copy the URL.
+          </p>
+          <div class="modal-actions">
+            <button class="btn btn-ghost btn-sm" type="button" onclick="closeCloudSyncModal()">Close</button>
+            <button class="btn btn-teal btn-sm" type="button" onclick="saveCloudSyncConfig()">Save</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      /* ================================================================
+        STATE + STORAGE
+      ================================================================ */
+      const APP_PREFIX = 'frenchTrainer-v1-';
+      const STATE_KEY = APP_PREFIX + 'state';
+      const SYNC_CONFIG_KEY = APP_PREFIX + 'sync-config';
+
+      const TODAY = new Date();
+      TODAY.setHours(0,0,0,0);
+
+      function esc(s) {
+        return (s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+      }
+
+      function showToast(msg) {
+        const t = document.getElementById('toast');
+        t.textContent = msg;
+        t.classList.add('show');
+        clearTimeout(t._timer);
+        t._timer = setTimeout(() => t.classList.remove('show'), 3200);
+      }
+      function showAutoSaveIndicator() {
+        const el = document.getElementById('autosaveIndicator');
+        el.style.opacity = '1';
+        clearTimeout(el._t);
+        el._t = setTimeout(() => { el.style.opacity = '0'; }, 1500);
+      }
+
+      function safeParse(json) {
+        try { return JSON.parse(json); } catch { return null; }
+      }
+
+      function defaultState() {
+        return {
+          version: 1,
+          updatedAt: new Date().toISOString(),
+          settings: {
+            exam: 'TCF',
+            level: 'B2',
+            // Default: B2 in ~8 weeks (adjust anytime in Settings)
+            targetMinutes: 75,
+            testDateISO: (function(){ const d = new Date(); d.setDate(d.getDate()+60); d.setHours(0,0,0,0); return d.toISOString().slice(0,10); })(),
+            includeC1Stretch: true,
+            sttLang: 'fr-FR',
+            ttsVoiceURI: '',
+            ttsRate: 1.0
+          },
+          logs: {
+            sessions: [], // {id,date,skill,minutes,note}
+            listening: [], // {id,date,exId,score,total}
+            dictation: [], // {id,date,dictId,score}
+            speaking: [],  // {id,date,taskType,promptId,seconds,transcript,checks:{...}}
+            writing: [],   // {id,date,promptId,seconds,words,text}
+            reading: [],   // {id,date,passageId,score,total}
+            grammarMistakes: [] // {id,date,topic,prompt,answer,correct}
+          },
+          vocab: {
+            cards: [] // {id,front,back,ef,intervalDays,dueISO,createdAt}
+          }
+        };
+      }
+
+      function loadState() {
+        const raw = localStorage.getItem(STATE_KEY);
+        const parsed = raw ? safeParse(raw) : null;
+        const base = defaultState();
+        if (!parsed || typeof parsed !== 'object') return base;
+        const st = Object.assign({}, base, parsed);
+        st.settings = Object.assign({}, base.settings, parsed.settings || {});
+        st.logs = Object.assign({}, base.logs, parsed.logs || {});
+        st.logs.sessions = Array.isArray(st.logs.sessions) ? st.logs.sessions : [];
+        st.logs.listening = Array.isArray(st.logs.listening) ? st.logs.listening : [];
+        st.logs.dictation = Array.isArray(st.logs.dictation) ? st.logs.dictation : [];
+        st.logs.speaking = Array.isArray(st.logs.speaking) ? st.logs.speaking : [];
+        st.logs.writing = Array.isArray(st.logs.writing) ? st.logs.writing : [];
+        st.logs.reading = Array.isArray(st.logs.reading) ? st.logs.reading : [];
+        st.logs.grammarMistakes = Array.isArray(st.logs.grammarMistakes) ? st.logs.grammarMistakes : [];
+        st.vocab = Object.assign({}, base.vocab, parsed.vocab || {});
+        st.vocab.cards = Array.isArray(st.vocab.cards) ? st.vocab.cards : [];
+        return st;
+      }
+
+      function saveState() {
+        state.updatedAt = new Date().toISOString();
+        localStorage.setItem(STATE_KEY, JSON.stringify(state));
+        showAutoSaveIndicator();
+        if (cloudEnabled()) scheduleCloudWrite();
+      }
+
+      /* ================================================================
+        CLOUD SYNC (Firebase Realtime Database REST)
+      ================================================================ */
+      let _cloudPollTimer = null;
+      let _cloudLastPayload = '';
+      let _cloudWriteTimer = null;
+
+      function getSyncConfig() {
+        try {
+          const raw = localStorage.getItem(SYNC_CONFIG_KEY);
+          if (!raw) return null;
+          const c = JSON.parse(raw);
+          if (c && c.syncId && c.databaseURL) return { syncId: c.syncId, databaseURL: c.databaseURL, enabled: !!c.enabled };
+          return null;
+        } catch { return null; }
+      }
+      function cloudEnabled() {
+        const cfg = getSyncConfig();
+        return !!(cfg && cfg.enabled);
+      }
+      function cloudBaseUrl() {
+        const cfg = getSyncConfig();
+        if (!cfg || !cfg.enabled) return '';
+        return cfg.databaseURL.replace(/\/+$/, '') + '/frenchtrainer/' + encodeURIComponent(cfg.syncId);
+      }
+      function cloudStateUrl() {
+        const base = cloudBaseUrl();
+        return base ? base + '/state.json' : '';
+      }
+      async function cloudPutState(payloadObj) {
+        const url = cloudStateUrl();
+        if (!url) return false;
+        const r = await fetch(url, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payloadObj)
+        });
+        if (!r.ok) throw new Error('Cloud write failed (' + r.status + ')');
+        return true;
+      }
+      async function cloudGetState() {
+        const url = cloudStateUrl();
+        if (!url) return null;
+        const r = await fetch(url);
+        if (!r.ok) throw new Error('Cloud read failed (' + r.status + ')');
+        return await r.json();
+      }
+      function scheduleCloudWrite() {
+        clearTimeout(_cloudWriteTimer);
+        _cloudWriteTimer = setTimeout(async () => {
+          try {
+            await cloudPutState(state);
+            _cloudLastPayload = JSON.stringify(state || {});
+          } catch {}
+        }, 700);
+      }
+      function stopCloudPolling() {
+        if (_cloudPollTimer) clearInterval(_cloudPollTimer);
+        _cloudPollTimer = null;
+      }
+      async function pollCloudUpdates() {
+        if (!cloudEnabled()) return;
+        try {
+          const remote = await cloudGetState();
+          const payload = JSON.stringify(remote || {});
+          if (payload === _cloudLastPayload) return;
+          _cloudLastPayload = payload;
+          if (remote && typeof remote === 'object') {
+            state = remote;
+            // re-normalize missing arrays
+            state = (function normalize(s){ const base=defaultState(); const out=Object.assign({}, base, s||{}); out.settings=Object.assign({}, base.settings, (s||{}).settings||{}); out.logs=Object.assign({}, base.logs, (s||{}).logs||{}); out.logs.sessions=Array.isArray(out.logs.sessions)?out.logs.sessions:[]; out.logs.listening=Array.isArray(out.logs.listening)?out.logs.listening:[]; out.logs.dictation=Array.isArray(out.logs.dictation)?out.logs.dictation:[]; out.logs.speaking=Array.isArray(out.logs.speaking)?out.logs.speaking:[]; out.logs.writing=Array.isArray(out.logs.writing)?out.logs.writing:[]; out.logs.reading=Array.isArray(out.logs.reading)?out.logs.reading:[]; out.logs.grammarMistakes=Array.isArray(out.logs.grammarMistakes)?out.logs.grammarMistakes:[]; out.vocab=Object.assign({}, base.vocab, (s||{}).vocab||{}); out.vocab.cards=Array.isArray(out.vocab.cards)?out.vocab.cards:[]; return out; })(state);
+            localStorage.setItem(STATE_KEY, JSON.stringify(state));
+            renderAll();
+            showToast('☁ Synced from cloud');
+          }
+        } catch {}
+      }
+      function startCloudPolling() {
+        stopCloudPolling();
+        if (!cloudEnabled()) return;
+        pollCloudUpdates();
+        _cloudPollTimer = setInterval(pollCloudUpdates, 5000);
+      }
+
+      function openCloudSyncModal() {
+        const cfg = getSyncConfig();
+        document.getElementById('syncIdInput').value = cfg ? cfg.syncId : '';
+        document.getElementById('firebaseUrlInput').value = cfg ? cfg.databaseURL : '';
+        document.getElementById('cloudSyncEnabled').checked = cfg ? cfg.enabled : false;
+        document.getElementById('cloudSyncOverlay').classList.add('open');
+      }
+      function closeCloudSyncModal() {
+        document.getElementById('cloudSyncOverlay').classList.remove('open');
+      }
+      function generateSyncId() {
+        document.getElementById('syncIdInput').value = 'french-' + Date.now();
+      }
+      async function saveCloudSyncConfig() {
+        const syncId = (document.getElementById('syncIdInput').value || '').trim().replace(/[^a-zA-Z0-9_-]/g, '-') || ('french-' + Date.now());
+        const databaseURL = (document.getElementById('firebaseUrlInput').value || '').trim().replace(/\/+$/, '');
+        const enabled = !!document.getElementById('cloudSyncEnabled').checked;
+        if (!databaseURL && enabled) { showToast('Enter Firebase Database URL'); return; }
+        if (enabled && !/^https:\/\/.+(\.firebaseio\.com|\.firebasedatabase\.app)$/.test(databaseURL)) { showToast('Use full Firebase Realtime Database URL'); return; }
+        const cfg = { syncId, databaseURL, enabled };
+        localStorage.setItem(SYNC_CONFIG_KEY, JSON.stringify(cfg));
+        const btn = document.getElementById('cloudSyncBtn');
+        btn.classList.toggle('btn-teal', enabled);
+        btn.classList.toggle('btn-ghost', !enabled);
+        if (enabled) {
+          try {
+            // probe + upload
+            const base = cloudBaseUrl();
+            const probeUrl = base + '/__probe__.json';
+            const r = await fetch(probeUrl, { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ ok:1, at:Date.now() }) });
+            if (!r.ok) throw new Error('Probe failed');
+            await cloudPutState(state);
+            _cloudLastPayload = JSON.stringify(state || {});
+            startCloudPolling();
+            showToast('☁ Cloud sync enabled');
+            closeCloudSyncModal();
+          } catch (e) {
+            localStorage.setItem(SYNC_CONFIG_KEY, JSON.stringify({ syncId, databaseURL, enabled:false }));
+            document.getElementById('cloudSyncEnabled').checked = false;
+            showToast('Cloud sync failed');
+          }
+        } else {
+          stopCloudPolling();
+          _cloudLastPayload = '';
+          closeCloudSyncModal();
+          showToast('Cloud sync disabled');
+        }
+      }
+
+      /* ================================================================
+        VIEW SWITCHING
+      ================================================================ */
+      function showView(name) {
+        // save draft if switching away from writing/speaking
+        document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+        document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+        document.getElementById('view-' + name).classList.add('active');
+        document.getElementById('nav-' + name).classList.add('active');
+        if (name === 'dashboard') renderDashboard();
+        if (name === 'listening') renderListening();
+        if (name === 'speaking') renderSpeaking();
+        if (name === 'writing') renderWriting();
+        if (name === 'reading') renderReading();
+        if (name === 'vocab') renderVocab();
+        if (name === 'grammar') renderGrammar();
+        if (name === 'settings') renderSettings();
+      }
+
+      /* ================================================================
+        EXPORT / IMPORT / RESET
+      ================================================================ */
+      function exportAll() {
+        const payload = {
+          exportedAt: new Date().toISOString(),
+          state
+        };
+        const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'french-trainer-backup-' + new Date().toISOString().slice(0,10) + '.json';
+        a.click();
+        URL.revokeObjectURL(url);
+        showToast('✅ Exported');
+      }
+      function importAll() {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'application/json,.json';
+        input.onchange = e => {
+          const file = e.target.files[0];
+          if (!file) return;
+          const reader = new FileReader();
+          reader.onload = () => {
+            const parsed = safeParse(reader.result);
+            const st = parsed && parsed.state ? parsed.state : parsed;
+            if (!st || typeof st !== 'object') { showToast('Invalid backup'); return; }
+            state = st;
+            // normalize and save
+            state = loadStateFromObject(state);
+            localStorage.setItem(STATE_KEY, JSON.stringify(state));
+            showToast('✅ Imported');
+            renderAll();
+          };
+          reader.readAsText(file);
+        };
+        input.click();
+      }
+      function resetAll() {
+        if (!confirm('Reset all French Trainer data in this browser?')) return;
+        localStorage.removeItem(STATE_KEY);
+        state = defaultState();
+        saveState();
+        renderAll();
+        showView('dashboard');
+        showToast('Reset complete');
+      }
+      function loadStateFromObject(obj) {
+        // reuse normalization from loadState
+        localStorage.setItem(STATE_KEY, JSON.stringify(obj));
+        return loadState();
+      }
+
+      /* ================================================================
+        SPEECH SYNTHESIS (TTS)
+      ================================================================ */
+      function getTtsVoice() {
+        const voices = window.speechSynthesis ? speechSynthesis.getVoices() : [];
+        const uri = state.settings.ttsVoiceURI || '';
+        let v = voices.find(x => x.voiceURI === uri);
+        if (!v) {
+          // pick french if available
+          v = voices.find(x => (x.lang || '').toLowerCase().startsWith('fr')) || voices[0];
+        }
+        return v || null;
+      }
+      function speakText(text) {
+        if (!window.speechSynthesis) { showToast('TTS not supported'); return; }
+        stopSpeaking();
+        const u = new SpeechSynthesisUtterance(text);
+        const voice = getTtsVoice();
+        if (voice) u.voice = voice;
+        u.lang = (voice && voice.lang) ? voice.lang : 'fr-FR';
+        u.rate = Number(state.settings.ttsRate || 1) || 1;
+        speechSynthesis.speak(u);
+      }
+      function stopSpeaking() {
+        try { window.speechSynthesis && speechSynthesis.cancel(); } catch {}
+      }
+
+      /* ================================================================
+        SPEECH TO TEXT (Web Speech API) — inserts into last focused field
+      ================================================================ */
+      let _sttRec = null;
+      let _sttListening = false;
+      let _sttTarget = null;
+      let _sttLastTarget = null;
+
+      function speechToTextSupported() {
+        return !!(window.SpeechRecognition || window.webkitSpeechRecognition);
+      }
+      function isTextTarget(el) {
+        if (!el) return false;
+        if (el.isContentEditable) return true;
+        const tag = (el.tagName || '').toLowerCase();
+        if (tag === 'textarea') return true;
+        if (tag === 'input') {
+          const type = (el.getAttribute('type') || 'text').toLowerCase();
+          return ['text','search','email','tel','url','password','number'].includes(type);
+        }
+        return false;
+      }
+      function getActiveTextTarget() {
+        const el = document.activeElement;
+        return isTextTarget(el) ? el : null;
+      }
+      function insertTextAtCursor(el, text) {
+        if (!el || !text) return;
+        const start = (typeof el.selectionStart === 'number') ? el.selectionStart : (el.value || '').length;
+        const end = (typeof el.selectionEnd === 'number') ? el.selectionEnd : (el.value || '').length;
+        const before = (el.value || '').slice(0, start);
+        const after = (el.value || '').slice(end);
+        const spacer = (before && !before.endsWith(' ') && text && !text.startsWith(' ')) ? ' ' : '';
+        el.value = before + spacer + text + after;
+        const pos = (before + spacer + text).length;
+        try { el.setSelectionRange(pos, pos); } catch {}
+        // trigger any derived UI
+        if (el.id === 'writeText') updateWriteWords();
+      }
+      function setSttButtonState(listening) {
+        const btn = document.getElementById('sttBtn');
+        btn.classList.toggle('listening', !!listening);
+        btn.textContent = listening ? '⏺ Stop' : '🎙 Dictate';
+        btn.title = listening ? 'Stop dictation' : 'Speech to text (dictation)';
+      }
+      function stopSpeechToText() {
+        try { _sttRec && _sttRec.stop(); } catch {}
+        _sttListening = false;
+        _sttTarget = null;
+        setSttButtonState(false);
+      }
+      function toggleSpeechToText() {
+        if (_sttListening) { stopSpeechToText(); return; }
+        if (!speechToTextSupported()) { showToast('Speech to text not supported in this browser.'); return; }
+        if (!window.isSecureContext) { showToast('Speech to text needs HTTPS (file:// may be blocked).'); return; }
+
+        const target = getActiveTextTarget() || (_sttLastTarget && document.contains(_sttLastTarget) ? _sttLastTarget : null);
+        if (!target) { showToast('Click into a text field first, then press Dictate.'); return; }
+        _sttTarget = target;
+        try { _sttTarget.focus && _sttTarget.focus(); } catch {}
+
+        const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+        const rec = new SR();
+        _sttRec = rec;
+        rec.lang = state.settings.sttLang || (navigator.language || 'fr-FR');
+        rec.interimResults = true;
+        rec.continuous = false;
+        rec.maxAlternatives = 1;
+
+        let hadAnyFinal = false;
+        rec.onresult = (event) => {
+          let finalText = '';
+          for (let i = event.resultIndex; i < event.results.length; i++) {
+            const res = event.results[i];
+            const t = (res[0] && res[0].transcript) ? res[0].transcript : '';
+            if (res.isFinal) finalText += t;
+          }
+          if (finalText) {
+            hadAnyFinal = true;
+            insertTextAtCursor(_sttTarget, finalText.trim());
+          }
+        };
+        rec.onerror = (e) => {
+          const msg =
+            e?.error === 'not-allowed' ? 'Mic permission denied (allow microphone access).' :
+            e?.error === 'no-speech' ? 'No speech detected. Try again.' :
+            e?.error === 'audio-capture' ? 'No microphone found.' :
+            ('Speech to text error' + (e?.error ? ': ' + e.error : ''));
+          showToast(msg);
+          stopSpeechToText();
+        };
+        rec.onend = () => {
+          _sttListening = false;
+          setSttButtonState(false);
+          if (!hadAnyFinal) showToast('Dictation stopped. If nothing was inserted, check microphone permission.');
+        };
+
+        try {
+          _sttListening = true;
+          setSttButtonState(true);
+          showToast('Listening… speak now.');
+          rec.start();
+        } catch {
+          showToast('Could not start dictation.');
+          stopSpeechToText();
+        }
+      }
+
+      /* ================================================================
+        DATA BANKS (prompts)
+      ================================================================ */
+      const listeningExercises = [
+        {
+          id: 'L1',
+          level: 'B1',
+          transcript: "— Bonjour Madame. Je voudrais un billet pour Lyon, s’il vous plaît.\\n— Aller simple ou aller-retour ?\\n— Aller-retour. Je pars vendredi matin et je reviens dimanche soir.\\n— Très bien. Ça fera 78 euros.\\n— Par carte, merci.",
+          questions: [
+            { q: "Que veut acheter la personne ?", options: ["Un billet de train", "Un billet d’avion", "Un abonnement"], a: 0 },
+            { q: "Quand part-elle ?", options: ["Jeudi matin", "Vendredi matin", "Dimanche soir"], a: 1 },
+            { q: "Comment paie-t-elle ?", options: ["En espèces", "Par carte", "Par chèque"], a: 1 }
+          ]
+        },
+        {
+          id: 'L2',
+          level: 'B2',
+          transcript: "— Tu as entendu ? La réunion a été avancée à 9h.\\n— À 9h ? Je pensais que c’était à 10h.\\n— Moi aussi, mais le directeur doit partir tôt.\\n— D’accord, alors on se retrouve à 8h45 pour préparer ?\\n— Parfait.",
+          questions: [
+            { q: "À quelle heure est la réunion ?", options: ["8h45", "9h", "10h"], a: 1 },
+            { q: "Pourquoi la réunion change-t-elle ?", options: ["Le directeur part tôt", "La salle est occupée", "Il y a une grève"], a: 0 },
+            { q: "Que décident-ils ?", options: ["Annuler", "Arriver plus tôt", "Changer de sujet"], a: 1 }
+          ]
+        },
+        {
+          id: 'L3',
+          level: 'C1',
+          transcript: "— Depuis quelques années, on observe une hausse du télétravail.\\n— Oui, mais tout dépend du secteur et de l’organisation.\\n— Certes, cependant les entreprises doivent aussi repenser la communication interne.\\n— Exactement, sinon les équipes perdent en cohésion.",
+          questions: [
+            { q: "Quel sujet abordent-ils ?", options: ["Les transports", "Le télétravail", "Les vacances"], a: 1 },
+            { q: "Quel est le défi mentionné ?", options: ["Le salaire", "La cohésion", "La météo"], a: 1 },
+            { q: "Quelle nuance est exprimée ?", options: ["Tout dépend du contexte", "C’est impossible", "C’est inutile"], a: 0 }
+          ]
+        }
+      ];
+
+      const dictations = [
+        { id: 'D1', level: 'A2', text: "Je voudrais réserver une table pour deux personnes." },
+        { id: 'D2', level: 'B1', text: "Demain, je dois aller à la banque avant de passer au supermarché." },
+        { id: 'D3', level: 'B2', text: "Même si j’étais fatigué, j’ai continué parce que c’était important." },
+        { id: 'D4', level: 'C1', text: "Il est essentiel de garder une routine, surtout lorsqu’on manque de motivation." }
+      ];
+
+      const speakingPrompts = {
+        interview: [
+          { id: 'SI1', level: 'A2', text: "Présentez-vous. Parlez de votre routine quotidienne (30–45 secondes)." },
+          { id: 'SI2', level: 'B1', text: "Parlez d’un voyage que vous avez aimé. Où êtes-vous allé(e) et pourquoi ?" },
+          { id: 'SI3', level: 'B2', text: "Expliquez une difficulté au travail/à l’école et comment vous l’avez résolue." }
+        ],
+        roleplay: [
+          { id: 'SR1', level: 'B1', text: "Vous avez reçu un produit défectueux. Appelez le service client et demandez une solution." },
+          { id: 'SR2', level: 'B2', text: "Vous êtes en retard pour un rendez-vous. Prévenez la personne et proposez une alternative." },
+          { id: 'SR3', level: 'C1', text: "Vous négociez un changement d’horaire au travail. Justifiez votre demande et répondez aux objections." }
+        ],
+        argument: [
+          { id: 'SA1', level: 'B1', text: "Pensez-vous qu’il faut limiter l’usage des réseaux sociaux ? Donnez deux raisons." },
+          { id: 'SA2', level: 'B2', text: "Faut-il rendre les transports publics gratuits ? Donnez des arguments et une conclusion." },
+          { id: 'SA3', level: 'C1', text: "Le télétravail améliore-t-il vraiment la productivité ? Discutez avantages/inconvénients." }
+        ]
+      };
+
+      const writingPrompts = [
+        { id: 'W1', level: 'B1', text: "Écrivez un email à votre propriétaire : vous avez un problème (chauffage/eau). Expliquez la situation et demandez une intervention." },
+        { id: 'W2', level: 'B2', text: "Vous écrivez une lettre de réclamation à un magasin après un achat décevant. Donnez des détails et proposez une solution." },
+        { id: 'W3', level: 'B2', text: "Donnez votre opinion : est-il préférable de vivre en ville ou à la campagne ? Structurez votre réponse avec des connecteurs." },
+        { id: 'W4', level: 'C1', text: "Rédigez un texte argumentatif sur l’importance de l’apprentissage des langues dans un monde globalisé." }
+      ];
+
+      const readingPassages = [
+        {
+          id: 'R1', level: 'B1', title: "Annonce : cours de sport",
+          text: "La mairie organise des cours gratuits de sport pour les adultes. Les séances auront lieu le mardi et le jeudi soir à 18h. Il faut s’inscrire en ligne avant le 10 du mois.",
+          questions: [
+            { q: "Qui organise les cours ?", options: ["Une entreprise", "La mairie", "Une école"], a: 1 },
+            { q: "Quand ont lieu les séances ?", options: ["Le week-end", "Mardi et jeudi", "Tous les jours"], a: 1 },
+            { q: "Que faut-il faire ?", options: ["Payer sur place", "S’inscrire en ligne", "Téléphoner"], a: 1 }
+          ]
+        },
+        {
+          id: 'R2', level: 'B2', title: "Article : manger local",
+          text: "De plus en plus de consommateurs choisissent de manger local. Cette tendance répond à plusieurs objectifs : soutenir l’économie régionale, réduire l’impact environnemental et mieux connaître l’origine des produits. Cependant, certains rappellent que le prix peut être plus élevé et que l’offre reste limitée selon les saisons.",
+          questions: [
+            { q: "Pourquoi manger local ?", options: ["Pour voyager", "Pour soutenir l’économie", "Pour éviter le sport"], a: 1 },
+            { q: "Quel inconvénient est mentionné ?", options: ["Le prix", "La météo", "La musique"], a: 0 },
+            { q: "Quel mot résume une limite ?", options: ["saisons", "chaussures", "écran"], a: 0 }
+          ]
+        }
+      ];
+
+      const grammarBank = {
+        articles: [
+          { prompt: "Je bois ___ eau.", answers: ["de l'"] },
+          { prompt: "Il a besoin ___ aide.", answers: ["d'"] },
+          { prompt: "Je voudrais ___ pain.", answers: ["du"] }
+        ],
+        prepositions: [
+          { prompt: "Je vais ___ France.", answers: ["en"] },
+          { prompt: "Je vais ___ Canada.", answers: ["au"] },
+          { prompt: "Je viens ___ Paris.", answers: ["de"] }
+        ],
+        pronouns: [
+          { prompt: "Tu penses à ton projet ? Oui, j’___ pense.", answers: ["y"] },
+          { prompt: "Tu as besoin de ce livre ? Oui, j’___ ai besoin.", answers: ["en"] },
+          { prompt: "Je donne le document à Marie : je ___ donne le document.", answers: ["lui"] }
+        ],
+        tenses: [
+          { prompt: "Hier, je (aller) ___ au cinéma.", answers: ["suis allé", "suis allée"] },
+          { prompt: "Quand j’étais petit, je (jouer) ___ dehors.", answers: ["jouais"] },
+          { prompt: "Ce matin, elle (faire) ___ ses devoirs.", answers: ["a fait"] }
+        ],
+        agreements: [
+          { prompt: "Elle est (content) ___ .", answers: ["contente"] },
+          { prompt: "Ils sont (fatigué) ___ .", answers: ["fatigués"] },
+          { prompt: "Les filles sont (arrivé) ___ .", answers: ["arrivées"] }
+        ]
+      };
+
+      /* ================================================================
+        DASHBOARD
+      ================================================================ */
+      function isoDate(d) {
+        const dt = new Date(d);
+        dt.setHours(0,0,0,0);
+        return dt.toISOString().slice(0,10);
+      }
+
+      const CEFR_RANK = { A1: 0, A2: 1, B1: 2, B2: 3, C1: 4, C2: 5 };
+      function cefrRank(level) { return CEFR_RANK[String(level || '').toUpperCase()] ?? 99; }
+      function allowLevel(level) {
+        const target = cefrRank(state.settings.level || 'B2');
+        const stretch = state.settings.includeC1Stretch ? 1 : 0;
+        return cefrRank(level) <= target + stretch;
+      }
+      function filterByLevel(items) {
+        const arr = Array.isArray(items) ? items : [];
+        const filtered = arr.filter(x => !x.level || allowLevel(x.level));
+        return filtered.length ? filtered : arr;
+      }
+
+      function daysUntilTest() {
+        const iso = state.settings.testDateISO;
+        if (!iso || !/^\d{4}-\d{2}-\d{2}$/.test(iso)) return null;
+        const t = new Date(iso + 'T00:00:00');
+        t.setHours(0,0,0,0);
+        const diff = Math.ceil((t.getTime() - TODAY.getTime()) / (24*3600*1000));
+        return diff;
+      }
+
+      function renderB2Plan() {
+        const el = document.getElementById('b2Plan');
+        if (!el) return;
+
+        const days = daysUntilTest();
+        const weeks = 8;
+        const perDay = Math.max(0, Number(state.settings.targetMinutes) || 0);
+        const totalMin = days != null ? Math.max(0, days) * perDay : null;
+
+        const header = days == null
+          ? `Set your test date in Settings to generate a countdown-based plan.`
+          : `You have <strong>${days}</strong> day(s). With <strong>${perDay} min/day</strong>, that’s about <strong>${(totalMin||0).toLocaleString()} minutes</strong> of practice.`;
+
+        const plan = [
+          { w: 1, title: "Foundation + habits", bullets: ["Listening: 3 mini-dialogues + 2 dictations", "Speaking: 3 prompts (record 60–90s)", "Vocab: 10–15 cards/day", "Grammar: articles + prepositions"] },
+          { w: 2, title: "Comprehension first", bullets: ["Listening: increase speed (TTS rate +0.05)", "Reading: 3 passages + timed questions", "Writing: 1 email + 1 opinion", "Review mistakes list daily (5 min)"] },
+          { w: 3, title: "B1→B2 upgrade", bullets: ["Speaking: structure + connectors (d’abord, ensuite, pourtant, donc)", "Dictation: focus on endings (-e/-s/-ent) + liaisons", "Vocab: add collocations (faire face à, se rendre compte)", "Grammar: pronouns (y/en)"] },
+          { w: 4, title: "Output accuracy", bullets: ["Writing: 2 timed tasks (20–30 min)", "Speaking: 2 roleplays + 1 argument", "Reading: inference questions (why/what implied)", "Grammar: passé composé vs imparfait"] },
+          { w: 5, title: "Mock mini-tests", bullets: ["1 listening set + 1 reading set back-to-back (timed)", "1 writing task (timed) + self-correct", "Speaking: 2 recordings; redo once with improvements", "Vocab: keep daily review"] },
+          { w: 6, title: "Weakness targeting", bullets: ["Focus your weakest skill 4x this week", "Keep the other skills 1–2x each", "Track recurring grammar errors and drill them", "Add 20 new high-frequency words"] },
+          { w: 7, title: "Full simulation week", bullets: ["2 full mock days (L+R+W+S)", "After each mock: error review + rewrite/re-record", "Timing discipline: answer then move on", "Sleep + hydration consistency"] },
+          { w: 8, title: "Taper + polish", bullets: ["Short daily practice (30–60 min)", "Pronunciation + fluency: read aloud 10 min/day", "Review connectors + templates (email/complaint/opinion)", "Light mock 2–3 days before test"] },
+        ];
+
+        el.innerHTML = `
+          <div class="muted" style="line-height:1.6;">${header}</div>
+          <div style="margin-top:0.75rem; display:grid; gap:0.6rem;">
+            ${plan.map(p => `
+              <div style="border:1.5px solid var(--gray-xlight); border-radius:12px; padding:0.85rem 0.9rem; background:white;">
+                <div style="display:flex; align-items:center; justify-content:space-between; gap:0.75rem; flex-wrap:wrap;">
+                  <div style="font-weight:900; color:var(--navy);">Week ${p.w}: ${p.title}</div>
+                  <span class="pill teal">B2</span>
+                </div>
+                <ul style="margin:0.6rem 0 0; padding-left:1.2rem; color:var(--gray-med); line-height:1.55;">
+                  ${p.bullets.map(b => `<li>${b}</li>`).join('')}
+                </ul>
+              </div>
+            `).join('')}
+          </div>
+        `;
+      }
+
+      function sumMinutesForDate(dateISO) {
+        return state.logs.sessions.filter(x => x.date === dateISO).reduce((s,x) => s + (Number(x.minutes)||0), 0);
+      }
+
+      function streakDays() {
+        const set = new Set(state.logs.sessions.map(x => x.date));
+        let d = new Date(TODAY);
+        let streak = 0;
+        while (true) {
+          const k = isoDate(d);
+          if (!set.has(k)) break;
+          streak++;
+          d.setDate(d.getDate() - 1);
+        }
+        return streak;
+      }
+
+      function avg7(skill) {
+        const days = [];
+        for (let i=0;i<7;i++){
+          const d = new Date(TODAY);
+          d.setDate(d.getDate()-i);
+          days.push(isoDate(d));
+        }
+        const total = state.logs.sessions
+          .filter(x => x.skill === skill && days.includes(x.date))
+          .reduce((s,x)=>s+(Number(x.minutes)||0),0);
+        return Math.round((total / 7) * 10) / 10;
+      }
+
+      function addQuickSession() {
+        const minutes = Number(document.getElementById('quickMinutes').value || 0);
+        const note = (document.getElementById('quickNote').value || '').trim();
+        const skill = document.getElementById('quickSkill').value;
+        if (!minutes || minutes < 1) { showToast('Enter minutes'); return; }
+        state.logs.sessions.unshift({ id: String(Date.now()), date: isoDate(new Date()), skill, minutes, note, at: new Date().toISOString() });
+        document.getElementById('quickMinutes').value = '';
+        document.getElementById('quickNote').value = '';
+        saveState();
+        showToast('✅ Logged');
+        renderDashboard();
+      }
+
+      function renderRecentSessions() {
+        const el = document.getElementById('recentSessions');
+        const items = state.logs.sessions.slice(0,6);
+        if (items.length === 0) {
+          el.innerHTML = '<div class="muted">No sessions yet.</div>';
+          return;
+        }
+        el.innerHTML = items.map(x => {
+          const pill = x.skill === 'listening' ? 'teal' : x.skill === 'speaking' ? 'gold' : x.skill === 'writing' ? 'teal' : x.skill === 'reading' ? 'gold' : 'teal';
+          return `
+            <div class="item">
+              <div>
+                <div class="t">${esc(x.date)} • <span class="pill ${pill}">${esc(x.skill)}</span> • <span class="mono">${esc(String(x.minutes))}m</span></div>
+                <div class="d">${esc(x.note || '')}</div>
+              </div>
+              <div class="right">
+                <button class="btn btn-red btn-sm" type="button" onclick="deleteSession('${esc(x.id)}')">Delete</button>
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+
+      function deleteSession(id) {
+        state.logs.sessions = state.logs.sessions.filter(x => x.id !== id);
+        saveState();
+        showToast('Deleted');
+        renderDashboard();
+      }
+
+      function renderDashboard() {
+        document.getElementById('dashExamPill').textContent = state.settings.exam;
+        document.getElementById('dashLevelPill').textContent = state.settings.level;
+        document.getElementById('kpiTarget').textContent = (Number(state.settings.targetMinutes)||0) + 'm';
+        document.getElementById('kpiDoneToday').textContent = sumMinutesForDate(isoDate(new Date())) + 'm';
+        document.getElementById('kpiStreak').textContent = streakDays() + 'd';
+        const days = daysUntilTest();
+        document.getElementById('kpiCountdown').textContent = (days == null) ? '—' : (days >= 0 ? (days + 'd') : 'passed');
+        document.getElementById('kpiL7').textContent = avg7('listening') + 'm';
+        document.getElementById('kpiS7').textContent = avg7('speaking') + 'm';
+        document.getElementById('kpiW7').textContent = avg7('writing') + 'm';
+        renderRecentSessions();
+        renderDashboardChart();
+        renderB2Plan();
+      }
+
+      function drawAxes(ctx, w, h) {
+        ctx.strokeStyle = "rgba(0,0,0,0.10)";
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(36, 12);
+        ctx.lineTo(36, h - 26);
+        ctx.lineTo(w - 12, h - 26);
+        ctx.stroke();
+      }
+
+      function renderDashboardChart() {
+        const canvas = document.getElementById('dashChart');
+        const ctx = canvas.getContext('2d');
+        const w = (canvas.width = canvas.clientWidth * devicePixelRatio);
+        const h = (canvas.height = canvas.clientHeight * devicePixelRatio);
+        ctx.clearRect(0,0,w,h);
+        drawAxes(ctx,w,h);
+
+        ctx.fillStyle = "rgba(0,0,0,0.65)";
+        ctx.font = `${12*devicePixelRatio}px 'IBM Plex Sans', system-ui`;
+        ctx.fillText("Minutes/day (last 14 days)", 12*devicePixelRatio, 16*devicePixelRatio);
+
+        const days = [];
+        for (let i=13;i>=0;i--){
+          const d = new Date(TODAY);
+          d.setDate(d.getDate()-i);
+          days.push(isoDate(d));
+        }
+        const vals = days.map(d => sumMinutesForDate(d));
+        const maxV = Math.max(...vals, 10);
+        const xLeft = 36*devicePixelRatio, xRight = w-12*devicePixelRatio;
+        const yTop = 12*devicePixelRatio, yBottom = h-26*devicePixelRatio;
+        const xFor = (i)=> xLeft + (i/(days.length-1))*(xRight-xLeft);
+        const yFor = (v)=> yBottom - (v/maxV)*(yBottom-yTop);
+
+        ctx.strokeStyle = "rgba(0,153,153,0.85)";
+        ctx.lineWidth = 2*devicePixelRatio;
+        ctx.beginPath();
+        vals.forEach((v,i)=>{
+          const x = xFor(i), y = yFor(v);
+          if (i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+        });
+        ctx.stroke();
+
+        ctx.fillStyle = "rgba(0,153,153,0.95)";
+        vals.forEach((v,i)=>{
+          const x = xFor(i), y = yFor(v);
+          ctx.beginPath();
+          ctx.arc(x,y,3.1*devicePixelRatio,0,Math.PI*2);
+          ctx.fill();
+        });
+      }
+
+      /* ================================================================
+        LISTENING
+      ================================================================ */
+      let _listenIdx = 0;
+      function renderListening() {
+        const sel = document.getElementById('listenExerciseSelect');
+        const pool = filterByLevel(listeningExercises);
+        sel.innerHTML = pool.map((x,i)=>`<option value="${x.id}" ${i===_listenIdx?'selected':''}>${x.id} • ${x.level}</option>`).join('');
+        loadListeningExercise();
+        const dsel = document.getElementById('dictationSelect');
+        const dpool = filterByLevel(dictations);
+        dsel.innerHTML = dpool.map((x,i)=>`<option value="${x.id}" ${i===0?'selected':''}>${x.id} • ${x.level}</option>`).join('');
+        loadDictation();
+      }
+      function loadListeningExercise() {
+        const id = document.getElementById('listenExerciseSelect').value;
+        const pool = filterByLevel(listeningExercises);
+        _listenIdx = Math.max(0, pool.findIndex(x=>x.id===id));
+        const ex = pool[_listenIdx] || pool[0] || listeningExercises[0];
+        document.getElementById('listenTranscript').textContent = ex.transcript;
+        document.getElementById('listenTranscriptWrap').style.display = 'none';
+        document.getElementById('listenScoreLabel').textContent = '';
+        const qwrap = document.getElementById('listenQuestions');
+        qwrap.innerHTML = ex.questions.map((q, qi)=> {
+          const opts = q.options.map((opt, oi)=>`
+            <label class="opt">
+              <input type="radio" name="lq${qi}" value="${oi}" />
+              <span>${esc(opt)}</span>
+            </label>
+          `).join('');
+          return `<div class="q"><div class="qt">Q${qi+1}. ${esc(q.q)}</div><div class="opts">${opts}</div></div>`;
+        }).join('');
+      }
+      function toggleTranscript() {
+        const wrap = document.getElementById('listenTranscriptWrap');
+        wrap.style.display = (wrap.style.display === 'none' || !wrap.style.display) ? 'block' : 'none';
+      }
+      function playListening() {
+        const pool = filterByLevel(listeningExercises);
+        const ex = pool[_listenIdx] || pool[0] || listeningExercises[0];
+        speakText(ex.transcript.replaceAll('—', ''));
+      }
+      function gradeListening() {
+        const pool = filterByLevel(listeningExercises);
+        const ex = pool[_listenIdx] || pool[0] || listeningExercises[0];
+        let score = 0;
+        ex.questions.forEach((q, qi)=>{
+          const picked = document.querySelector(`input[name="lq${qi}"]:checked`);
+          if (picked && Number(picked.value) === q.a) score++;
+        });
+        document.getElementById('listenScoreLabel').textContent = `Score: ${score}/${ex.questions.length}`;
+        state.logs.listening.unshift({ id:String(Date.now()), date: isoDate(new Date()), exId: ex.id, score, total: ex.questions.length });
+        state.logs.sessions.unshift({ id:String(Date.now()+1), date: isoDate(new Date()), skill: 'listening', minutes: 10, note: `Listening ${ex.id}: ${score}/${ex.questions.length}` });
+        saveState();
+        renderDashboard();
+      }
+      function nextListening() {
+        const pool = filterByLevel(listeningExercises);
+        _listenIdx = (_listenIdx + 1) % pool.length;
+        document.getElementById('listenExerciseSelect').value = pool[_listenIdx].id;
+        loadListeningExercise();
+      }
+
+      // dictation
+      function currentDictation() {
+        const id = document.getElementById('dictationSelect').value;
+        const pool = filterByLevel(dictations);
+        return pool.find(x=>x.id===id) || pool[0] || dictations[0];
+      }
+      function loadDictation() {
+        document.getElementById('dictationInput').value = '';
+        document.getElementById('dictationAnswerWrap').style.display = 'none';
+        document.getElementById('dictationScoreLabel').textContent = '';
+        document.getElementById('dictationAnswer').textContent = '';
+      }
+      function playDictation() {
+        speakText(currentDictation().text);
+      }
+      function revealDictation() {
+        document.getElementById('dictationAnswer').textContent = currentDictation().text;
+        document.getElementById('dictationAnswerWrap').style.display = 'block';
+      }
+      function normalizeForCompare(s) {
+        return (s||'')
+          .toLowerCase()
+          .normalize('NFD').replace(/[\u0300-\u036f]/g,'') // remove accents
+          .replace(/[^a-z0-9'\s-]/g,'')
+          .replace(/\s+/g,' ')
+          .trim();
+      }
+      function gradeDictation() {
+        const ans = normalizeForCompare(document.getElementById('dictationInput').value);
+        const key = normalizeForCompare(currentDictation().text);
+        if (!ans) { showToast('Type your dictation'); return; }
+        // simple token accuracy
+        const a = ans.split(' ');
+        const k = key.split(' ');
+        const min = Math.min(a.length, k.length);
+        let ok = 0;
+        for (let i=0;i<min;i++) if (a[i] === k[i]) ok++;
+        const score = Math.round((ok / Math.max(k.length,1)) * 100);
+        document.getElementById('dictationScoreLabel').textContent = `Accuracy: ${score}%`;
+        state.logs.dictation.unshift({ id:String(Date.now()), date: isoDate(new Date()), dictId: currentDictation().id, score });
+        state.logs.sessions.unshift({ id:String(Date.now()+2), date: isoDate(new Date()), skill: 'listening', minutes: 8, note: `Dictation ${currentDictation().id}: ${score}%` });
+        saveState();
+        renderDashboard();
+      }
+      function clearDictation() {
+        document.getElementById('dictationInput').value = '';
+      }
+
+      /* ================================================================
+        SPEAKING (timer + optional recording)
+      ================================================================ */
+      let _speakTimerT = null;
+      let _speakStart = null;
+      let _mediaRecorder = null;
+      let _recordedChunks = [];
+
+      function renderSpeaking() {
+        loadSpeakingPrompt();
+        renderSpeakingAttempts();
+      }
+      function speakingPromptList() {
+        const type = document.getElementById('speakTaskType').value;
+        return filterByLevel(speakingPrompts[type] || []);
+      }
+      function loadSpeakingPrompt() {
+        const type = document.getElementById('speakTaskType').value;
+        const sel = document.getElementById('speakPromptSelect');
+        const list = speakingPromptList();
+        if (!sel.options.length || sel.dataset.type !== type) {
+          sel.dataset.type = type;
+          sel.innerHTML = list.map(x=>`<option value="${x.id}">${x.id} • ${x.level}</option>`).join('');
+        }
+        const pid = sel.value || (list[0] && list[0].id);
+        const p = list.find(x=>x.id===pid) || list[0];
+        document.getElementById('speakPromptText').textContent = p ? p.text : '—';
+        document.getElementById('speakStructure').textContent =
+          type === 'interview' ? 'Réponse courte → exemple → conclusion' :
+          type === 'roleplay' ? 'Situation → problème → demande → solution' :
+          'Opinion → 2 raisons → exemple → conclusion';
+      }
+      function fmtMMSS(sec) {
+        const s = Math.max(0, Math.floor(sec));
+        const m = Math.floor(s/60);
+        const r = s%60;
+        return String(m).padStart(2,'0') + ':' + String(r).padStart(2,'0');
+      }
+      function startSpeakingTimer() {
+        _speakStart = Date.now();
+        clearInterval(_speakTimerT);
+        _speakTimerT = setInterval(() => {
+          document.getElementById('speakTimer').textContent = fmtMMSS((Date.now()-_speakStart)/1000);
+        }, 250);
+        showToast('Timer started');
+      }
+      function stopSpeakingTimer() {
+        clearInterval(_speakTimerT);
+        _speakTimerT = null;
+        showToast('Timer stopped');
+      }
+      async function startRecording() {
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          _recordedChunks = [];
+          _mediaRecorder = new MediaRecorder(stream);
+          _mediaRecorder.ondataavailable = (e) => { if (e.data && e.data.size) _recordedChunks.push(e.data); };
+          _mediaRecorder.onstop = () => {
+            try { stream.getTracks().forEach(t => t.stop()); } catch {}
+            const blob = new Blob(_recordedChunks, { type: 'audio/webm' });
+            const url = URL.createObjectURL(blob);
+            const a = document.getElementById('recordingDownload');
+            a.href = url;
+            a.style.display = 'inline-flex';
+            a.download = 'speaking-' + isoDate(new Date()) + '.webm';
+          };
+          _mediaRecorder.start();
+          showToast('Recording…');
+        } catch {
+          showToast('Mic permission needed for recording');
+        }
+      }
+      function stopRecording() {
+        try { _mediaRecorder && _mediaRecorder.state !== 'inactive' && _mediaRecorder.stop(); } catch {}
+      }
+      function clearSpeaking() {
+        document.getElementById('speakTranscript').value = '';
+        ['chkPron','chkFluency','chkGrammar','chkVocab','chkStructure'].forEach(id => { const el=document.getElementById(id); if (el) el.checked=false; });
+        document.getElementById('recordingDownload').style.display = 'none';
+      }
+      function saveSpeakingAttempt() {
+        const type = document.getElementById('speakTaskType').value;
+        const pid = document.getElementById('speakPromptSelect').value;
+        const transcript = (document.getElementById('speakTranscript').value || '').trim();
+        const seconds = _speakStart ? Math.round((Date.now()-_speakStart)/1000) : 0;
+        const checks = {
+          pron: !!document.getElementById('chkPron').checked,
+          fluency: !!document.getElementById('chkFluency').checked,
+          grammar: !!document.getElementById('chkGrammar').checked,
+          vocab: !!document.getElementById('chkVocab').checked,
+          structure: !!document.getElementById('chkStructure').checked
+        };
+        state.logs.speaking.unshift({ id:String(Date.now()), date: isoDate(new Date()), taskType:type, promptId:pid, seconds, transcript, checks });
+        state.logs.sessions.unshift({ id:String(Date.now()+3), date: isoDate(new Date()), skill: 'speaking', minutes: Math.max(5, Math.round(seconds/60)||5), note: `Speaking ${type} ${pid}` });
+        saveState();
+        renderSpeakingAttempts();
+        renderDashboard();
+        showToast('✅ Speaking saved');
+      }
+      function renderSpeakingAttempts() {
+        const el = document.getElementById('speakingAttempts');
+        const items = state.logs.speaking.slice(0,10);
+        if (!items.length) { el.innerHTML = '<div class="muted">No attempts yet.</div>'; return; }
+        el.innerHTML = items.map(x => {
+          const score = Object.values(x.checks||{}).filter(Boolean).length;
+          return `
+            <div class="item">
+              <div>
+                <div class="t">${esc(x.date)} • <span class="pill gold">${esc(x.taskType)}</span> • <span class="mono">${esc(fmtMMSS(x.seconds||0))}</span> • <span class="pill teal">${score}/5</span></div>
+                <div class="d">${esc(x.transcript || '')}</div>
+              </div>
+              <div class="right">
+                <button class="btn btn-red btn-sm" type="button" onclick="deleteSpeaking('${esc(x.id)}')">Delete</button>
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+      function deleteSpeaking(id) {
+        state.logs.speaking = state.logs.speaking.filter(x => x.id !== id);
+        saveState();
+        renderSpeakingAttempts();
+      }
+
+      /* ================================================================
+        WRITING
+      ================================================================ */
+      let _writeTimerT = null;
+      let _writeStart = null;
+      function renderWriting() {
+        const sel = document.getElementById('writePromptSelect');
+        const pool = filterByLevel(writingPrompts);
+        if (!sel.options.length || sel.dataset.poolSize !== String(pool.length)) {
+          sel.dataset.poolSize = String(pool.length);
+          sel.innerHTML = pool.map(x=>`<option value="${x.id}">${x.id} • ${x.level}</option>`).join('');
+        }
+        loadWritingPrompt();
+        renderWritingList();
+        updateWriteWords();
+      }
+      function loadWritingPrompt() {
+        const id = document.getElementById('writePromptSelect').value;
+        const pool = filterByLevel(writingPrompts);
+        const p = pool.find(x=>x.id===id) || pool[0] || writingPrompts[0];
+        document.getElementById('writePromptText').textContent = p ? p.text : '—';
+      }
+      function startWritingTimer() {
+        _writeStart = Date.now();
+        clearInterval(_writeTimerT);
+        _writeTimerT = setInterval(() => {
+          document.getElementById('writeTimer').textContent = fmtMMSS((Date.now()-_writeStart)/1000);
+        }, 250);
+        showToast('Timer started');
+      }
+      function stopWritingTimer() {
+        clearInterval(_writeTimerT);
+        _writeTimerT = null;
+        showToast('Timer stopped');
+      }
+      function countWords(text) {
+        const t = (text||'').trim();
+        if (!t) return 0;
+        return t.split(/\s+/).filter(Boolean).length;
+      }
+      function updateWriteWords() {
+        const w = countWords(document.getElementById('writeText').value);
+        document.getElementById('writeWords').textContent = w + ' words';
+      }
+      function saveWriting() {
+        const promptId = document.getElementById('writePromptSelect').value;
+        const text = (document.getElementById('writeText').value || '').trim();
+        if (!text) { showToast('Write something first'); return; }
+        const seconds = _writeStart ? Math.round((Date.now()-_writeStart)/1000) : 0;
+        const words = countWords(text);
+        state.logs.writing.unshift({ id:String(Date.now()), date: isoDate(new Date()), promptId, seconds, words, text });
+        state.logs.sessions.unshift({ id:String(Date.now()+4), date: isoDate(new Date()), skill: 'writing', minutes: Math.max(10, Math.round(seconds/60)||10), note: `Writing ${promptId} (${words}w)` });
+        saveState();
+        renderWritingList();
+        renderDashboard();
+        showToast('✅ Writing saved');
+      }
+      function clearWriting() {
+        document.getElementById('writeText').value = '';
+        updateWriteWords();
+      }
+      function renderWritingList() {
+        const el = document.getElementById('writingList');
+        const items = state.logs.writing.slice(0,8);
+        if (!items.length) { el.innerHTML = '<div class="muted">No writings yet.</div>'; return; }
+        el.innerHTML = items.map(x => `
+          <div class="item">
+            <div>
+              <div class="t">${esc(x.date)} • <span class="pill teal">${esc(x.promptId)}</span> • <span class="mono">${esc(String(x.words||0))}w</span> • <span class="mono">${esc(fmtMMSS(x.seconds||0))}</span></div>
+              <div class="d">${esc((x.text||'').slice(0,220))}${(x.text||'').length>220?'…':''}</div>
+            </div>
+            <div class="right">
+              <button class="btn btn-ghost btn-sm" type="button" onclick="openWriting('${esc(x.id)}')">Open</button>
+              <button class="btn btn-red btn-sm" type="button" onclick="deleteWriting('${esc(x.id)}')">Delete</button>
+            </div>
+          </div>
+        `).join('');
+      }
+      function openWriting(id) {
+        const w = state.logs.writing.find(x=>x.id===id);
+        if (!w) return;
+        document.getElementById('writePromptSelect').value = w.promptId;
+        loadWritingPrompt();
+        document.getElementById('writeText').value = w.text || '';
+        updateWriteWords();
+        showToast('Loaded');
+      }
+      function deleteWriting(id) {
+        state.logs.writing = state.logs.writing.filter(x=>x.id!==id);
+        saveState();
+        renderWritingList();
+      }
+
+      /* ================================================================
+        READING
+      ================================================================ */
+      let _readIdx = 0;
+      function renderReading() {
+        const sel = document.getElementById('readPassageSelect');
+        const pool = filterByLevel(readingPassages);
+        sel.innerHTML = pool.map((x,i)=>`<option value="${x.id}" ${i===_readIdx?'selected':''}>${x.id} • ${x.level}</option>`).join('');
+        loadReading();
+      }
+      function loadReading() {
+        const id = document.getElementById('readPassageSelect').value;
+        const pool = filterByLevel(readingPassages);
+        _readIdx = Math.max(0, pool.findIndex(x=>x.id===id));
+        const p = pool[_readIdx] || pool[0] || readingPassages[0];
+        document.getElementById('readTitle').textContent = p.title + ' • ' + p.level;
+        document.getElementById('readText').textContent = p.text;
+        document.getElementById('readScoreLabel').textContent = '';
+        const qwrap = document.getElementById('readQuestions');
+        qwrap.innerHTML = p.questions.map((q, qi)=> {
+          const opts = q.options.map((opt, oi)=>`
+            <label class="opt">
+              <input type="radio" name="rq${qi}" value="${oi}" />
+              <span>${esc(opt)}</span>
+            </label>
+          `).join('');
+          return `<div class="q"><div class="qt">Q${qi+1}. ${esc(q.q)}</div><div class="opts">${opts}</div></div>`;
+        }).join('');
+      }
+      function gradeReading() {
+        const pool = filterByLevel(readingPassages);
+        const p = pool[_readIdx] || pool[0] || readingPassages[0];
+        let score = 0;
+        p.questions.forEach((q, qi)=>{
+          const picked = document.querySelector(`input[name="rq${qi}"]:checked`);
+          if (picked && Number(picked.value) === q.a) score++;
+        });
+        document.getElementById('readScoreLabel').textContent = `Score: ${score}/${p.questions.length}`;
+        state.logs.reading.unshift({ id:String(Date.now()), date: isoDate(new Date()), passageId: p.id, score, total: p.questions.length });
+        state.logs.sessions.unshift({ id:String(Date.now()+5), date: isoDate(new Date()), skill: 'reading', minutes: 12, note: `Reading ${p.id}: ${score}/${p.questions.length}` });
+        saveState();
+        renderDashboard();
+      }
+      function nextReading() {
+        const pool = filterByLevel(readingPassages);
+        _readIdx = (_readIdx + 1) % pool.length;
+        document.getElementById('readPassageSelect').value = pool[_readIdx].id;
+        loadReading();
+      }
+
+      /* ================================================================
+        VOCAB (SRS)
+      ================================================================ */
+      let _currentCardId = null;
+      function todayISO() { return new Date().toISOString().slice(0,10); }
+      function dueCards() {
+        const today = todayISO();
+        return state.vocab.cards.filter(c => (c.dueISO || today) <= today);
+      }
+      function renderVocab() {
+        renderCardList();
+        showNextCard();
+      }
+      function seedDeck() {
+        const starter = [
+          ["pourtant", "however; Pourtant, il est venu."],
+          ["d’ailleurs", "besides / moreover"],
+          ["cependant", "however"],
+          ["par conséquent", "therefore"],
+          ["en revanche", "on the other hand"],
+          ["à vrai dire", "to tell the truth"],
+          ["avoir hâte de", "to look forward to"],
+          ["se rendre compte", "to realize"],
+          ["mettre en place", "to implement"],
+          ["faire face à", "to face / cope with"]
+        ];
+        starter.forEach(([f,b]) => addCardInternal(f,b));
+        saveState();
+        renderVocab();
+        showToast('Starter deck added');
+      }
+      function addCardInternal(front, back) {
+        state.vocab.cards.unshift({
+          id: String(Date.now() + Math.random()),
+          front: front.trim(),
+          back: back.trim(),
+          ef: 2.5,
+          intervalDays: 0,
+          dueISO: todayISO(),
+          createdAt: new Date().toISOString()
+        });
+      }
+      function addCard() {
+        const f = (document.getElementById('newFront').value || '').trim();
+        const b = (document.getElementById('newBack').value || '').trim();
+        if (!f || !b) { showToast('Add front and back'); return; }
+        addCardInternal(f,b);
+        document.getElementById('newFront').value = '';
+        document.getElementById('newBack').value = '';
+        saveState();
+        renderVocab();
+        showToast('Card added');
+      }
+      function renderCardList() {
+        const el = document.getElementById('cardList');
+        const items = state.vocab.cards.slice(0, 30);
+        if (!items.length) { el.innerHTML = '<div class="muted">No cards yet.</div>'; return; }
+        el.innerHTML = items.map(c => `
+          <div class="item">
+            <div>
+              <div class="t">${esc(c.front)} <span class="pill teal mono">due ${esc(c.dueISO || todayISO())}</span></div>
+              <div class="d">${esc(c.back)}</div>
+            </div>
+            <div class="right">
+              <button class="btn btn-red btn-sm" type="button" onclick="deleteCard('${esc(c.id)}')">Delete</button>
+            </div>
+          </div>
+        `).join('');
+      }
+      function deleteCard(id) {
+        state.vocab.cards = state.vocab.cards.filter(c => c.id !== id);
+        saveState();
+        renderVocab();
+      }
+      function showNextCard() {
+        const due = dueCards();
+        const front = document.getElementById('cardFront');
+        const back = document.getElementById('cardBack');
+        const meta = document.getElementById('cardMeta');
+        const backWrap = document.getElementById('cardBackWrap');
+        backWrap.style.display = 'none';
+        if (!due.length) {
+          _currentCardId = null;
+          front.textContent = 'No cards due. Add cards or come back tomorrow.';
+          back.textContent = '';
+          meta.textContent = '';
+          return;
+        }
+        const c = due[0];
+        _currentCardId = c.id;
+        front.textContent = c.front;
+        back.textContent = c.back;
+        meta.textContent = `Due: ${c.dueISO} • EF: ${Math.round((c.ef||2.5)*100)/100} • Interval: ${c.intervalDays||0}d`;
+      }
+      function flipCard() {
+        const backWrap = document.getElementById('cardBackWrap');
+        backWrap.style.display = (backWrap.style.display === 'none' || !backWrap.style.display) ? 'block' : 'none';
+      }
+      function gradeCard(grade) {
+        if (!_currentCardId) return;
+        const idx = state.vocab.cards.findIndex(c => c.id === _currentCardId);
+        if (idx < 0) return;
+        const c = state.vocab.cards[idx];
+        // simplified SM-2
+        const g = grade; // 0..3
+        let ef = c.ef || 2.5;
+        if (g === 0) {
+          c.intervalDays = 0;
+          c.dueISO = todayISO();
+        } else {
+          ef = Math.max(1.3, ef + (0.1 - (3-g) * (0.08 + (3-g)*0.02)));
+          let interval = c.intervalDays || 0;
+          interval = interval === 0 ? 1 : Math.round(interval * ef);
+          if (g === 1) interval = Math.max(1, Math.round(interval * 0.6));
+          if (g === 3) interval = Math.round(interval * 1.2);
+          c.intervalDays = Math.min(interval, 60);
+          const d = new Date();
+          d.setDate(d.getDate() + c.intervalDays);
+          c.dueISO = isoDate(d);
+        }
+        c.ef = ef;
+        saveState();
+        renderCardList();
+        showNextCard();
+      }
+
+      /* ================================================================
+        GRAMMAR
+      ================================================================ */
+      let _gramQ = null;
+      function renderGrammar() {
+        loadGrammarQuestion();
+        renderMistakes();
+      }
+      function loadGrammarQuestion() {
+        const topic = document.getElementById('gramTopic').value;
+        const bank = grammarBank[topic] || grammarBank.articles;
+        _gramQ = bank[Math.floor(Math.random() * bank.length)];
+        document.getElementById('gramPrompt').textContent = _gramQ.prompt;
+        document.getElementById('gramAnswer').value = '';
+        document.getElementById('gramFeedback').innerHTML = '';
+      }
+      function checkGrammar() {
+        if (!_gramQ) return;
+        const ans = normalizeForCompare(document.getElementById('gramAnswer').value);
+        const corrects = (_gramQ.answers || []).map(normalizeForCompare);
+        const ok = corrects.includes(ans);
+        document.getElementById('gramFeedback').innerHTML = ok
+          ? '<span class="pill teal">Correct</span>'
+          : '<span class="pill red">Incorrect</span> <span class="muted">Correct: ' + esc((_gramQ.answers||[]).join(' / ')) + '</span>';
+        if (!ok) {
+          state.logs.grammarMistakes.unshift({
+            id: String(Date.now()),
+            date: isoDate(new Date()),
+            topic: document.getElementById('gramTopic').value,
+            prompt: _gramQ.prompt,
+            answer: document.getElementById('gramAnswer').value,
+            correct: (_gramQ.answers||[]).join(' / ')
+          });
+        } else {
+          state.logs.sessions.unshift({ id:String(Date.now()+6), date: isoDate(new Date()), skill: 'grammar', minutes: 5, note: 'Grammar drill: ' + document.getElementById('gramTopic').value });
+        }
+        saveState();
+        renderMistakes();
+        renderDashboard();
+      }
+      function renderMistakes() {
+        const el = document.getElementById('mistakeList');
+        const items = state.logs.grammarMistakes.slice(0,8);
+        if (!items.length) { el.innerHTML = '<div class="muted">No mistakes logged yet.</div>'; return; }
+        el.innerHTML = items.map(x => `
+          <div class="item">
+            <div>
+              <div class="t">${esc(x.date)} • <span class="pill gold">${esc(x.topic)}</span></div>
+              <div class="d"><span class="mono">${esc(x.prompt)}</span>\nYour: ${esc(x.answer)}\nCorrect: ${esc(x.correct)}</div>
+            </div>
+            <div class="right">
+              <button class="btn btn-red btn-sm" type="button" onclick="deleteMistake('${esc(x.id)}')">Delete</button>
+            </div>
+          </div>
+        `).join('');
+      }
+      function deleteMistake(id) {
+        state.logs.grammarMistakes = state.logs.grammarMistakes.filter(x=>x.id!==id);
+        saveState();
+        renderMistakes();
+      }
+
+      /* ================================================================
+        SETTINGS
+      ================================================================ */
+      let _settingsTimer = null;
+      function populateVoices() {
+        const sel = document.getElementById('ttsVoiceSelect');
+        if (!sel) return;
+        const voices = window.speechSynthesis ? speechSynthesis.getVoices() : [];
+        const options = voices.map(v => {
+          const label = `${v.name} (${v.lang})`;
+          const selected = (state.settings.ttsVoiceURI && v.voiceURI === state.settings.ttsVoiceURI) ? 'selected' : '';
+          return `<option value="${esc(v.voiceURI)}" ${selected}>${esc(label)}</option>`;
+        }).join('');
+        sel.innerHTML = options || '<option value="">(No voices available)</option>';
+      }
+      function saveSettingsDebounced() {
+        clearTimeout(_settingsTimer);
+        _settingsTimer = setTimeout(saveSettings, 500);
+      }
+      function saveSettings() {
+        state.settings.exam = document.getElementById('setExam').value;
+        state.settings.level = document.getElementById('setLevel').value;
+        state.settings.targetMinutes = Math.max(0, Number(document.getElementById('setTargetMinutes').value || 0));
+        state.settings.testDateISO = document.getElementById('setTestDate').value || state.settings.testDateISO;
+        state.settings.includeC1Stretch = !!document.getElementById('setStretch').checked;
+        state.settings.sttLang = document.getElementById('setSttLang').value;
+        state.settings.ttsVoiceURI = document.getElementById('ttsVoiceSelect').value || '';
+        state.settings.ttsRate = Math.min(1.3, Math.max(0.6, Number(document.getElementById('ttsRate').value || 1)));
+        saveState();
+        renderDashboard();
+        // re-render level-filtered content when level settings change
+        renderListening();
+        renderSpeaking();
+        renderWriting();
+        renderReading();
+        renderGrammar();
+        renderVocab();
+        showToast('Settings saved');
+      }
+      function renderSettings() {
+        document.getElementById('setExam').value = state.settings.exam || 'TCF';
+        document.getElementById('setLevel').value = state.settings.level || 'B2';
+        document.getElementById('setTargetMinutes').value = String(state.settings.targetMinutes ?? 60);
+        document.getElementById('setTestDate').value = state.settings.testDateISO || '';
+        document.getElementById('setStretch').checked = !!state.settings.includeC1Stretch;
+        document.getElementById('setSttLang').value = state.settings.sttLang || 'fr-FR';
+        document.getElementById('ttsRate').value = String(state.settings.ttsRate ?? 1.0);
+        populateVoices();
+      }
+
+      /* ================================================================
+        GLOBAL RENDER
+      ================================================================ */
+      function renderAll() {
+        renderDashboard();
+        // keep selects populated if user jumps directly
+        renderListening();
+        renderSpeaking();
+        renderWriting();
+        renderReading();
+        renderVocab();
+        renderGrammar();
+        renderSettings();
+      }
+
+      /* ================================================================
+        INIT
+      ================================================================ */
+      let state = loadState();
+
+      window.addEventListener('DOMContentLoaded', () => {
+        // remember last-focused text field for dictation
+        document.addEventListener('focusin', (e) => { const t = e.target; if (isTextTarget(t)) _sttLastTarget = t; }, true);
+        const sttBtn = document.getElementById('sttBtn');
+        if (sttBtn && !speechToTextSupported()) { sttBtn.disabled = true; sttBtn.title = 'Speech to text not supported in this browser'; }
+
+        // voices can load async
+        if (window.speechSynthesis) {
+          speechSynthesis.onvoiceschanged = () => {
+            populateVoices();
+          };
+        }
+        populateVoices();
+
+        const cfg = getSyncConfig();
+        const syncBtn = document.getElementById('cloudSyncBtn');
+        syncBtn.classList.toggle('btn-teal', !!(cfg && cfg.enabled));
+        syncBtn.classList.toggle('btn-ghost', !(cfg && cfg.enabled));
+        startCloudPolling();
+
+        // writing live word count
+        document.getElementById('writeText').addEventListener('input', updateWriteWords);
+
+        // seed selects once
+        renderAll();
+        showView('dashboard');
+      });
+    </script>
+  </body>
+</html>
+
