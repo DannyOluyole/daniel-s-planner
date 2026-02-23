@@ -765,6 +765,17 @@
       fill: #2C2C2C;
       text-anchor: middle;
     }
+    .needs-wheel-wrap{ display:flex; justify-content:center; margin-top: 0.5rem; }
+    .needs-wheel-svg{ width: 100%; max-width: 520px; height: auto; display:block; }
+    .needs-wheel-svg .nw-outline{ fill: #fff; stroke: #2C2C2C; stroke-width: 3; }
+    .needs-wheel-svg .nw-split{ stroke: #2C2C2C; stroke-width: 3; }
+    .needs-wheel-svg text{
+      font-family: 'IBM Plex Sans', sans-serif;
+      font-weight: 800;
+      font-size: 20px;
+      fill: #2C2C2C;
+      text-anchor: middle;
+    }
 
     /* ===== BUDGET ===== */
     #view-budget .page-content { max-width: 1100px; }
@@ -1478,6 +1489,46 @@
         <p style="text-align:center; color:var(--gray-med); font-style:italic; font-size:0.95rem; margin-top:1rem;">
           Start with needs and governing values. Align long-range goals, intermediate goals, and daily tasks to produce better results.
         </p>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:1.25rem;">
+      <div class="card-header">🧩 Needs Wheel</div>
+      <div class="card-body">
+        <div class="needs-wheel-wrap" aria-label="Needs wheel diagram">
+          <svg class="needs-wheel-svg" viewBox="0 0 520 520" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="nwTitle nwDesc">
+            <title id="nwTitle">Needs wheel</title>
+            <desc id="nwDesc">A circle divided into four quadrants: Need to live, Need to love and be loved, Need to feel important, Need to experience variety.</desc>
+
+            <circle class="nw-outline" cx="260" cy="260" r="230" />
+            <line class="nw-split" x1="260" y1="30" x2="260" y2="490" />
+            <line class="nw-split" x1="30" y1="260" x2="490" y2="260" />
+
+            <text x="150" y="150">
+              <tspan x="150" dy="0">Need</tspan>
+              <tspan x="150" dy="26">to</tspan>
+              <tspan x="150" dy="26">live</tspan>
+            </text>
+
+            <text x="370" y="135">
+              <tspan x="370" dy="0">Need</tspan>
+              <tspan x="370" dy="26">to love</tspan>
+              <tspan x="370" dy="26">and be loved</tspan>
+            </text>
+
+            <text x="165" y="330">
+              <tspan x="165" dy="0">Need</tspan>
+              <tspan x="165" dy="26">to feel</tspan>
+              <tspan x="165" dy="26">important</tspan>
+            </text>
+
+            <text x="370" y="330">
+              <tspan x="370" dy="0">Need to</tspan>
+              <tspan x="370" dy="26">experience</tspan>
+              <tspan x="370" dy="26">variety</tspan>
+            </text>
+          </svg>
+        </div>
       </div>
     </div>
   </div>
