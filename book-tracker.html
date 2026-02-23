@@ -211,6 +211,14 @@
       font-size: 1rem;
       position: relative; z-index: 1;
     }
+    .page-hero .hero-quote{
+      margin-top: 0.75rem;
+      font-style: normal;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.86);
+    }
     .page-content { padding: 2rem 2.5rem; max-width: 1200px; margin: 0 auto; }
 
     .badge {
@@ -278,7 +286,7 @@
     ================================================================ */
     .template-grid{
       display: grid;
-      grid-template-columns: 280px 1fr 1.1fr;
+      grid-template-columns: 500px 1fr 1.1fr;
       gap: 1.25rem;
       align-items: stretch;
     }
@@ -383,13 +391,29 @@
     table.template-table{
       width: 100%;
       border-collapse: collapse;
-      min-width: 1200px;
+      min-width: 2000px;
       font-size: 0.9rem;
     }
     .template-table th, .template-table td{
       border-bottom: 1px solid rgba(0,0,0,0.06);
-      padding: 0.6rem 0.65rem;
+      padding: 0.7rem 0.85rem;
       vertical-align: top;
+      white-space: nowrap;
+    }
+    .template-table th:nth-child(1), .template-table td:nth-child(1){ min-width: 220px; }
+    .template-table th:nth-child(2), .template-table td:nth-child(2){ min-width: 180px; }
+    .template-table th:nth-child(3), .template-table td:nth-child(3){ min-width: 200px; }
+    .template-table th:nth-child(4), .template-table td:nth-child(4){ min-width: 130px; }
+    .template-table th:nth-child(5), .template-table td:nth-child(5){ min-width: 130px; }
+    .template-table th:nth-child(6), .template-table td:nth-child(6){ min-width: 120px; text-align: right; }
+    .template-table th:nth-child(7), .template-table td:nth-child(7){ min-width: 140px; text-align: right; }
+    .template-table th:nth-child(8), .template-table td:nth-child(8){ min-width: 150px; }
+    .template-table th:nth-child(9), .template-table td:nth-child(9){ min-width: 120px; }
+    .template-table th:nth-child(10), .template-table td:nth-child(10){ min-width: 140px; }
+    .template-table th:nth-child(11), .template-table td:nth-child(11){ min-width: 160px; }
+    .template-table th:nth-child(12), .template-table td:nth-child(12){
+      min-width: 360px;
+      white-space: normal;
     }
     .template-table th{
       background: #FFF8E7;
@@ -549,6 +573,7 @@
     <div class="page-hero">
       <h2>My Library</h2>
       <p>Track your reading progress — current page, status, and notes</p>
+      <p class="hero-quote">"Readers are Leaders"</p>
     </div>
     <div class="page-content">
       <div style="display: flex; justify-content: flex-end; margin-bottom: 1.5rem;">
