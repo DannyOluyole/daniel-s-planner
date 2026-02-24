@@ -1884,7 +1884,13 @@ function refreshActiveViewAfterCloudSync() {
   else if (view.id === 'view-notes') renderKeepNotes();
 }
 
-async function pollCloudUpdates() {
+async function pollCloudUpdates(opts) {
+  const isInitial = !!(opts && opts.isInitial);
+  const maxUploads =
+    (opts && Number.isFinite(opts.maxUploads) && opts.maxUploads > 0)
+      ? Math.floor(opts.maxUploads)
+      : (isInitial ? 250 : 30);
+
   const base = cloudBaseUrl();
   if (!base) return;
   try {
@@ -1892,25 +1898,71 @@ async function pollCloudUpdates() {
     if (!r.ok) throw new Error('Cloud poll failed (' + r.status + ')');
     const data = await r.json();
     const payload = JSON.stringify(data || {});
-    if (payload === _cloudLastPayload) return;
     _cloudLastPayload = payload;
 
-    let changed = false;
+    const remoteMap = new Map(); // fullKey -> raw JSON string
     if (data && typeof data === 'object') {
       for (const remoteKey in data) {
         let fullKey = remoteKey;
         try { fullKey = decodeURIComponent(remoteKey); } catch {}
+        if (!fullKey || !fullKey.startsWith(STORAGE_PREFIX) || fullKey === SYNC_CONFIG_KEY) continue;
+
         const value = data[remoteKey];
-        if (fullKey.startsWith(STORAGE_PREFIX) && typeof value === 'string') {
-          const current = localStorage.getItem(fullKey);
-          if (current !== value) {
-            localStorage.setItem(fullKey, value);
-            changed = true;
-          }
-        }
+        if (typeof value === 'string') remoteMap.set(fullKey, value);
+        else if (value && typeof value === 'object') remoteMap.set(fullKey, JSON.stringify(value));
       }
     }
-    if (changed) {
+
+    const localKeys = new Set();
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k && k.startsWith(STORAGE_PREFIX) && k !== SYNC_CONFIG_KEY) localKeys.add(k);
+    }
+
+    const allKeys = new Set([...remoteMap.keys(), ...localKeys]);
+    const uploads = [];
+    let downloaded = 0;
+    let uploaded = 0;
+    let changed = false;
+
+    for (const fullKey of allKeys) {
+      const remoteRaw = remoteMap.get(fullKey); // undefined if absent
+      const localRaw = localStorage.getItem(fullKey);
+
+      if (typeof remoteRaw === 'string') {
+        const remote = parsePlannerPayload(remoteRaw);
+        const local = parsePlannerPayload(localRaw);
+        const localMs = localRaw ? local.savedAtMs : 0;
+        const remoteMs = remote.savedAtMs;
+
+        // Newer wins; tie-break to cloud to converge.
+        if (!localRaw || remoteMs > localMs || (remoteMs === localMs && remoteRaw !== localRaw)) {
+          localStorage.setItem(fullKey, remoteRaw);
+          downloaded++;
+          changed = true;
+        } else if (localRaw && localMs > remoteMs) {
+          uploads.push({ fullKey, value: localRaw });
+        }
+      } else {
+        // Missing remotely: if we have it locally, push it.
+        if (localRaw) uploads.push({ fullKey, value: localRaw });
+      }
+    }
+
+    for (const u of uploads.slice(0, maxUploads)) {
+      try {
+        await cloudPut(u.fullKey, u.value);
+        uploaded++;
+      } catch (e) {
+        _cloudSyncLastError = e?.message || 'Cloud sync write failed';
+        console.warn('Cloud sync write failed:', e);
+      }
+    }
+
+    if (isInitial) {
+      if (downloaded > 0) refreshActiveViewAfterCloudSync();
+      showToast('☁ Cloud sync enabled (' + uploaded + ' up, ' + downloaded + ' down)');
+    } else if (downloaded > 0 && changed) {
       showToast('☁ Synced from cloud');
       refreshActiveViewAfterCloudSync();
     }
@@ -1921,17 +1973,64 @@ async function pollCloudUpdates() {
   }
 }
 
-function startCloudPolling() {
+function startCloudPolling(skipInitial) {
   stopCloudPolling();
   if (!cloudEnabled()) return;
-  pollCloudUpdates();
+  if (!skipInitial) pollCloudUpdates();
   _cloudPollTimer = setInterval(pollCloudUpdates, 5000);
+}
+
+function parsePlannerPayload(raw) {
+  if (typeof raw !== 'string' || !raw) return { savedAtMs: 0, deleted: false, data: null, raw: null };
+  try {
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object') return { savedAtMs: 0, deleted: false, data: null, raw };
+
+    // Current format: { schema: 1, savedAt, deleted, data }
+    // Back-compat: { savedAt, data } or direct object stored as JSON
+    const savedAt = (typeof parsed.savedAt === 'string') ? parsed.savedAt : '';
+    const savedAtMs = savedAt ? Date.parse(savedAt) : 0;
+    const deleted = !!parsed.deleted;
+    const data = Object.prototype.hasOwnProperty.call(parsed, 'data') ? parsed.data : parsed;
+    return { savedAtMs: Number.isFinite(savedAtMs) ? savedAtMs : 0, deleted, data, raw };
+  } catch {
+    return { savedAtMs: 0, deleted: false, data: null, raw };
+  }
+}
+
+function makePlannerPayload({ data, deleted }) {
+  return {
+    schema: 1,
+    savedAt: new Date().toISOString(),
+    deleted: !!deleted,
+    data: deleted ? null : (data == null ? null : data)
+  };
+}
+
+async function storageDeleteFullKey(fullKey) {
+  try {
+    if (!fullKey || !fullKey.startsWith(STORAGE_PREFIX)) return false;
+    if (fullKey === SYNC_CONFIG_KEY) return false;
+    const json = JSON.stringify(makePlannerPayload({ data: null, deleted: true }));
+    localStorage.setItem(fullKey, json);
+    if (cloudEnabled()) {
+      try {
+        await cloudPut(fullKey, json);
+      } catch (e) {
+        _cloudSyncLastError = e?.message || 'Cloud sync delete failed';
+        console.warn('Cloud sync delete failed:', e);
+      }
+    }
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 async function storageSave(key, obj) {
   try {
     const fullKey = STORAGE_PREFIX + key;
-    const payload = { savedAt: new Date().toISOString(), data: obj };
+    const payload = makePlannerPayload({ data: obj, deleted: false });
     const json = JSON.stringify(payload);
     localStorage.setItem(fullKey, json);
     if (cloudEnabled()) {
@@ -1956,27 +2055,51 @@ async function storageSave(key, obj) {
 }
 
 async function storageLoad(key) {
+  const fullKey = STORAGE_PREFIX + key;
   try {
-    const fullKey = STORAGE_PREFIX + key;
+    const localRaw = localStorage.getItem(fullKey);
+    const local = parsePlannerPayload(localRaw);
+
     if (cloudEnabled()) {
       try {
         const cloudVal = await cloudGet(fullKey);
-        if (typeof cloudVal === 'string') {
-          const parsed = JSON.parse(cloudVal);
-          const data = parsed.data != null ? parsed.data : parsed;
-          localStorage.setItem(fullKey, cloudVal);
-          _cloudSyncLastError = '';
-          return data;
+        const cloudRaw =
+          (typeof cloudVal === 'string')
+            ? cloudVal
+            : (cloudVal && typeof cloudVal === 'object')
+              ? JSON.stringify(cloudVal)
+              : null;
+        if (typeof cloudRaw === 'string') {
+          const remote = parsePlannerPayload(cloudRaw);
+          const localMs = localRaw ? local.savedAtMs : 0;
+          const remoteMs = remote.savedAtMs;
+
+          // Newer wins; tie-break to cloud to converge.
+          if (!localRaw || remoteMs > localMs || (remoteMs === localMs && cloudRaw !== localRaw)) {
+            localStorage.setItem(fullKey, cloudRaw);
+            _cloudSyncLastError = '';
+            return remote.deleted ? null : remote.data;
+          }
+
+          if (localRaw && localMs > remoteMs) {
+            try {
+              await cloudPut(fullKey, localRaw);
+              _cloudSyncLastError = '';
+            } catch (e) {
+              _cloudSyncLastError = e?.message || 'Cloud sync write failed';
+              console.warn('Cloud sync write failed:', e);
+            }
+          }
+
+          return local.deleted ? null : local.data;
         }
       } catch (e) {
         _cloudSyncLastError = e?.message || 'Cloud sync read failed';
         console.warn('Cloud sync read failed:', e);
       }
     }
-    const raw = localStorage.getItem(fullKey);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw);
-    return parsed.data != null ? parsed.data : parsed;
+
+    return localRaw ? (local.deleted ? null : local.data) : null;
   } catch {
     return null;
   }
@@ -2031,15 +2154,8 @@ async function saveCloudSyncConfig() {
       return;
     }
     closeCloudSyncModal();
-    let uploaded = 0;
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (key.startsWith(STORAGE_PREFIX) && key !== SYNC_CONFIG_KEY) {
-        try { await cloudPut(key, localStorage.getItem(key)); uploaded++; } catch {}
-      }
-    }
-    startCloudPolling();
-    showToast('☁ Cloud sync enabled (' + uploaded + ' items)');
+    await pollCloudUpdates({ isInitial: true, maxUploads: 500 });
+    startCloudPolling(true);
   } else {
     stopCloudPolling();
     _cloudLastPayload = '';
@@ -2283,10 +2399,15 @@ function resetPlanner() {
     '<p style="color:var(--gray-med);">Delete ALL planner data permanently? This cannot be undone.</p>',
     'Delete All',
     () => {
-      const keys = Object.keys(localStorage).filter(k => k.startsWith(STORAGE_PREFIX));
-      keys.forEach(k => localStorage.removeItem(k));
-      showToast('Planner reset.');
-      setTimeout(() => location.reload(), 1000);
+      (async () => {
+        const keys = Object.keys(localStorage).filter(k => k.startsWith(STORAGE_PREFIX));
+        // Use tombstones so deletions propagate via cloud sync.
+        await Promise.all(keys.map(k => (k === SYNC_CONFIG_KEY ? Promise.resolve(false) : storageDeleteFullKey(k))));
+        // Disable sync locally too.
+        localStorage.removeItem(SYNC_CONFIG_KEY);
+        showToast('Planner reset.');
+        setTimeout(() => location.reload(), 1000);
+      })();
     }
   );
 }
