@@ -977,17 +977,17 @@
       <div style="margin-bottom:1rem;">
         <label style="display:block;font-weight:600;margin-bottom:0.4rem;font-size:0.85rem;">Sync ID (share this to sync with other devices)</label>
         <div style="display:flex;gap:0.5rem;">
-          <input type="text" id="syncIdInput" placeholder="e.g. my-planner-2025" style="flex:1;" />
+          <input type="text" id="syncIdInput" placeholder="e.g. my-planner-2025" style="flex:1;" data-no-autocorrect="1" autocorrect="off" autocapitalize="none" spellcheck="false" />
           <button class="btn btn-teal btn-sm" onclick="generateSyncId()">Generate</button>
         </div>
       </div>
       <div style="margin-bottom:1rem;">
         <label style="display:block;font-weight:600;margin-bottom:0.4rem;font-size:0.85rem;">Firebase Database URL</label>
-        <input type="text" id="firebaseUrlInput" placeholder="https://YOUR-PROJECT.firebaseio.com" style="width:100%;" />
+        <input type="text" id="firebaseUrlInput" placeholder="https://YOUR-PROJECT.firebaseio.com" style="width:100%;" data-no-autocorrect="1" autocorrect="off" autocapitalize="none" spellcheck="false" />
       </div>
       <div style="margin-bottom:1rem;">
         <label style="display:block;font-weight:600;margin-bottom:0.4rem;font-size:0.85rem;">Auth token (optional)</label>
-        <input type="password" id="firebaseAuthInput" placeholder="Only needed if your Firebase rules block public access" style="width:100%;" />
+        <input type="password" id="firebaseAuthInput" placeholder="Only needed if your Firebase rules block public access" style="width:100%;" data-no-autocorrect="1" autocorrect="off" autocapitalize="none" spellcheck="false" />
         <div style="margin-top:0.35rem;font-size:0.8rem;color:var(--gray-med);line-height:1.4;">
           If you get “Permission denied”, either add a token here or update Firebase Realtime Database rules to allow access for your sync path.
         </div>
@@ -3383,6 +3383,66 @@ function esc(s) {
   return (s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
+function applyTextAssist(el) {
+  if (!el) return;
+  const no = !!(el.dataset && el.dataset.noAutocorrect === '1');
+
+  if (el.isContentEditable) {
+    if (!el.hasAttribute('spellcheck')) el.setAttribute('spellcheck', no ? 'false' : 'true');
+    return;
+  }
+
+  const tag = (el.tagName || '').toLowerCase();
+  if (tag === 'textarea') {
+    if (no) {
+      el.setAttribute('autocorrect', 'off');
+      el.setAttribute('autocapitalize', 'none');
+      el.setAttribute('spellcheck', 'false');
+    } else {
+      if (!el.hasAttribute('autocorrect')) el.setAttribute('autocorrect', 'on');
+      if (!el.hasAttribute('autocapitalize')) el.setAttribute('autocapitalize', 'sentences');
+      if (!el.hasAttribute('spellcheck')) el.setAttribute('spellcheck', 'true');
+    }
+    if (!el.hasAttribute('autocomplete')) el.setAttribute('autocomplete', 'on');
+    return;
+  }
+
+  if (tag === 'input') {
+    const type = (el.getAttribute('type') || 'text').toLowerCase();
+    if (!(type === 'text' || type === 'search')) return;
+    if (no) {
+      el.setAttribute('autocorrect', 'off');
+      el.setAttribute('autocapitalize', 'none');
+      el.setAttribute('spellcheck', 'false');
+    } else {
+      if (!el.hasAttribute('autocorrect')) el.setAttribute('autocorrect', 'on');
+      if (!el.hasAttribute('autocapitalize')) el.setAttribute('autocapitalize', 'sentences');
+      if (!el.hasAttribute('spellcheck')) el.setAttribute('spellcheck', 'true');
+    }
+    if (!el.hasAttribute('autocomplete')) el.setAttribute('autocomplete', 'on');
+  }
+}
+
+function enableTextAssist(root) {
+  const scope = (root && root.querySelectorAll) ? root : document;
+  const sel = 'textarea, input[type="text"], input[type="search"], [contenteditable="true"]';
+  if (scope.nodeType === 1 && scope.matches && scope.matches(sel)) applyTextAssist(scope);
+  scope.querySelectorAll(sel).forEach(applyTextAssist);
+}
+
+function setupTextAssist() {
+  enableTextAssist(document);
+  if (setupTextAssist._obs) return;
+  setupTextAssist._obs = new MutationObserver((muts) => {
+    for (const m of muts) {
+      for (const n of m.addedNodes || []) {
+        if (n && n.nodeType === 1) enableTextAssist(n);
+      }
+    }
+  });
+  setupTextAssist._obs.observe(document.documentElement, { subtree: true, childList: true });
+}
+
 window.addEventListener('beforeunload', function(e) {
   if (_pendingSave) {
     e.preventDefault();
@@ -3394,6 +3454,7 @@ window.addEventListener('beforeunload', function(e) {
    INIT
 ================================================================ */
 window.addEventListener('DOMContentLoaded', () => {
+  setupTextAssist();
   buildDayUI();
   renderCalendar();
   const cfg = getSyncConfig();

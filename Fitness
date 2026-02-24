@@ -395,16 +395,16 @@
             <div class="form two">
               <div class="field">
                 <label for="cloudSyncId">Sync ID</label>
-                <input id="cloudSyncId" type="text" placeholder="e.g. my-fitness-2026" />
+                <input id="cloudSyncId" type="text" placeholder="e.g. my-fitness-2026" data-no-autocorrect="1" autocorrect="off" autocapitalize="none" spellcheck="false" />
               </div>
               <div class="field">
                 <label for="cloudDbUrl">Firebase Database URL</label>
-                <input id="cloudDbUrl" type="text" placeholder="https://YOUR-PROJECT.firebaseio.com" />
+                <input id="cloudDbUrl" type="text" placeholder="https://YOUR-PROJECT.firebaseio.com" data-no-autocorrect="1" autocorrect="off" autocapitalize="none" spellcheck="false" />
               </div>
             </div>
             <div class="field" style="margin-top:12px;">
               <label for="cloudAuthToken">Auth token (optional)</label>
-              <input id="cloudAuthToken" type="password" placeholder="Only needed if your Firebase rules block public access" />
+              <input id="cloudAuthToken" type="password" placeholder="Only needed if your Firebase rules block public access" data-no-autocorrect="1" autocorrect="off" autocapitalize="none" spellcheck="false" />
               <div class="hint">If you see “Permission denied”, either add a token here or update Firebase RTDB Rules.</div>
             </div>
             <div class="field" style="margin-top:12px;">
