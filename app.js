@@ -97,7 +97,12 @@
       const c = JSON.parse(raw);
       if (!c || typeof c !== "object") return null;
       if (!c.syncId || !c.databaseURL) return null;
-      return { syncId: String(c.syncId), databaseURL: String(c.databaseURL), enabled: !!c.enabled };
+      return {
+        syncId: String(c.syncId),
+        databaseURL: String(c.databaseURL),
+        enabled: !!c.enabled,
+        authToken: c.authToken ? String(c.authToken) : "",
+      };
     } catch {
       return null;
     }
@@ -126,19 +131,55 @@
     return base ? base + "/state.json" : "";
   }
 
+  function withAuth(url) {
+    const cfg = getSyncConfig();
+    const token = cfg && cfg.authToken ? String(cfg.authToken) : "";
+    if (!token) return url;
+    return url + (url.includes("?") ? "&" : "?") + "auth=" + encodeURIComponent(token);
+  }
+
+  async function fetchWithRetry(url, options, retryOpts) {
+    const attempts =
+      retryOpts && Number.isFinite(retryOpts.attempts) ? Math.max(1, Math.floor(retryOpts.attempts)) : 3;
+    const timeoutMs =
+      retryOpts && Number.isFinite(retryOpts.timeoutMs) ? Math.max(1500, Math.floor(retryOpts.timeoutMs)) : 10000;
+    let lastErr = null;
+
+    for (let i = 0; i < attempts; i++) {
+      const ctrl = new AbortController();
+      const t = setTimeout(() => ctrl.abort(), timeoutMs);
+      try {
+        const r = await fetch(url, { cache: "no-store", ...(options || {}), signal: ctrl.signal });
+        clearTimeout(t);
+        return r;
+      } catch (e) {
+        clearTimeout(t);
+        lastErr = e;
+        if (i < attempts - 1) {
+          const backoff = 350 * Math.pow(2, i) + Math.round(Math.random() * 140);
+          await new Promise((res) => setTimeout(res, backoff));
+        }
+      }
+    }
+    throw lastErr || new Error("Network error");
+  }
+
   async function cloudPutState(obj) {
     const url = cloudStateUrl();
     if (!url) return false;
-    const r = await fetch(url, {
+    const r = await fetchWithRetry(withAuth(url), {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(obj),
-    });
+    }, { attempts: 3, timeoutMs: 10000 });
     if (!r.ok) {
       let detail = "";
       try {
         detail = await r.text();
       } catch {}
+      if (r.status === 401 || r.status === 403) {
+        throw new Error("Permission denied (Firebase rules). Add an auth token or update RTDB Rules.");
+      }
       throw new Error("Cloud write failed (" + r.status + "): " + (detail || r.statusText || ""));
     }
     return true;
@@ -147,12 +188,15 @@
   async function cloudGetState() {
     const url = cloudStateUrl();
     if (!url) return null;
-    const r = await fetch(url);
+    const r = await fetchWithRetry(withAuth(url), { method: "GET" }, { attempts: 3, timeoutMs: 10000 });
     if (!r.ok) {
       let detail = "";
       try {
         detail = await r.text();
       } catch {}
+      if (r.status === 401 || r.status === 403) {
+        throw new Error("Permission denied (Firebase rules). Add an auth token or update RTDB Rules.");
+      }
       throw new Error("Cloud read failed (" + r.status + "): " + (detail || r.statusText || ""));
     }
     return await r.json();
@@ -180,14 +224,18 @@
     try {
       const remote = await cloudGetState();
       const payload = JSON.stringify(remote || {});
-      if (payload === _cloudLastPayload) return;
+      const remoteMs = remote && remote.updatedAt ? Date.parse(remote.updatedAt) : 0;
+      const localMs = state && state.updatedAt ? Date.parse(state.updatedAt) : 0;
+      if (payload === _cloudLastPayload && !(localMs && (!remoteMs || localMs > remoteMs))) return;
       _cloudLastPayload = payload;
-      if (remote && typeof remote === "object") {
+      if (remote && typeof remote === "object" && (!localMs || (remoteMs && remoteMs > localMs))) {
         state = migrateState(remote);
         localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
         fillProfileForm();
         render();
         toast("☁ Synced from cloud");
+      } else if (localMs && (!remoteMs || localMs > remoteMs)) {
+        await cloudPutState(state);
       }
     } catch {
       // swallow
@@ -214,6 +262,8 @@
     const cfg = cfgOwn || getSyncConfig() || { syncId: "", databaseURL: "", enabled: false };
     $("#cloudSyncId").value = cfg.syncId || "";
     $("#cloudDbUrl").value = cfg.databaseURL || DEFAULT_FIREBASE_DB_URL;
+    const authEl = $("#cloudAuthToken");
+    if (authEl) authEl.value = cfg.authToken || "";
     $("#cloudEnabled").checked = !!cfg.enabled;
     $("#cloudOverlay").classList.add("open");
   }
@@ -225,8 +275,9 @@
   async function saveCloudModal() {
     const syncId = ($("#cloudSyncId").value || "")
       .trim()
-      .replace(/[^a-zA-Z0-9_-]/g, "-") || ("fitness-" + Date.now());
+      .replace(/[^a-zA-Z0-9_-]/g, "-") || ("fitness-" + Date.now() + "-" + Math.random().toString(36).slice(2, 8));
     const databaseURL = ($("#cloudDbUrl").value || "").trim().replace(/\/+$/, "");
+    const authToken = ($("#cloudAuthToken")?.value || "").trim();
     const enabled = !!$("#cloudEnabled").checked;
 
     if (enabled && !databaseURL) {
@@ -238,7 +289,7 @@
       return;
     }
 
-    const cfg = { syncId, databaseURL, enabled };
+    const cfg = { syncId, databaseURL, enabled, authToken: authToken || "" };
     localStorage.setItem(SYNC_CONFIG_KEY, JSON.stringify(cfg));
     if (enabled) localStorage.setItem(SHARED_SYNC_KEY, JSON.stringify(cfg));
 
@@ -247,11 +298,11 @@
         // probe + upload current state
         const base = cloudBaseUrl();
         const probeUrl = base + "/__probe__.json";
-        const r = await fetch(probeUrl, {
+        const r = await fetchWithRetry(withAuth(probeUrl), {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ ok: 1, at: Date.now() }),
-        });
+        }, { attempts: 3, timeoutMs: 10000 });
         if (!r.ok) {
           let detail = "";
           try {
@@ -259,7 +310,19 @@
           } catch {}
           throw new Error("Probe failed (" + r.status + "): " + (detail || r.statusText || ""));
         }
-        await cloudPutState(state);
+        // reconcile (download if newer, otherwise upload)
+        let remote = null;
+        try { remote = await cloudGetState(); } catch {}
+        const remoteMs = remote && remote.updatedAt ? Date.parse(remote.updatedAt) : 0;
+        const localMs = state && state.updatedAt ? Date.parse(state.updatedAt) : 0;
+        if (remote && typeof remote === "object" && (!localMs || (remoteMs && remoteMs > localMs))) {
+          state = migrateState(remote);
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+          fillProfileForm();
+          render();
+        } else {
+          await cloudPutState(state);
+        }
         _cloudLastPayload = JSON.stringify(state || {});
         startCloudPolling();
         toast("☁ Cloud sync enabled");

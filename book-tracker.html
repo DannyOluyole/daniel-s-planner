@@ -795,6 +795,13 @@
           <label for="firebaseUrlInput">Firebase Database URL</label>
           <input type="text" id="firebaseUrlInput" placeholder="https://YOUR-PROJECT.firebaseio.com" />
         </div>
+        <div class="form-row">
+          <label for="firebaseAuthInput">Auth token (optional)</label>
+          <input type="password" id="firebaseAuthInput" placeholder="Only needed if your Firebase rules block public access" />
+          <div class="hint" style="margin-top:0.35rem;">
+            If you get “Permission denied”, either add a token here or update Firebase Realtime Database rules.
+          </div>
+        </div>
         <div class="form-row" style="display:flex; align-items:center; gap:0.75rem;">
           <input type="checkbox" id="cloudSyncEnabled" />
           <label for="cloudSyncEnabled" style="margin:0; text-transform:none; letter-spacing:0; font-weight:700;">Enable cloud sync</label>
@@ -899,16 +906,37 @@
     let _cloudPollTimer = null;
     let _cloudLastPayload = '';
     let _cloudSyncLastError = '';
+    let _booksSavedAtMs = 0;
+
+    function parseBooksPayload(obj) {
+      try {
+        if (!obj) return { savedAtMs: 0, books: [] };
+        if (Array.isArray(obj)) return { savedAtMs: 0, books: obj };
+        if (typeof obj === 'string') return parseBooksPayload(JSON.parse(obj));
+        if (typeof obj === 'object') {
+          const savedAt = (typeof obj.savedAt === 'string') ? obj.savedAt : '';
+          const savedAtMs = savedAt ? Date.parse(savedAt) : 0;
+          const booksArr = Array.isArray(obj.books) ? obj.books : (Array.isArray(obj.data) ? obj.data : null);
+          if (booksArr) return { savedAtMs: Number.isFinite(savedAtMs) ? savedAtMs : 0, books: booksArr };
+        }
+      } catch {}
+      return { savedAtMs: 0, books: [] };
+    }
+
+    function makeBooksPayload(savedAtIso) {
+      const savedAt = savedAtIso || new Date().toISOString();
+      return { schema: 1, savedAt: savedAt, books: books };
+    }
 
     function getSyncConfig() {
       try {
         const rawOwn = localStorage.getItem(SYNC_CONFIG_KEY);
         const own = rawOwn ? JSON.parse(rawOwn) : null;
-        if (own && own.syncId && own.databaseURL) return { syncId: own.syncId, databaseURL: own.databaseURL, enabled: !!own.enabled };
+        if (own && own.syncId && own.databaseURL) return { syncId: own.syncId, databaseURL: own.databaseURL, enabled: !!own.enabled, authToken: own.authToken ? String(own.authToken) : '' };
 
         const rawShared = localStorage.getItem(SHARED_SYNC_KEY);
         const shared = rawShared ? JSON.parse(rawShared) : null;
-        if (shared && shared.syncId && shared.databaseURL) return { syncId: shared.syncId, databaseURL: shared.databaseURL, enabled: !!shared.enabled };
+        if (shared && shared.syncId && shared.databaseURL) return { syncId: shared.syncId, databaseURL: shared.databaseURL, enabled: !!shared.enabled, authToken: shared.authToken ? String(shared.authToken) : '' };
 
         return null;
       } catch { return null; }
@@ -925,6 +953,36 @@
       return cfg.databaseURL.replace(/\/+$/, '') + '/booktracker/' + encodeURIComponent(cfg.syncId);
     }
 
+    function withAuth(url) {
+      const cfg = getSyncConfig();
+      const token = cfg && cfg.authToken ? String(cfg.authToken) : '';
+      if (!token) return url;
+      return url + (url.includes('?') ? '&' : '?') + 'auth=' + encodeURIComponent(token);
+    }
+
+    async function fetchWithRetry(url, options, retryOpts) {
+      const attempts = (retryOpts && Number.isFinite(retryOpts.attempts)) ? Math.max(1, Math.floor(retryOpts.attempts)) : 3;
+      const timeoutMs = (retryOpts && Number.isFinite(retryOpts.timeoutMs)) ? Math.max(1500, Math.floor(retryOpts.timeoutMs)) : 10000;
+      let lastErr = null;
+      for (let i = 0; i < attempts; i++) {
+        const ctrl = new AbortController();
+        const t = setTimeout(() => ctrl.abort(), timeoutMs);
+        try {
+          const r = await fetch(url, Object.assign({ cache: 'no-store' }, (options || {}), { signal: ctrl.signal }));
+          clearTimeout(t);
+          return r;
+        } catch (e) {
+          clearTimeout(t);
+          lastErr = e;
+          if (i < attempts - 1) {
+            const backoff = 350 * Math.pow(2, i) + Math.round(Math.random() * 140);
+            await new Promise(res => setTimeout(res, backoff));
+          }
+        }
+      }
+      throw lastErr || new Error('Network error');
+    }
+
     function cloudBooksUrl() {
       const base = cloudBaseUrl();
       if (!base) return '';
@@ -934,7 +992,7 @@
     async function cloudPutBooks(value) {
       const url = cloudBooksUrl();
       if (!url) return false;
-      const r = await fetch(url, {
+      const r = await fetchWithRetry(withAuth(url), {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(value)
@@ -942,6 +1000,7 @@
       if (!r.ok) {
         let detail = '';
         try { detail = await r.text(); } catch {}
+        if (r.status === 401 || r.status === 403) throw new Error('Permission denied (Firebase rules). Add an auth token or update RTDB Rules.');
         throw new Error('Cloud write failed (' + r.status + '): ' + (detail || r.statusText || ''));
       }
       return true;
@@ -950,10 +1009,11 @@
     async function cloudGetBooks() {
       const url = cloudBooksUrl();
       if (!url) return null;
-      const r = await fetch(url);
+      const r = await fetchWithRetry(withAuth(url), { method: 'GET' });
       if (!r.ok) {
         let detail = '';
         try { detail = await r.text(); } catch {}
+        if (r.status === 401 || r.status === 403) throw new Error('Permission denied (Firebase rules). Add an auth token or update RTDB Rules.');
         throw new Error('Cloud read failed (' + r.status + '): ' + (detail || r.statusText || ''));
       }
       return await r.json();
@@ -964,21 +1024,31 @@
       _cloudPollTimer = null;
     }
 
-    async function pollCloudUpdates() {
+    async function pollCloudUpdates(opts) {
+      const isInitial = !!(opts && opts.isInitial);
       if (!cloudEnabled()) return;
       try {
         const remote = await cloudGetBooks();
+        const remoteParsed = parseBooksPayload(remote);
+        const remoteBooks = remoteParsed.books || [];
+        const remoteMs = remoteParsed.savedAtMs || 0;
+        const localMs = _booksSavedAtMs || 0;
         const payload = JSON.stringify(remote || []);
-        if (payload === _cloudLastPayload) return;
+        // If remote hasn't changed but local is newer (offline edits), still allow upload.
+        if (payload === _cloudLastPayload && !(localMs && (!remoteMs || localMs > remoteMs))) return;
         _cloudLastPayload = payload;
-        if (Array.isArray(remote)) {
-          books = remote;
+        if (remoteBooks && Array.isArray(remoteBooks) && (!localMs || remoteMs > localMs)) {
+          books = remoteBooks;
+          _booksSavedAtMs = remoteMs || Date.now();
           books.forEach(function(b) { if (!Array.isArray(b.chapters)) b.chapters = []; });
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(books));
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(makeBooksPayload()));
           renderBookList();
           fillNotesBookSelect();
           renderStats();
-          showToast('☁ Synced from cloud');
+          if (!isInitial) showToast('☁ Synced from cloud');
+        } else if (localMs && (!remoteMs || localMs > remoteMs)) {
+          // Local is newer: push up to converge (e.g. after offline edits).
+          await cloudPutBooks(makeBooksPayload(new Date(localMs || Date.now()).toISOString()));
         }
         _cloudSyncLastError = '';
       } catch (e) {
@@ -997,6 +1067,8 @@
       const cfg = getSyncConfig();
       document.getElementById('syncIdInput').value = cfg ? cfg.syncId : '';
       document.getElementById('firebaseUrlInput').value = cfg ? cfg.databaseURL : DEFAULT_FIREBASE_DB_URL;
+      const authEl = document.getElementById('firebaseAuthInput');
+      if (authEl) authEl.value = cfg && cfg.authToken ? cfg.authToken : '';
       document.getElementById('cloudSyncEnabled').checked = cfg ? cfg.enabled : false;
       document.getElementById('cloudSyncOverlay').classList.add('open');
     }
@@ -1004,19 +1076,20 @@
       document.getElementById('cloudSyncOverlay').classList.remove('open');
     }
     function generateSyncId() {
-      document.getElementById('syncIdInput').value = 'books-' + Date.now();
+      document.getElementById('syncIdInput').value = 'books-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8);
     }
 
     async function saveCloudSyncConfig() {
       const syncId = (document.getElementById('syncIdInput').value || '').trim().replace(/[^a-zA-Z0-9_-]/g, '-') || ('books-' + Date.now());
       const databaseURL = (document.getElementById('firebaseUrlInput').value || '').trim().replace(/\/+$/, '');
+      const authToken = (document.getElementById('firebaseAuthInput')?.value || '').trim();
       const enabled = !!document.getElementById('cloudSyncEnabled').checked;
       if (!databaseURL && enabled) { showToast('Enter Firebase Database URL'); return; }
       if (enabled && !/^https:\/\/.+(\.firebaseio\.com|\.firebasedatabase\.app)$/.test(databaseURL)) {
         showToast('Use full Firebase Realtime Database URL');
         return;
       }
-      const cfg = { syncId, databaseURL, enabled };
+      const cfg = { syncId, databaseURL, enabled, authToken: authToken || '' };
       localStorage.setItem(SYNC_CONFIG_KEY, JSON.stringify(cfg));
       if (enabled) localStorage.setItem(SHARED_SYNC_KEY, JSON.stringify(cfg));
 
@@ -1037,9 +1110,12 @@
             try { detail = await r.text(); } catch {}
             throw new Error('Probe failed (' + r.status + '): ' + (detail || r.statusText || ''));
           }
-          // upload current books
-          await cloudPutBooks(books);
-          _cloudLastPayload = JSON.stringify(books || []);
+          // reconcile (download if newer, otherwise upload)
+          await pollCloudUpdates({ isInitial: true });
+          const payload = makeBooksPayload();
+          _booksSavedAtMs = Date.parse(payload.savedAt) || Date.now();
+          await cloudPutBooks(payload);
+          _cloudLastPayload = JSON.stringify(payload || {});
           startCloudPolling();
           showToast('☁ Cloud sync enabled');
           closeCloudSyncModal();
@@ -1060,12 +1136,10 @@
     function loadBooks() {
       try {
         const raw = localStorage.getItem(STORAGE_KEY);
-        if (raw) {
-          const parsed = JSON.parse(raw);
-          books = Array.isArray(parsed) ? parsed : [];
-        } else {
-          books = [];
-        }
+        const parsed = raw ? JSON.parse(raw) : null;
+        const payload = parseBooksPayload(parsed);
+        books = Array.isArray(payload.books) ? payload.books : [];
+        _booksSavedAtMs = payload.savedAtMs || 0;
         books.forEach(function(b) {
           if (!Array.isArray(b.chapters)) b.chapters = [];
           if (b.genre == null) b.genre = '';
@@ -1082,11 +1156,13 @@
 
     function saveBooks() {
       try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(books));
+        const payload = makeBooksPayload();
+        _booksSavedAtMs = Date.parse(payload.savedAt) || Date.now();
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
         showAutoSaveIndicator();
         if (cloudEnabled()) {
-          cloudPutBooks(books).then(function() {
-            _cloudLastPayload = JSON.stringify(books || []);
+          cloudPutBooks(payload).then(function() {
+            _cloudLastPayload = JSON.stringify(payload || {});
           }).catch(function(e) {
             _cloudSyncLastError = e && e.message ? e.message : 'Cloud write failed';
           });
