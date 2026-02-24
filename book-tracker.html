@@ -787,17 +787,17 @@
         <div class="form-row">
           <label for="syncIdInput">Sync ID (share this to sync other devices)</label>
           <div style="display:flex; gap:0.5rem; align-items:center;">
-            <input type="text" id="syncIdInput" placeholder="e.g. my-books-2026" style="flex:1;" />
+            <input type="text" id="syncIdInput" placeholder="e.g. my-books-2026" style="flex:1;" data-no-autocorrect="1" autocorrect="off" autocapitalize="none" spellcheck="false" />
             <button type="button" class="btn btn-teal btn-sm" onclick="generateSyncId()">Generate</button>
           </div>
         </div>
         <div class="form-row">
           <label for="firebaseUrlInput">Firebase Database URL</label>
-          <input type="text" id="firebaseUrlInput" placeholder="https://YOUR-PROJECT.firebaseio.com" />
+          <input type="text" id="firebaseUrlInput" placeholder="https://YOUR-PROJECT.firebaseio.com" data-no-autocorrect="1" autocorrect="off" autocapitalize="none" spellcheck="false" />
         </div>
         <div class="form-row">
           <label for="firebaseAuthInput">Auth token (optional)</label>
-          <input type="password" id="firebaseAuthInput" placeholder="Only needed if your Firebase rules block public access" />
+          <input type="password" id="firebaseAuthInput" placeholder="Only needed if your Firebase rules block public access" data-no-autocorrect="1" autocorrect="off" autocapitalize="none" spellcheck="false" />
           <div class="hint" style="margin-top:0.35rem;">
             If you get “Permission denied”, either add a token here or update Firebase Realtime Database rules.
           </div>
@@ -1978,8 +1978,69 @@
     renderBookList();
     renderStats();
 
+    function applyTextAssist(el) {
+      if (!el) return;
+      var no = !!(el.dataset && el.dataset.noAutocorrect === '1');
+
+      if (el.isContentEditable) {
+        if (!el.hasAttribute('spellcheck')) el.setAttribute('spellcheck', no ? 'false' : 'true');
+        return;
+      }
+
+      var tag = (el.tagName || '').toLowerCase();
+      if (tag === 'textarea') {
+        if (no) {
+          el.setAttribute('autocorrect', 'off');
+          el.setAttribute('autocapitalize', 'none');
+          el.setAttribute('spellcheck', 'false');
+        } else {
+          if (!el.hasAttribute('autocorrect')) el.setAttribute('autocorrect', 'on');
+          if (!el.hasAttribute('autocapitalize')) el.setAttribute('autocapitalize', 'sentences');
+          if (!el.hasAttribute('spellcheck')) el.setAttribute('spellcheck', 'true');
+        }
+        if (!el.hasAttribute('autocomplete')) el.setAttribute('autocomplete', 'on');
+        return;
+      }
+
+      if (tag === 'input') {
+        var type = (el.getAttribute('type') || 'text').toLowerCase();
+        if (!(type === 'text' || type === 'search')) return;
+        if (no) {
+          el.setAttribute('autocorrect', 'off');
+          el.setAttribute('autocapitalize', 'none');
+          el.setAttribute('spellcheck', 'false');
+        } else {
+          if (!el.hasAttribute('autocorrect')) el.setAttribute('autocorrect', 'on');
+          if (!el.hasAttribute('autocapitalize')) el.setAttribute('autocapitalize', 'sentences');
+          if (!el.hasAttribute('spellcheck')) el.setAttribute('spellcheck', 'true');
+        }
+        if (!el.hasAttribute('autocomplete')) el.setAttribute('autocomplete', 'on');
+      }
+    }
+
+    function enableTextAssist(root) {
+      var scope = (root && root.querySelectorAll) ? root : document;
+      var sel = 'textarea, input[type=\"text\"], input[type=\"search\"], [contenteditable=\"true\"]';
+      if (scope.nodeType === 1 && scope.matches && scope.matches(sel)) applyTextAssist(scope);
+      scope.querySelectorAll(sel).forEach(applyTextAssist);
+    }
+
+    function setupTextAssist() {
+      enableTextAssist(document);
+      if (setupTextAssist._obs) return;
+      setupTextAssist._obs = new MutationObserver(function(muts) {
+        muts.forEach(function(m) {
+          (m.addedNodes || []).forEach(function(n) {
+            if (n && n.nodeType === 1) enableTextAssist(n);
+          });
+        });
+      });
+      setupTextAssist._obs.observe(document.documentElement, { subtree: true, childList: true });
+    }
+
     // Enable/disable STT button based on browser support
     window.addEventListener('DOMContentLoaded', function() {
+      setupTextAssist();
       document.addEventListener('focusin', function(e) {
         var t = e && e.target;
         if (isTextTarget(t)) _sttLastTarget = t;

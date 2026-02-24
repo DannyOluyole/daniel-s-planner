@@ -11,6 +11,66 @@
   const $ = (sel) => document.querySelector(sel);
   const $$ = (sel) => Array.from(document.querySelectorAll(sel));
 
+  function applyTextAssist(el) {
+    if (!el) return;
+    const no = !!(el.dataset && el.dataset.noAutocorrect === "1");
+
+    if (el.isContentEditable) {
+      if (!el.hasAttribute("spellcheck")) el.setAttribute("spellcheck", no ? "false" : "true");
+      return;
+    }
+
+    const tag = (el.tagName || "").toLowerCase();
+    if (tag === "textarea") {
+      if (no) {
+        el.setAttribute("autocorrect", "off");
+        el.setAttribute("autocapitalize", "none");
+        el.setAttribute("spellcheck", "false");
+      } else {
+        if (!el.hasAttribute("autocorrect")) el.setAttribute("autocorrect", "on");
+        if (!el.hasAttribute("autocapitalize")) el.setAttribute("autocapitalize", "sentences");
+        if (!el.hasAttribute("spellcheck")) el.setAttribute("spellcheck", "true");
+      }
+      if (!el.hasAttribute("autocomplete")) el.setAttribute("autocomplete", "on");
+      return;
+    }
+
+    if (tag === "input") {
+      const type = (el.getAttribute("type") || "text").toLowerCase();
+      if (!(type === "text" || type === "search")) return;
+      if (no) {
+        el.setAttribute("autocorrect", "off");
+        el.setAttribute("autocapitalize", "none");
+        el.setAttribute("spellcheck", "false");
+      } else {
+        if (!el.hasAttribute("autocorrect")) el.setAttribute("autocorrect", "on");
+        if (!el.hasAttribute("autocapitalize")) el.setAttribute("autocapitalize", "sentences");
+        if (!el.hasAttribute("spellcheck")) el.setAttribute("spellcheck", "true");
+      }
+      if (!el.hasAttribute("autocomplete")) el.setAttribute("autocomplete", "on");
+    }
+  }
+
+  function enableTextAssist(root) {
+    const scope = root && root.querySelectorAll ? root : document;
+    const sel = 'textarea, input[type="text"], input[type="search"], [contenteditable="true"]';
+    if (scope.nodeType === 1 && scope.matches && scope.matches(sel)) applyTextAssist(scope);
+    scope.querySelectorAll(sel).forEach(applyTextAssist);
+  }
+
+  function setupTextAssist() {
+    enableTextAssist(document);
+    if (setupTextAssist._obs) return;
+    setupTextAssist._obs = new MutationObserver((muts) => {
+      for (const m of muts) {
+        for (const n of m.addedNodes || []) {
+          if (n && n.nodeType === 1) enableTextAssist(n);
+        }
+      }
+    });
+    setupTextAssist._obs.observe(document.documentElement, { subtree: true, childList: true });
+  }
+
   function nowISODate() {
     const d = new Date();
     d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
@@ -967,6 +1027,7 @@
   let state = loadState();
 
   window.addEventListener("DOMContentLoaded", () => {
+    setupTextAssist();
     fillProfileForm();
     wireEvents();
     setView("profile");
