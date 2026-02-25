@@ -248,7 +248,7 @@
     }
     .page-hero .hero-gold { color: var(--gold-light); }
 
-    .page-content { padding: 2rem 2.5rem; max-width: 1500px; margin: 0 auto; }
+    .page-content { padding: 2rem 2.5rem; max-width: none; width: 100%; margin: 0 auto; }
 
     /* ===== DIVIDER ===== */
     .divider {
@@ -275,7 +275,7 @@
     /* =====================================================
        CALENDAR VIEW
     ===================================================== */
-    #view-calendar .page-content { max-width: 1300px; }
+    #view-calendar .page-content { max-width: none; }
 
     .calendar-nav {
       display: flex;
@@ -405,12 +405,12 @@
     .month-panel.active { display: block; }
 
     /* Reference System */
-    .ref-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+    .ref-grid { display: grid; grid-template-columns: 1fr; gap: 1.5rem; }
 
     /* Master Task List */
     .mtask-item {
       display: grid;
-      grid-template-columns: 40px 80px 1fr 115px 36px;
+      grid-template-columns: 40px 90px 1fr 180px 36px;
       gap: 0.75rem;
       align-items: center;
       padding: 0.75rem 0.5rem;
@@ -430,7 +430,7 @@
     /* Monthly Index */
     .idx-item {
       display: grid;
-      grid-template-columns: 50px 1fr 100px 60px;
+      grid-template-columns: 50px 1fr 220px 60px;
       gap: 1rem;
       align-items: center;
       padding: 0.7rem 0.5rem;
@@ -476,7 +476,7 @@
 
     .day-planner-grid {
       display: grid;
-      grid-template-columns: 1fr 1.6fr;
+      grid-template-columns: 1fr;
       gap: 2rem;
       margin-top: 2rem;
     }
@@ -528,7 +528,7 @@
 
     .task-row {
       display: grid;
-      grid-template-columns: 36px 70px 1fr 150px;
+      grid-template-columns: 36px 70px 1fr 220px;
       gap: 0.6rem;
       align-items: center;
       padding: 0.65rem 0.5rem;
@@ -687,7 +687,7 @@
     .month-main-nav select { max-width: 200px; }
 
     /* ===== GOVERNING VALUES PYRAMID ===== */
-    #view-values .page-content { max-width: 560px; margin-left: auto; margin-right: auto; }
+    #view-values .page-content { max-width: none; margin-left: auto; margin-right: auto; }
     .values-pyramid-wrapper {
       display: flex;
       justify-content: center;
@@ -712,7 +712,7 @@
     }
     .values-def-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      grid-template-columns: 1fr;
       gap: 1.25rem;
     }
     .value-item label.value-label {
@@ -738,7 +738,7 @@
       box-shadow: 0 0 0 2px rgba(0,153,153,0.12);
     }
     /* ===== SETTING GOALS / SMART DIAGRAM ===== */
-    #view-goals .page-content { max-width: 580px; margin-left: auto; margin-right: auto; }
+    #view-goals .page-content { max-width: none; margin-left: auto; margin-right: auto; }
     .smart-diagram-wrapper { display: flex; justify-content: center; margin: 2rem 0; }
     .smart-diagram-svg { width: 100%; max-width: 500px; height: auto; }
     .smart-diagram-svg text { font-family: 'IBM Plex Sans', sans-serif; }
@@ -747,7 +747,7 @@
     .smart-goal-field textarea { min-height: 110px; }
 
     /* ===== REALITY MODEL ===== */
-    #view-reality .page-content { max-width: 1100px; }
+    #view-reality .page-content { max-width: none; }
     .reality-model-wrap { display:flex; justify-content:center; margin: 1.5rem 0 0; }
     .reality-model-svg{
       width: 100%;
@@ -778,12 +778,12 @@
     }
 
     /* ===== BUDGET ===== */
-    #view-budget .page-content { max-width: 1100px; }
+    #view-budget .page-content { max-width: none; }
     .budget-nav { display:flex; align-items:center; gap: 1rem; flex-wrap: wrap; margin-bottom: 1.5rem; }
     .budget-title { font-family: 'Playfair Display', serif; font-size: 1.6rem; font-weight: 900; color: var(--teal-dark); flex: 1; }
     .budget-grid { display:grid; grid-template-columns: 1fr; gap: 1.25rem; }
-    @media (min-width: 980px) { .budget-grid { grid-template-columns: 1fr 1fr; } .budget-grid .span2{ grid-column: span 2; } }
-    .budget-row { display:grid; grid-template-columns: 1.6fr 140px 36px; gap: 0.6rem; align-items: center; margin-bottom: 0.5rem; }
+    @media (min-width: 980px) { .budget-grid { grid-template-columns: 1fr; } .budget-grid .span2{ grid-column: span 1; } }
+    .budget-row { display:grid; grid-template-columns: 2fr minmax(180px, 1fr) 36px; gap: 0.6rem; align-items: center; margin-bottom: 0.5rem; }
     .budget-row input[type="text"] { width: 100%; }
     .budget-row input[type="number"] { width: 100%; font-family: 'IBM Plex Mono', monospace; }
     .budget-row .rm { background: none; border: none; cursor:pointer; font-size: 1.1rem; opacity: 0.7; }
@@ -814,7 +814,7 @@
     #sttBtn.listening { background: linear-gradient(135deg, var(--teal) 0%, var(--teal-dark) 100%); color: white; border-color: rgba(255,255,255,0.22); }
     #sttBtn[disabled] { opacity: 0.55; cursor: not-allowed; }
     /* ===== KEEPNOTES (Google Keep style) ===== */
-    #view-notes .page-content { max-width: 1200px; padding-bottom: 5rem; }
+    #view-notes .page-content { max-width: none; padding-bottom: 5rem; }
     .keep-takenote {
       background: white;
       border-radius: 8px;
@@ -840,7 +840,7 @@
     .keep-takenote input::placeholder, .keep-takenote textarea::placeholder { color: #9e9e9e; }
     .keep-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
       gap: 1rem;
       grid-auto-rows: minmax(120px, auto);
     }
@@ -1500,6 +1500,16 @@
     </div>
 
     <div class="card" style="margin-top:1.25rem;">
+      <div class="card-header gold">🪟 Belief window (editable)</div>
+      <div class="card-body">
+        <textarea id="beliefWindowText" class="notes-ta" rows="6" placeholder="Write what you currently believe is true (assumptions, interpretations, filters, stories) that shapes your rules and behavior…" oninput="scheduleRealitySave()"></textarea>
+        <div style="margin-top:0.6rem; font-size:0.85rem; color:var(--gray-med); line-height:1.5;">
+          Tip: What evidence supports this belief? What evidence challenges it? What would you choose to believe instead?
+        </div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:1.25rem;">
       <div class="card-header">🧩 Needs Wheel</div>
       <div class="card-body">
         <div class="needs-wheel-wrap" aria-label="Needs wheel diagram">
@@ -1672,6 +1682,7 @@ let _daySaveTimer = null;
 let _monthSaveTimer = null;
 let _valuesSaveTimer = null;
 let _goalsSaveTimer = null;
+let _realitySaveTimer = null;
 let _budgetSaveTimer = null;
 let _modalCb = null;
 let _pendingSave = false;
@@ -2495,6 +2506,7 @@ function saveAllCurrent() {
   else if (view && view.id === 'view-budget') { saveBudgetData(); showToast('✅ Budget saved!'); }
   else if (view && view.id === 'view-values') { saveValuesData(); showToast('✅ Values saved!'); }
   else if (view && view.id === 'view-goals') { saveGoalsData(); showToast('✅ Goal saved!'); }
+  else if (view && view.id === 'view-reality') { saveRealityData(); showToast('✅ Reality model saved!'); }
   else if (view && view.id === 'view-notes') { saveKeepNotes(); showToast('✅ Notes saved!'); }
   else showToast('Save from Day Planner, Monthly System, Governing Values, or KeepNotes.');
 }
@@ -2526,6 +2538,10 @@ function showView(name) {
       clearTimeout(_goalsSaveTimer);
       _goalsSaveTimer = null;
       saveGoalsData();
+    } else if (current.id === 'view-reality') {
+      clearTimeout(_realitySaveTimer);
+      _realitySaveTimer = null;
+      saveRealityData();
     }
   }
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
@@ -2538,6 +2554,7 @@ function showView(name) {
   if (name === 'day')      renderDayView();
   if (name === 'values')   loadValuesData();
   if (name === 'goals')    loadGoalsData();
+  if (name === 'reality')  loadRealityData();
   if (name === 'notes')    renderKeepNotes();
   if (name === 'values')   setupDateLinkifyForView('view-values');
 }
@@ -2862,6 +2879,29 @@ async function saveGoalsData() {
 function scheduleGoalsSave() {
   clearTimeout(_goalsSaveTimer);
   _goalsSaveTimer = setTimeout(saveGoalsData, 1100);
+}
+
+/* ================================================================
+  REALITY MODEL — BELIEF WINDOW FIELD
+================================================================ */
+async function loadRealityData() {
+  const data = await storageLoad('reality-model');
+  const d = data || {};
+  const el = document.getElementById('beliefWindowText');
+  if (el) el.value = d.beliefWindow || '';
+  setupDateLinkifyForView('view-reality');
+}
+
+async function saveRealityData() {
+  const el = document.getElementById('beliefWindowText');
+  const obj = { beliefWindow: el ? (el.value || '') : '' };
+  await storageSave('reality-model', obj);
+  showAutoSaveIndicator();
+}
+
+function scheduleRealitySave() {
+  clearTimeout(_realitySaveTimer);
+  _realitySaveTimer = setTimeout(saveRealityData, 1100);
 }
 
 /* ================================================================
