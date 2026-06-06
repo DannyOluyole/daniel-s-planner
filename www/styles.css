@@ -29,6 +29,7 @@
   --surface:    rgba(255,255,255,0.045);
   --surface-2:  rgba(255,255,255,0.08);
   --surface-3:  rgba(255,255,255,0.115);
+  --panel-2:    rgba(255,255,255,0.08);
   --border:     rgba(255,255,255,0.09);
   --border-2:   rgba(255,255,255,0.15);
   --text:       #eef2ff;
@@ -48,6 +49,7 @@
   --surface:    rgba(255,255,255,0.88);
   --surface-2:  rgba(255,255,255,0.96);
   --surface-3:  #ffffff;
+  --panel-2:    rgba(255,255,255,0.96);
   --border:     rgba(0,0,20,0.08);
   --border-2:   rgba(0,0,20,0.14);
   --text:       #0d1117;
