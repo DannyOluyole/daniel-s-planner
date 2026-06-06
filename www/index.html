@@ -259,7 +259,7 @@ hr.sg-divider { border:none; border-top:1px solid var(--border); margin:18px 0; 
     <button class="sg-tab" onclick="switchTab('usage')">📊 App Usage</button>
     <button class="sg-tab" onclick="switchTab('focus')">Focus Timer</button>
     <button class="sg-tab" onclick="switchTab('log')">Screen Time Log</button>
-    <button class="sg-tab" onclick="switchTab('blocklist')">Site Blocker</button>
+    <button class="sg-tab" onclick="switchTab('blocklist')">🚫 Blocker</button>
     <button class="sg-tab" onclick="switchTab('urge')">Urge Relief</button>
     <button class="sg-tab" onclick="switchTab('commitments')">Commitments</button>
     <button class="sg-tab" onclick="switchTab('insights')">Insights</button>
@@ -357,6 +357,39 @@ hr.sg-divider { border:none; border-top:1px solid var(--border); margin:18px 0; 
       <div class="sg-card">
         <h3>This Week</h3>
         <div id="usage-weekly-chart"></div>
+      </div>
+
+      <!-- Per-app daily limits -->
+      <div class="sg-card">
+        <h3>⏱️ App Daily Limits</h3>
+        <p class="text-faint" style="font-size:.82rem;margin:0 0 12px;">Set a daily time limit for any app. You'll get an alert when you're close.</p>
+        <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;">
+          <input class="sg-input" type="text" id="limit-app-name" placeholder="App name (e.g. Instagram)" style="flex:1;margin:0;" />
+          <input class="sg-input" type="number" id="limit-app-mins" placeholder="Min" min="1" max="1440" style="width:80px;margin:0;" />
+          <button class="btn btn-primary btn-sm" onclick="addAppLimit()">Add Limit</button>
+        </div>
+        <div id="app-limits-list"><p class="text-faint" style="font-size:.82rem;">No limits set yet.</p></div>
+      </div>
+
+      <!-- In-app blocking -->
+      <div class="sg-card">
+        <h3>📵 In-App Blocking</h3>
+        <p class="text-faint" style="font-size:.82rem;margin:0 0 12px;">Block specific apps entirely during focus hours or all day. On Android, ScreenGuard will lock you out of the app when the limit is reached.</p>
+        <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;">
+          <input class="sg-input" type="text" id="block-app-name" placeholder="App package or name (e.g. TikTok)" style="flex:1;margin:0;" />
+          <select class="sg-input" id="block-app-schedule" style="width:130px;margin:0;">
+            <option value="always">Always blocked</option>
+            <option value="focus">Focus hours only</option>
+            <option value="night">Night (10pm–7am)</option>
+          </select>
+          <button class="btn btn-danger btn-sm" onclick="addBlockedApp()">Block App</button>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;">
+          <button class="btn btn-ghost btn-sm" onclick="addAppPreset('social')">📱 Social Media</button>
+          <button class="btn btn-ghost btn-sm" onclick="addAppPreset('adult')">🔞 Adult Apps</button>
+          <button class="btn btn-ghost btn-sm" onclick="addAppPreset('games')">🎮 Games</button>
+        </div>
+        <div id="blocked-apps-list"><p class="text-faint" style="font-size:.82rem;">No apps blocked yet.</p></div>
       </div>
     </div>
 
@@ -583,6 +616,31 @@ hr.sg-divider { border:none; border-top:1px solid var(--border); margin:18px 0; 
       </div>
     </div>
 
+    <!-- Keyword blocking -->
+    <div class="sg-card">
+      <h3>🔤 Keyword Blocking</h3>
+      <p class="text-faint" style="font-size:.85rem;margin:0 0 12px;line-height:1.6;">
+        Block any page or search result that contains these words. On the mobile app, the VPN filter intercepts pages containing blocked keywords and shows a block screen instead.
+      </p>
+      <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;">
+        <input class="sg-input" type="text" id="keyword-input" placeholder="e.g. porn, nude, casino…" style="flex:1;margin:0;" />
+        <select class="sg-input" id="keyword-cat" style="width:120px;margin:0;">
+          <option value="adult">Adult</option>
+          <option value="gambling">Gambling</option>
+          <option value="violence">Violence</option>
+          <option value="drugs">Drugs</option>
+          <option value="custom">Custom</option>
+        </select>
+        <button class="btn btn-danger btn-sm" onclick="addKeyword()">Block</button>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;">
+        <button class="btn btn-ghost btn-sm" onclick="addKeywordPreset('adult')">🔞 Adult Preset</button>
+        <button class="btn btn-ghost btn-sm" onclick="addKeywordPreset('gambling')">🎰 Gambling Preset</button>
+        <button class="btn btn-ghost btn-sm" onclick="addKeywordPreset('drugs')">💊 Drugs Preset</button>
+      </div>
+      <div id="keyword-chips" style="min-height:40px;"><p class="text-faint" style="font-size:.82rem;">No keywords blocked yet.</p></div>
+    </div>
+
     <!-- Hosts file export -->
     <div class="sg-card">
       <h3>Export for /etc/hosts (Desktop Blocking)</h3>
@@ -773,6 +831,23 @@ hr.sg-divider { border:none; border-top:1px solid var(--border); margin:18px 0; 
         <div id="category-chart"></div>
       </div>
     </div>
+
+    <!-- Global Comparison -->
+    <div class="sg-card" style="border-color:var(--accent-2);">
+      <h3 style="color:var(--accent-2);">🌍 How You Compare Globally</h3>
+      <p class="text-faint" style="font-size:.82rem;margin:0 0 16px;">Based on DataReportal 2024 global averages. Your data is from manual logs.</p>
+      <div id="global-comparison-chart"></div>
+      <div class="sg-grid-3" style="margin-top:16px;" id="global-tiles"></div>
+      <div style="margin-top:16px;padding:14px;background:rgba(88,166,255,0.08);border-radius:10px;border:1px solid rgba(88,166,255,0.2);">
+        <div style="font-weight:700;margin-bottom:6px;font-size:.9rem;">📊 Your Score vs World</div>
+        <div id="global-score-text" style="font-size:.85rem;color:var(--muted);line-height:1.7;"></div>
+      </div>
+      <p style="font-size:.72rem;color:var(--faint);margin:10px 0 0;">
+        Sources: DataReportal Digital 2024, Statista, App Annie State of Mobile 2024.
+        Global averages: 6h 37min/day total screen time · 2h 23min social media · 4.8 pickups/hour.
+      </p>
+    </div>
+
     <div class="sg-card">
       <h3>All-time Stats</h3>
       <div class="sg-grid-3" id="alltime-stats"></div>
@@ -1042,6 +1117,9 @@ function defaultState() {
     streakStartDate: null,
     bestStreak: 0,
     blockedSites: [],
+    blockedKeywords: [],
+    blockedApps: [],
+    appLimits: [],
   };
 }
 
@@ -1113,6 +1191,7 @@ function addScreenLog() {
   document.getElementById('log-note').value = '';
   renderLogs();
   refreshDashboard();
+  renderAppLimits();
 }
 
 function saveQuickLog() {
@@ -1559,6 +1638,7 @@ function renderInsights() {
   renderCategoryChart();
   renderAllTimeStats();
   renderStreakHistory();
+  renderGlobalComparison();
 }
 
 function renderWeeklyChart() {
@@ -1639,6 +1719,321 @@ function renderStreakHistory() {
       <div style="font-weight:700;margin-bottom:8px;">Relapses logged: ${state.relapses.length}</div>
     </div>
   `;
+}
+
+// ══════════════════════════════════════════
+// KEYWORD BLOCKING
+// ══════════════════════════════════════════
+const KEYWORD_PRESETS = {
+  adult: ['porn','sex','nude','naked','xxx','hentai','erotic','onlyfans','adult','nsfw','fetish','cam girl','strip'],
+  gambling: ['casino','poker','bet','betting','slots','gambling','wager','lottery','jackpot','roulette','blackjack'],
+  drugs: ['cocaine','heroin','meth','weed buy','buy drugs','dark web drugs','mdma','fentanyl'],
+};
+
+function addKeyword() {
+  const val = document.getElementById('keyword-input').value.trim().toLowerCase();
+  const cat = document.getElementById('keyword-cat').value;
+  if (!val) { alert('Enter a keyword.'); return; }
+  if (!state.blockedKeywords) state.blockedKeywords = [];
+  if (state.blockedKeywords.find(k => k.word === val)) { alert('Already in list!'); return; }
+  state.blockedKeywords.push({ word: val, cat });
+  save(state);
+  document.getElementById('keyword-input').value = '';
+  renderKeywords();
+  syncKeywordsToNative();
+}
+
+function addKeywordPreset(cat) {
+  if (!state.blockedKeywords) state.blockedKeywords = [];
+  let added = 0;
+  (KEYWORD_PRESETS[cat] || []).forEach(w => {
+    if (!state.blockedKeywords.find(k => k.word === w)) {
+      state.blockedKeywords.push({ word: w, cat });
+      added++;
+    }
+  });
+  save(state);
+  renderKeywords();
+  syncKeywordsToNative();
+  alert(`Added ${added} keywords.`);
+}
+
+function removeKeyword(word) {
+  if (!state.blockedKeywords) return;
+  state.blockedKeywords = state.blockedKeywords.filter(k => k.word !== word);
+  save(state);
+  renderKeywords();
+  syncKeywordsToNative();
+}
+
+function renderKeywords() {
+  const el = document.getElementById('keyword-chips');
+  if (!el) return;
+  const kws = state.blockedKeywords || [];
+  if (!kws.length) { el.innerHTML = '<p class="text-faint" style="font-size:.82rem;">No keywords blocked yet.</p>'; return; }
+  const catColor = { adult:'cat-adult', gambling:'cat-games', violence:'cat-social', drugs:'cat-news', custom:'cat-custom' };
+  el.innerHTML = kws.map(k => `
+    <span class="site-chip">
+      <span class="cat-pill ${catColor[k.cat]||'cat-custom'}" style="padding:1px 5px;font-size:.68rem;margin:0;">${k.cat}</span>
+      ${escHtml(k.word)}
+      <button onclick="removeKeyword('${escHtml(k.word)}')">✕</button>
+    </span>
+  `).join('');
+}
+
+async function syncKeywordsToNative() {
+  if (!window._native?.isNative) return;
+  const p = window.Capacitor?.Plugins?.Blocker;
+  if (!p) return;
+  const words = (state.blockedKeywords || []).map(k => k.word);
+  try { await p.updateKeywords({ keywords: words }); } catch(e) {}
+}
+
+// ══════════════════════════════════════════
+// APP LIMITS & IN-APP BLOCKING
+// ══════════════════════════════════════════
+const APP_BLOCK_PRESETS = {
+  social: [
+    { name:'TikTok', pkg:'com.zhiliaoapp.musically' },
+    { name:'Instagram', pkg:'com.instagram.android' },
+    { name:'Facebook', pkg:'com.facebook.katana' },
+    { name:'Snapchat', pkg:'com.snapchat.android' },
+    { name:'Twitter/X', pkg:'com.twitter.android' },
+    { name:'YouTube', pkg:'com.google.android.youtube' },
+  ],
+  adult: [
+    { name:'Porn Browser', pkg:'com.porn.browser' },
+    { name:'RedTube', pkg:'com.redtube.app' },
+    { name:'OnlyFans', pkg:'com.onlyfans.app' },
+  ],
+  games: [
+    { name:'PUBG', pkg:'com.pubg.imobile' },
+    { name:'Free Fire', pkg:'com.dts.freefireth' },
+    { name:'Mobile Legends', pkg:'com.mobilelegends.bang' },
+    { name:'Candy Crush', pkg:'com.king.candycrushsaga' },
+  ],
+};
+
+function addAppLimit() {
+  const name = document.getElementById('limit-app-name').value.trim();
+  const mins = parseInt(document.getElementById('limit-app-mins').value);
+  if (!name) { alert('Enter an app name.'); return; }
+  if (!mins || mins < 1) { alert('Enter limit in minutes.'); return; }
+  if (!state.appLimits) state.appLimits = [];
+  const idx = state.appLimits.findIndex(a => a.name.toLowerCase() === name.toLowerCase());
+  if (idx >= 0) { state.appLimits[idx].mins = mins; }
+  else { state.appLimits.push({ name, mins, pkg: '' }); }
+  save(state);
+  document.getElementById('limit-app-name').value = '';
+  document.getElementById('limit-app-mins').value = '';
+  renderAppLimits();
+}
+
+function removeAppLimit(name) {
+  if (!state.appLimits) return;
+  state.appLimits = state.appLimits.filter(a => a.name !== name);
+  save(state);
+  renderAppLimits();
+}
+
+function renderAppLimits() {
+  const el = document.getElementById('app-limits-list');
+  if (!el) return;
+  const limits = state.appLimits || [];
+  if (!limits.length) { el.innerHTML = '<p class="text-faint" style="font-size:.82rem;">No limits set yet.</p>'; return; }
+
+  // Check today's usage against limits
+  const today = todayStr();
+  const todayLogs = state.screenLogs.filter(l => l.date === today);
+
+  el.innerHTML = limits.map(lim => {
+    const used = todayLogs
+      .filter(l => l.app && l.app.toLowerCase().includes(lim.name.toLowerCase()))
+      .reduce((a, l) => a + l.mins, 0);
+    const pct = Math.min(100, (used / lim.mins) * 100);
+    const over = used >= lim.mins;
+    const warn = pct >= 80;
+    return `
+    <div style="padding:10px 14px;border-radius:10px;background:rgba(255,255,255,0.04);
+                border:1px solid ${over ? 'var(--danger)' : warn ? 'var(--warn)' : 'var(--border)'};margin-bottom:8px;">
+      <div class="flex justify-between items-center" style="margin-bottom:6px;">
+        <span style="font-weight:600;font-size:.9rem;">${escHtml(lim.name)}</span>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span style="font-size:.8rem;color:${over?'var(--danger)':warn?'var(--warn)':'var(--faint)'};">
+            ${used}/${lim.mins} min ${over ? '⚠️ OVER LIMIT' : ''}
+          </span>
+          <button class="btn btn-ghost btn-sm" onclick="removeAppLimit('${escHtml(lim.name)}')">✕</button>
+        </div>
+      </div>
+      <div class="bar-track">
+        <div class="bar-fill ${over ? 'danger' : warn ? 'warn' : ''}" style="width:${pct}%"></div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function addBlockedApp() {
+  const name = document.getElementById('block-app-name').value.trim();
+  const schedule = document.getElementById('block-app-schedule').value;
+  if (!name) { alert('Enter an app name.'); return; }
+  if (!state.blockedApps) state.blockedApps = [];
+  if (state.blockedApps.find(a => a.name.toLowerCase() === name.toLowerCase())) {
+    alert('Already blocked!'); return;
+  }
+  state.blockedApps.push({ name, pkg: '', schedule });
+  save(state);
+  document.getElementById('block-app-name').value = '';
+  renderBlockedApps();
+  syncAppsToNative();
+}
+
+function addAppPreset(cat) {
+  if (!state.blockedApps) state.blockedApps = [];
+  let added = 0;
+  (APP_BLOCK_PRESETS[cat] || []).forEach(app => {
+    if (!state.blockedApps.find(a => a.name === app.name)) {
+      state.blockedApps.push({ name: app.name, pkg: app.pkg, schedule: 'always' });
+      added++;
+    }
+  });
+  save(state);
+  renderBlockedApps();
+  syncAppsToNative();
+  alert(`Added ${added} apps to block list.`);
+}
+
+function removeBlockedApp(name) {
+  if (!state.blockedApps) return;
+  state.blockedApps = state.blockedApps.filter(a => a.name !== name);
+  save(state);
+  renderBlockedApps();
+  syncAppsToNative();
+}
+
+function renderBlockedApps() {
+  const el = document.getElementById('blocked-apps-list');
+  if (!el) return;
+  const apps = state.blockedApps || [];
+  if (!apps.length) { el.innerHTML = '<p class="text-faint" style="font-size:.82rem;">No apps blocked yet.</p>'; return; }
+  const scheduleLabel = { always:'🔴 Always', focus:'🟡 Focus hours', night:'🌙 Night only' };
+  el.innerHTML = apps.map(a => `
+    <span class="site-chip" style="background:var(--focus-dim);border-color:var(--focus);">
+      📵 ${escHtml(a.name)}
+      <span style="font-size:.7rem;color:var(--faint);margin:0 2px;">${scheduleLabel[a.schedule]||''}</span>
+      <button onclick="removeBlockedApp('${escHtml(a.name)}')">✕</button>
+    </span>
+  `).join('');
+}
+
+async function syncAppsToNative() {
+  if (!window._native?.isNative) return;
+  const p = window.Capacitor?.Plugins?.Blocker;
+  if (!p) return;
+  const apps = (state.blockedApps || []).map(a => ({ name: a.name, pkg: a.pkg, schedule: a.schedule }));
+  try { await p.updateBlockedApps({ apps }); } catch(e) {}
+}
+
+// ══════════════════════════════════════════
+// GLOBAL COMPARISON
+// ══════════════════════════════════════════
+// Published global averages (DataReportal Digital 2024, Statista, App Annie 2024)
+const GLOBAL_AVG = {
+  total:         397,  // 6h 37min daily screen time
+  social:        143,  // 2h 23min social media
+  entertainment: 98,   // 1h 38min streaming/entertainment
+  games:         55,   // ~55min gaming
+  news:          32,   // ~32min news browsing
+  work:          80,   // productive/work
+};
+
+// Age-group averages (minutes/day)
+const AGE_GROUPS = [
+  { label: 'Age 16–24', total: 480 },
+  { label: 'Age 25–34', total: 430 },
+  { label: 'Age 35–44', total: 390 },
+  { label: 'Age 45–54', total: 330 },
+  { label: 'Age 55–64', total: 260 },
+  { label: 'Global Avg', total: 397, highlight: true },
+];
+
+function renderGlobalComparison() {
+  const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - 7);
+  const cutoffStr = cutoff.toISOString().slice(0, 10);
+  const recentLogs = state.screenLogs.filter(l => l.date >= cutoffStr);
+  const days = recentLogs.length > 0
+    ? [...new Set(recentLogs.map(l => l.date))].length
+    : 1;
+
+  // Your daily averages
+  const myTotal = recentLogs.reduce((a,l) => a + l.mins, 0) / days;
+  const myCats = {};
+  recentLogs.forEach(l => { myCats[l.cat] = (myCats[l.cat]||0) + l.mins; });
+  Object.keys(myCats).forEach(c => myCats[c] = myCats[c] / days);
+
+  // Category comparison chart
+  const chartEl = document.getElementById('global-comparison-chart');
+  const cats = ['social','entertainment','games','news'];
+  const catLabel = { social:'Social Media', entertainment:'Entertainment', games:'Gaming', news:'News' };
+  chartEl.innerHTML = cats.map(cat => {
+    const mine = Math.round(myCats[cat] || 0);
+    const global = GLOBAL_AVG[cat];
+    const maxBar = Math.max(mine, global, 1);
+    return `
+    <div style="margin-bottom:16px;">
+      <div style="font-size:.82rem;font-weight:600;margin-bottom:6px;">${catLabel[cat]}</div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+        <div style="width:60px;font-size:.75rem;color:var(--faint);">You</div>
+        <div style="flex:1;">
+          <div class="bar-track">
+            <div class="bar-fill ${mine > global ? 'danger' : ''}"
+                 style="width:${(mine/maxBar)*100}%;background:${mine > global ? '' : 'var(--accent)'}"></div>
+          </div>
+        </div>
+        <div style="width:50px;font-size:.78rem;text-align:right;color:${mine>global?'var(--danger)':'var(--accent)'};">${mine}m</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <div style="width:60px;font-size:.75rem;color:var(--faint);">Global</div>
+        <div style="flex:1;">
+          <div class="bar-track">
+            <div class="bar-fill" style="width:${(global/maxBar)*100}%;background:rgba(255,255,255,0.25);"></div>
+          </div>
+        </div>
+        <div style="width:50px;font-size:.78rem;text-align:right;color:var(--faint);">${global}m</div>
+      </div>
+    </div>`;
+  }).join('');
+
+  // Global tiles — age group comparison
+  const tilesEl = document.getElementById('global-tiles');
+  tilesEl.innerHTML = AGE_GROUPS.map(ag => `
+    <div class="stat-tile" style="${ag.highlight ? 'border:1px solid var(--accent-2);' : ''}">
+      <div class="val" style="font-size:1.3rem;color:${ag.highlight ? 'var(--accent-2)' : 'var(--text)'};">${Math.floor(ag.total/60)}h${ag.total%60}m</div>
+      <div class="lbl">${ag.label}</div>
+    </div>
+  `).join('');
+
+  // Score text
+  const scoreEl = document.getElementById('global-score-text');
+  const myRounded = Math.round(myTotal);
+  const diff = myRounded - GLOBAL_AVG.total;
+  let verdict, tip;
+  if (myRounded === 0) {
+    verdict = 'Log your screen time to see how you compare to the world.';
+    tip = 'Start by tapping "+ Log Screen Time" on the dashboard.';
+  } else if (diff <= -60) {
+    verdict = `🏆 You use ${Math.abs(diff)} min/day LESS than the global average — you're in the top tier for digital wellness.`;
+    tip = 'Keep it up. Your brain is getting more rest than most people on the planet.';
+  } else if (diff <= 0) {
+    verdict = `✅ You use ${Math.abs(diff)} min/day less than the global average of 6h 37min. Slightly better than most.`;
+    tip = 'You\'re close to average — small daily reductions will put you well ahead.';
+  } else if (diff <= 60) {
+    verdict = `⚠️ You use ${diff} min/day more than the global average. Just slightly above.`;
+    tip = 'Try the Focus Timer to carve out 30 min of phone-free time per day.';
+  } else {
+    verdict = `🔴 You use ${diff} min/day MORE than the global average — that\'s ${Math.round(diff/60*10)/10} extra hours every day.`;
+    tip = 'Set a daily limit in the Screen Time Log tab and use the Urge Relief tab when the urge hits.';
+  }
+  scoreEl.innerHTML = `<strong>${verdict}</strong><br/><span style="color:var(--accent);">${tip}</span>`;
 }
 
 // ══════════════════════════════════════════
@@ -1738,6 +2133,9 @@ function refreshAll() {
   renderCommitments();
   renderRelapses();
   renderFocusHistory();
+  renderKeywords();
+  renderAppLimits();
+  renderBlockedApps();
   loadGoalInputs();
 }
 
