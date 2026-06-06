@@ -46,6 +46,7 @@
     <button class="sg-tab" onclick="switchTab('urge')">Urge Relief</button>
     <button class="sg-tab" onclick="switchTab('commitments')">Commitments</button>
     <button class="sg-tab" onclick="switchTab('insights')">Insights</button>
+    <button class="sg-tab" onclick="switchTab('journey')">🏆 Journey</button>
   </div>
 
   <!-- ══════════ DASHBOARD ══════════ -->
@@ -97,6 +98,24 @@
       <div class="sg-card">
         <h3>Recent Check-ins</h3>
         <div id="dash-urge-log"><div class="empty-state"><div class="empty-icon">📝</div>No check-ins yet.</div></div>
+      </div>
+    </div>
+
+    <!-- Level + XP mini card -->
+    <div class="sg-card" style="padding:14px 18px;">
+      <div style="display:flex;align-items:center;gap:14px;">
+        <div style="text-align:center;min-width:52px;">
+          <div id="dash-level-num" style="font-size:1.9rem;font-weight:900;line-height:1;color:var(--primary);">1</div>
+          <div style="font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text-3);">Level</div>
+        </div>
+        <div style="flex:1;">
+          <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px;">
+            <span id="dash-level-name" style="font-size:.85rem;font-weight:700;color:var(--text);">Awakening</span>
+            <span id="dash-xp-label" style="font-size:.72rem;color:var(--text-3);">0 XP</span>
+          </div>
+          <div class="bar-track" style="height:7px;"><div id="dash-xp-bar" class="bar-fill" style="width:0%;background:linear-gradient(90deg,var(--primary),var(--accent));border-radius:99px;"></div></div>
+        </div>
+        <button class="btn btn-ghost btn-sm" onclick="switchTab('journey')">Journey →</button>
       </div>
     </div>
 
@@ -607,6 +626,16 @@
 
   <!-- ══════════ INSIGHTS ══════════ -->
   <div id="view-insights" class="sg-view">
+
+    <!-- AI Insights -->
+    <div class="sg-card card-primary" style="margin-bottom:0;">
+      <div class="section-header">
+        <h3 style="margin:0;color:var(--primary);">🤖 AI Insights</h3>
+        <span style="font-size:.72rem;color:var(--text-3);">Based on your data</span>
+      </div>
+      <div id="ai-insights-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px;"></div>
+    </div>
+
     <div class="sg-grid-2">
       <div class="sg-card">
         <h3>Weekly Overview</h3>
@@ -653,6 +682,68 @@
       <h3>Streak History</h3>
       <div id="streak-history-view"><p class="text-faint">No streaks recorded yet.</p></div>
     </div>
+  </div>
+
+  <!-- ══════════ JOURNEY ══════════ -->
+  <div id="view-journey" class="sg-view">
+
+    <!-- Level hero -->
+    <div class="sg-card card-primary level-hero">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+        <div>
+          <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--primary);margin-bottom:4px;">Your Level</div>
+          <div id="jrn-level-num" style="font-size:2.6rem;font-weight:900;line-height:1;letter-spacing:-.04em;">1</div>
+          <div id="jrn-level-name" style="font-size:1rem;font-weight:700;color:var(--text-2);margin-top:2px;">Awakening</div>
+        </div>
+        <div style="text-align:right;">
+          <div style="font-size:.72rem;color:var(--text-3);font-weight:600;margin-bottom:4px;">TOTAL XP</div>
+          <div id="jrn-xp-total" style="font-size:1.8rem;font-weight:800;color:var(--primary);">0</div>
+        </div>
+      </div>
+      <div style="margin-top:14px;">
+        <div style="display:flex;justify-content:space-between;font-size:.72rem;color:var(--text-3);margin-bottom:5px;">
+          <span id="jrn-xp-label">0 XP</span>
+          <span id="jrn-next-label">Next: 100 XP</span>
+        </div>
+        <div class="bar-track" style="height:10px;border-radius:99px;">
+          <div id="jrn-xp-bar" class="bar-fill" style="width:0%;border-radius:99px;background:linear-gradient(90deg,var(--primary),var(--accent));"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Today's missions -->
+    <div class="sg-card">
+      <div class="section-header">
+        <h3 style="margin:0;">⚡ Today's Missions</h3>
+        <span style="font-size:.72rem;color:var(--text-3);" id="jrn-mission-xp">Complete all for bonus XP</span>
+      </div>
+      <div id="jrn-missions" style="display:flex;flex-direction:column;gap:10px;margin-top:12px;"></div>
+    </div>
+
+    <!-- Weekly challenge -->
+    <div class="sg-card card-accent">
+      <div class="section-header">
+        <h3 style="margin:0;color:var(--accent);">🌟 Weekly Challenge</h3>
+        <span id="jrn-challenge-badge" style="font-size:.72rem;font-weight:700;background:var(--accent-soft);color:var(--accent);padding:3px 10px;border-radius:99px;">In Progress</span>
+      </div>
+      <div id="jrn-challenge" style="margin-top:10px;"></div>
+    </div>
+
+    <!-- Recovery program -->
+    <div class="sg-card card-blue">
+      <div class="section-header">
+        <h3 style="margin:0;color:var(--blue);">🗺️ Recovery Program</h3>
+        <div id="jrn-program-actions" style="display:flex;gap:6px;"></div>
+      </div>
+      <div id="jrn-program" style="margin-top:12px;"></div>
+    </div>
+
+    <!-- Achievements -->
+    <div class="sg-card">
+      <h3>🏅 Achievements <span id="jrn-badge-count" style="font-size:.8rem;font-weight:600;color:var(--text-3);">(0 earned)</span></h3>
+      <div id="jrn-badges" style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:12px;"></div>
+    </div>
+
   </div>
 
 </div><!-- /app -->
@@ -917,6 +1008,14 @@ function defaultState() {
     blockedKeywords: [],
     blockedApps: [],
     appLimits: [],
+    xp: 0,
+    badges: [],
+    missionDate: null,
+    missions: [],
+    missionHistory: 0,
+    program: null,
+    programStart: null,
+    weeklyChallenge: null,
   };
 }
 
@@ -955,11 +1054,13 @@ function switchTab(name) {
         (name === 'urge' && t.textContent.includes('Urge')) ||
         (name === 'commitments' && t.textContent.includes('Commit')) ||
         (name === 'insights' && t.textContent.includes('Insight')) ||
+        (name === 'journey' && t.textContent.includes('Journey')) ||
         (name === 'focus' && t.textContent.includes('Focus')) ||
         (name === 'dashboard' && t.textContent.includes('Dashboard'))
     ) t.classList.add('active');
   });
-  if (name === 'insights') renderInsights();
+  if (name === 'insights') { renderInsights(); renderAiInsights(); }
+  if (name === 'journey') renderJourney();
 }
 
 // ══════════════════════════════════════════
@@ -1896,6 +1997,19 @@ function refreshDashboard() {
   document.getElementById('topbar-streak').textContent = `🔥 ${streak}-day streak`;
   document.getElementById('dash-blocked').textContent = state.blockedSites.length;
 
+  // Level widget
+  const lvl = (typeof getLevel === 'function') ? getLevel(state.xp || 0) : null;
+  if (lvl) {
+    const ln = document.getElementById('dash-level-num');
+    const lname = document.getElementById('dash-level-name');
+    const lbl = document.getElementById('dash-xp-label');
+    const bar = document.getElementById('dash-xp-bar');
+    if (ln) ln.textContent = lvl.level;
+    if (lname) lname.textContent = lvl.name;
+    if (lbl) lbl.textContent = `${(state.xp||0).toLocaleString()} XP`;
+    if (bar) bar.style.width = lvl.pct + '%';
+  }
+
   const today = todayStr();
   const todayMins = state.screenLogs.filter(l=>l.date===today).reduce((a,l)=>a+l.mins,0);
   const hrs = Math.floor(todayMins/60), mins = todayMins%60;
@@ -1977,6 +2091,496 @@ function escHtml(str) {
   return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
+// ══════════════════════════════════════════
+// GAMIFICATION — XP & LEVELS
+// ══════════════════════════════════════════
+const LEVELS = [
+  {xp:0,    name:'Awakening'},
+  {xp:100,  name:'Aware'},
+  {xp:250,  name:'Curious'},
+  {xp:450,  name:'Determined'},
+  {xp:700,  name:'Committed'},
+  {xp:1000, name:'Focused'},
+  {xp:1350, name:'Mindful'},
+  {xp:1750, name:'Resilient'},
+  {xp:2250, name:'Strong'},
+  {xp:2800, name:'Steady'},
+  {xp:3400, name:'Balanced'},
+  {xp:4050, name:'Disciplined'},
+  {xp:4750, name:'Grounded'},
+  {xp:5500, name:'Empowered'},
+  {xp:6300, name:'Confident'},
+  {xp:7150, name:'Clear-headed'},
+  {xp:8050, name:'Thriving'},
+  {xp:9000, name:'Unbound'},
+  {xp:10000,'name':'Free'},
+  {xp:12000, name:'Liberated'},
+];
+
+function getLevel(xp) {
+  let lvl = 0;
+  for (let i = 0; i < LEVELS.length; i++) {
+    if (xp >= LEVELS[i].xp) lvl = i;
+    else break;
+  }
+  const current = LEVELS[lvl];
+  const next = LEVELS[lvl + 1] || null;
+  const pct = next ? Math.min(100, ((xp - current.xp) / (next.xp - current.xp)) * 100) : 100;
+  return { level: lvl + 1, name: current.name, xp, pct, nextXp: next ? next.xp : current.xp };
+}
+
+function awardXp(amount, reason) {
+  const before = getLevel(state.xp || 0);
+  state.xp = (state.xp || 0) + amount;
+  const after = getLevel(state.xp);
+  save(state);
+  if (after.level > before.level) {
+    showLevelUpBanner(after);
+  }
+  renderJourney();
+}
+
+function showLevelUpBanner(lvl) {
+  const banner = document.createElement('div');
+  banner.className = 'levelup-banner';
+  banner.innerHTML = `<div style="font-size:2rem;">🎉</div><div><strong>Level Up! You're now Level ${lvl.level}</strong><br><span style="opacity:.8;">${lvl.name}</span></div>`;
+  document.body.appendChild(banner);
+  setTimeout(() => banner.classList.add('show'), 50);
+  setTimeout(() => { banner.classList.remove('show'); setTimeout(() => banner.remove(), 500); }, 3500);
+}
+
+// ══════════════════════════════════════════
+// DAILY MISSIONS
+// ══════════════════════════════════════════
+const MISSIONS_POOL = [
+  {id:'focus25',   title:'Complete a 25-min focus session',       xp:20, icon:'⏱'},
+  {id:'focus45',   title:'Complete a 45-min focus session',       xp:35, icon:'🧘'},
+  {id:'log',       title:'Log your screen time today',            xp:10, icon:'📊'},
+  {id:'under',     title:'Stay under your daily screen limit',    xp:30, icon:'🎯'},
+  {id:'breathe',   title:'Do the breathing exercise once',        xp:15, icon:'🫁'},
+  {id:'commit',    title:'Read your commitment aloud',            xp:10, icon:'🤝'},
+  {id:'journal',   title:'Write an urge journal entry',           xp:15, icon:'📝'},
+  {id:'block',     title:'Block one more distracting site',       xp:10, icon:'🚫'},
+  {id:'early',     title:'Stop all screens by 9 PM tonight',     xp:25, icon:'🌙'},
+  {id:'nophone',   title:'Keep phone away for 2+ hours',          xp:20, icon:'📵'},
+  {id:'move',      title:'Take a 10-min walk instead of scrolling', xp:15, icon:'🚶'},
+  {id:'gratitude', title:'Write 3 things you are grateful for',  xp:10, icon:'🙏'},
+  {id:'clean',     title:'Mark today as a clean day',            xp:20, icon:'✅'},
+  {id:'delete',    title:'Delete one time-wasting app today',    xp:25, icon:'🗑️'},
+  {id:'share',     title:'Share today\'s tip with someone',      xp:10, icon:'💡'},
+];
+
+function getDailyMissions() {
+  const today = todayStr();
+  if (state.missionDate === today && state.missions && state.missions.length === 3) {
+    return state.missions;
+  }
+  // Pick 3 deterministically based on day number so they feel fresh each day
+  const dayNum = Math.floor(new Date(today) / 86400000);
+  const picked = [];
+  const pool = [...MISSIONS_POOL];
+  for (let i = 0; i < 3; i++) {
+    const idx = (dayNum + i * 7) % pool.length;
+    picked.push({ ...pool[idx], done: false });
+    pool.splice(idx, 1);
+  }
+  state.missionDate = today;
+  state.missions = picked;
+  save(state);
+  return picked;
+}
+
+function completeMission(idx) {
+  const m = state.missions[idx];
+  if (!m || m.done) return;
+  m.done = true;
+  state.missionHistory = (state.missionHistory || 0) + 1;
+  save(state);
+  awardXp(m.xp, `Mission: ${m.title}`);
+  checkBadges();
+  renderJourney();
+}
+
+// ══════════════════════════════════════════
+// WEEKLY CHALLENGE
+// ══════════════════════════════════════════
+const WEEKLY_CHALLENGES = [
+  {id:'streak7',   title:'7-Day Streak',          desc:'Maintain your clean streak all 7 days this week.',            target:7,  unit:'days',    xp:100, check: () => getCurrentStreak() >= 7},
+  {id:'focus5',    title:'Focus Marathon',         desc:'Complete 5 focus sessions this week.',                        target:5,  unit:'sessions',xp:75,  check: () => {
+    const cutoff = new Date(); cutoff.setDate(cutoff.getDate()-7);
+    return (state.focusSessions||[]).filter(s=>new Date(s.date)>=cutoff).length >= 5;
+  }},
+  {id:'under5',    title:'5 Days Under Limit',     desc:'Stay under your daily screen limit 5 out of 7 days.',         target:5,  unit:'days',    xp:80,  check: () => {
+    const cutoff = new Date(); cutoff.setDate(cutoff.getDate()-7);
+    const days = [...new Set((state.screenLogs||[]).filter(l=>new Date(l.date)>=cutoff).map(l=>l.date))];
+    const goal = state.goals.daily || 120;
+    return days.filter(d => (state.screenLogs||[]).filter(l=>l.date===d).reduce((a,l)=>a+l.mins,0) <= goal).length >= 5;
+  }},
+  {id:'log7',      title:'Full Week Logger',       desc:'Log your screen time every single day this week.',            target:7,  unit:'days',    xp:60,  check: () => {
+    const days = [];
+    for (let i=0; i<7; i++) { const d=new Date(); d.setDate(d.getDate()-i); days.push(d.toISOString().slice(0,10)); }
+    return days.every(d => (state.screenLogs||[]).some(l=>l.date===d));
+  }},
+  {id:'block3',    title:'Block 3 Sites',          desc:'Add at least 3 websites to your block list this week.',       target:3,  unit:'sites',   xp:50,  check: () => (state.blockedSites||[]).length >= 3},
+  {id:'missions5', title:'5 Missions Crushed',     desc:'Complete 5 daily missions this week.',                        target:5,  unit:'missions',xp:70,  check: () => (state.missionHistory||0) >= 5},
+];
+
+function getWeeklyChallenge() {
+  const weekNum = Math.floor(Date.now() / (7 * 86400000));
+  if (state.weeklyChallenge && state.weeklyChallenge.week === weekNum) return state.weeklyChallenge;
+  const ch = WEEKLY_CHALLENGES[weekNum % WEEKLY_CHALLENGES.length];
+  state.weeklyChallenge = { ...ch, week: weekNum, done: false };
+  save(state);
+  return state.weeklyChallenge;
+}
+
+function completeChallenge() {
+  const ch = getWeeklyChallenge();
+  if (ch.done) return;
+  if (!ch.check()) { alert('Challenge not yet complete — keep going!'); return; }
+  state.weeklyChallenge.done = true;
+  save(state);
+  awardXp(ch.xp, `Weekly challenge: ${ch.title}`);
+  checkBadges();
+  renderJourney();
+}
+
+// ══════════════════════════════════════════
+// BADGES / ACHIEVEMENTS
+// ══════════════════════════════════════════
+const BADGES_DEF = [
+  {id:'first_log',    icon:'📊', name:'First Step',       desc:'Log screen time for the first time', check: s => (s.screenLogs||[]).length >= 1},
+  {id:'week_log',     icon:'📅', name:'Honest Reporter',  desc:'Log screen time 7 different days',   check: s => [...new Set((s.screenLogs||[]).map(l=>l.date))].length >= 7},
+  {id:'month_log',    icon:'🗓️', name:'Daily Reporter',   desc:'Log screen time 30+ days',           check: s => [...new Set((s.screenLogs||[]).map(l=>l.date))].length >= 30},
+  {id:'first_focus',  icon:'⏱', name:'Focus Starter',    desc:'Complete your first focus session',  check: s => (s.focusSessions||[]).length >= 1},
+  {id:'focus_10',     icon:'🎯', name:'Flow State',       desc:'Complete 10 focus sessions',         check: s => (s.focusSessions||[]).length >= 10},
+  {id:'focus_50',     icon:'🏅', name:'Focus Master',     desc:'Complete 50 focus sessions',         check: s => (s.focusSessions||[]).length >= 50},
+  {id:'first_commit', icon:'🤝', name:'Committed',        desc:'Add your first commitment',          check: s => (s.commitments||[]).length >= 1},
+  {id:'streak_3',     icon:'🔥', name:'3-Day Streak',     desc:'3 consecutive clean days',           check: () => getCurrentStreak() >= 3},
+  {id:'streak_7',     icon:'🌟', name:'Week Warrior',     desc:'7-day clean streak',                 check: () => getCurrentStreak() >= 7},
+  {id:'streak_14',    icon:'💪', name:'Fortnight Strong', desc:'14-day clean streak',                check: () => getCurrentStreak() >= 14},
+  {id:'streak_30',    icon:'🏆', name:'30-Day Champion',  desc:'30-day clean streak',                check: () => getCurrentStreak() >= 30},
+  {id:'first_block',  icon:'🚫', name:'Site Slayer',      desc:'Block your first website',           check: s => (s.blockedSites||[]).length >= 1},
+  {id:'block_10',     icon:'🛡️', name:'Iron Firewall',    desc:'Block 10+ websites',                 check: s => (s.blockedSites||[]).length >= 10},
+  {id:'mission_1',    icon:'✅', name:'On a Mission',     desc:'Complete your first daily mission',  check: s => (s.missionHistory||0) >= 1},
+  {id:'mission_10',   icon:'🎖️', name:'Mission Warrior',  desc:'Complete 10 daily missions',         check: s => (s.missionHistory||0) >= 10},
+  {id:'urge_5',       icon:'🫁', name:'Urge Surfer',      desc:'Log 5 urge journal entries',         check: s => (s.urgeEntries||[]).length >= 5},
+  {id:'urge_20',      icon:'🌊', name:'Wave Rider',       desc:'Log 20 urge journal entries',        check: s => (s.urgeEntries||[]).length >= 20},
+  {id:'program_30',   icon:'🎗️', name:'30-Day Survivor',  desc:'Complete the 30-day program',        check: s => s.programStart && Math.floor((new Date()-new Date(s.programStart))/86400000) >= 30},
+  {id:'level_5',      icon:'⚡', name:'Level 5',          desc:'Reach Level 5',                      check: s => getLevel(s.xp||0).level >= 5},
+  {id:'level_10',     icon:'🚀', name:'Level 10',         desc:'Reach Level 10',                     check: s => getLevel(s.xp||0).level >= 10},
+];
+
+function checkBadges() {
+  let earned = false;
+  BADGES_DEF.forEach(b => {
+    if ((state.badges||[]).includes(b.id)) return;
+    try {
+      const pass = b.check(state);
+      if (pass) {
+        state.badges = [...(state.badges||[]), b.id];
+        earned = true;
+        showBadgeBanner(b);
+      }
+    } catch(e) {}
+  });
+  if (earned) save(state);
+}
+
+function showBadgeBanner(b) {
+  const el = document.createElement('div');
+  el.className = 'badge-banner';
+  el.innerHTML = `<span style="font-size:1.6rem;">${b.icon}</span><div><strong>Badge Earned!</strong><br><span style="opacity:.8;">${b.name} — ${b.desc}</span></div>`;
+  document.body.appendChild(el);
+  setTimeout(() => el.classList.add('show'), 50);
+  setTimeout(() => { el.classList.remove('show'); setTimeout(() => el.remove(), 500); }, 4000);
+}
+
+// ══════════════════════════════════════════
+// RECOVERY PROGRAMS
+// ══════════════════════════════════════════
+const PROGRAMS = {
+  '30d': {
+    name:'30-Day Digital Detox',
+    icon:'🌱',
+    days:30,
+    weeks:[
+      {week:1, theme:'Awareness',   focus:'Track everything. Understand your habits without judgment.'},
+      {week:2, theme:'Boundaries',  focus:'Block distractions. Set hard limits. Say no to your defaults.'},
+      {week:3, theme:'Replacement', focus:'Build new habits. Fill the void with purpose and movement.'},
+      {week:4, theme:'Freedom',     focus:'Live the change. Accountability and long-term vision.'},
+    ],
+  },
+  '60d': {
+    name:'60-Day Reset',
+    icon:'🔄',
+    days:60,
+    weeks:[
+      {week:1,  theme:'Detox Start',    focus:'Measure and acknowledge. Build the habit of logging.'},
+      {week:2,  theme:'First Limits',   focus:'Set boundaries on your top 2 time-wasting categories.'},
+      {week:3,  theme:'Block & Replace',focus:'Block sites. Replace urges with focus sessions.'},
+      {week:4,  theme:'Consolidate',    focus:'Strengthen what is working. Double down on focus.'},
+      {week:5,  theme:'Community',      focus:'Add an accountability partner. Share your progress.'},
+      {week:6,  theme:'Identity',       focus:'You are becoming someone who controls their attention.'},
+      {week:7,  theme:'Deep Work',      focus:'Aim for 2+ hour focus blocks. Protect your mornings.'},
+      {week:8,  theme:'Freedom',        focus:'The phone serves you now — not the other way around.'},
+    ],
+  },
+  '90d': {
+    name:'90-Day Transformation',
+    icon:'🦋',
+    days:90,
+    weeks:[
+      {week:1,  theme:'Awakening',      focus:'See your addiction clearly. No judgment, just truth.'},
+      {week:2,  theme:'Commitment',     focus:'Write your "why". Who are you doing this for?'},
+      {week:3,  theme:'First Blocks',   focus:'Block the top 3 sites/apps causing harm.'},
+      {week:4,  theme:'Urge Surfing',   focus:'Practice sitting with urges. They always pass.'},
+      {week:5,  theme:'Focus Habit',    focus:'One focused session every single day.'},
+      {week:6,  theme:'Social Reset',   focus:'Limit social media to one intentional session per day.'},
+      {week:7,  theme:'Body & Mind',    focus:'Daily movement reduces screen cravings by 40%.'},
+      {week:8,  theme:'Deep Work',      focus:'2-hour focus blocks. Your best work is in here.'},
+      {week:9,  theme:'Accountability', focus:'Tell 3 people your 90-day goal. Announce it.'},
+      {week:10, theme:'Gratitude',      focus:'What has clarity given you? Write it down daily.'},
+      {week:11, theme:'Identity',       focus:'You are not a phone addict. You are a focused person.'},
+      {week:12, theme:'Liberation',     focus:'You made it. Now design a life the screen can\'t compete with.'},
+    ],
+  },
+};
+
+function startProgram(id) {
+  if (state.program && !confirm('Replace your current program with a new one?')) return;
+  state.program = id;
+  state.programStart = todayStr();
+  save(state);
+  renderJourney();
+}
+
+function abandonProgram() {
+  if (!confirm('Abandon current program? Your XP is kept.')) return;
+  state.program = null;
+  state.programStart = null;
+  save(state);
+  renderJourney();
+}
+
+// ══════════════════════════════════════════
+// AI INSIGHTS ENGINE
+// ══════════════════════════════════════════
+const CAT_NAMES = {social:'Social Media', entertainment:'Entertainment', games:'Gaming', adult:'Adult Content', news:'News', other:'Other'};
+
+function generateInsights() {
+  const logs = state.screenLogs || [];
+  const sessions = state.focusSessions || [];
+  const insights = [];
+
+  if (logs.length < 3) {
+    return [{icon:'💡', title:'Keep logging!', desc:'Log at least 3 days of screen time to unlock your personalized AI insights.', color:'blue'}];
+  }
+
+  // 1. Worst day of week
+  const dayTotals = {};
+  const dayCounts = {};
+  logs.forEach(l => {
+    const dow = new Date(l.date + 'T12:00:00').toLocaleDateString('en',{weekday:'long'});
+    dayTotals[dow] = (dayTotals[dow]||0) + l.mins;
+    dayCounts[dow] = (dayCounts[dow]||0) + 1;
+  });
+  const dayAvg = Object.entries(dayTotals).map(([d,t])=>({d, avg:t/(dayCounts[d]||1)}));
+  dayAvg.sort((a,b)=>b.avg-a.avg);
+  if (dayAvg.length) {
+    const worst = dayAvg[0];
+    insights.push({icon:'📅', title:`${worst.d}s are your hardest`, desc:`You average ${Math.round(worst.avg)} min on ${worst.d}s — your highest-risk day. Plan extra accountability.`, color:'warn'});
+  }
+
+  // 2. Most addictive category
+  const catTotals = {};
+  logs.forEach(l => { catTotals[l.cat] = (catTotals[l.cat]||0) + l.mins; });
+  const catsSorted = Object.entries(catTotals).sort((a,b)=>b[1]-a[1]);
+  if (catsSorted.length) {
+    const [topCat, topMins] = catsSorted[0];
+    insights.push({icon:'📱', title:`${CAT_NAMES[topCat]||topCat} dominates`, desc:`${topMins} min total logged on ${CAT_NAMES[topCat]||topCat}. Blocking or limiting this category has the biggest ROI.`, color:'danger'});
+  }
+
+  // 3. Week-over-week trend
+  const now = new Date();
+  const d7 = new Date(now); d7.setDate(d7.getDate()-7);
+  const d14 = new Date(now); d14.setDate(d14.getDate()-14);
+  const last7  = logs.filter(l=>new Date(l.date+'T12:00:00')>=d7).reduce((a,l)=>a+l.mins,0);
+  const prev7  = logs.filter(l=>{const ld=new Date(l.date+'T12:00:00');return ld>=d14&&ld<d7;}).reduce((a,l)=>a+l.mins,0);
+  if (prev7 > 0) {
+    const change = last7 - prev7;
+    if (change < -20) {
+      insights.push({icon:'📉', title:`Down ${Math.abs(change)} min vs last week`, desc:`Real progress! You used ${Math.abs(change)} fewer minutes this week. Keep compounding the gains.`, color:'accent'});
+    } else if (change > 20) {
+      insights.push({icon:'📈', title:`Up ${change} min vs last week`, desc:`Screen time rose ${change} min compared to last week. Tighten your daily limit now before it becomes a trend.`, color:'warn'});
+    } else {
+      insights.push({icon:'➡️', title:'Holding steady week-over-week', desc:`±${Math.abs(change)} min vs last week. You've plateaued — push for a 10% reduction in your daily limit goal.`, color:'blue'});
+    }
+  }
+
+  // 4. Focus efficiency
+  if (sessions.length > 0) {
+    const recentSessions = sessions.filter(s => {
+      const d=new Date(s.date+'T12:00:00'); return d>=d7;
+    });
+    insights.push({icon:'⏱', title:`${sessions.length} focus sessions logged`, desc:`${recentSessions.length} this week. ${sessions.length>=10?'Excellent consistency — you\'re building a deep-work habit.':'Try for 1 session/day to build momentum.'}`, color:'accent'});
+  }
+
+  // 5. Risk score for today
+  const todayDow = new Date().toLocaleDateString('en',{weekday:'long'});
+  const todayDayAvg = dayAvg.find(d=>d.d===todayDow);
+  const overallAvg = dayAvg.reduce((a,d)=>a+d.avg,0)/Math.max(dayAvg.length,1);
+  if (todayDayAvg && todayDayAvg.avg > overallAvg * 1.25) {
+    insights.push({icon:'🔴', title:`High-risk day — stay vigilant`, desc:`${todayDow}s trend high for you (avg ${Math.round(todayDayAvg.avg)} min). Set an intention now before the urge hits.`, color:'danger'});
+  } else {
+    insights.push({icon:'🟢', title:`Lower-risk day — build momentum`, desc:`${todayDow}s tend to be manageable for you. Use this energy to stay well under your limit today.`, color:'accent'});
+  }
+
+  return insights;
+}
+
+function renderAiInsights() {
+  const el = document.getElementById('ai-insights-grid');
+  if (!el) return;
+  const colorMap = {accent:'var(--accent)',danger:'var(--danger)',warn:'var(--warn)',blue:'var(--blue)',primary:'var(--primary)'};
+  const bgMap = {accent:'var(--accent-soft)',danger:'var(--danger-soft)',warn:'var(--warn-soft)',blue:'var(--blue-soft)',primary:'rgba(124,92,252,.08)'};
+  el.innerHTML = generateInsights().map(ins => `
+    <div style="background:${bgMap[ins.color]||bgMap.blue};border:1px solid ${colorMap[ins.color]||colorMap.blue}33;border-radius:var(--r-sm);padding:12px;display:flex;flex-direction:column;gap:6px;">
+      <span style="font-size:1.4rem;line-height:1;">${ins.icon}</span>
+      <div style="font-size:.82rem;font-weight:700;color:${colorMap[ins.color]||colorMap.blue};">${ins.title}</div>
+      <div style="font-size:.75rem;color:var(--text-2);line-height:1.55;">${ins.desc}</div>
+    </div>
+  `).join('');
+}
+
+// ══════════════════════════════════════════
+// JOURNEY RENDER
+// ══════════════════════════════════════════
+function renderJourney() {
+  if (!document.getElementById('jrn-level-num')) return;
+
+  // Level card
+  const lvl = getLevel(state.xp || 0);
+  document.getElementById('jrn-level-num').textContent = lvl.level;
+  document.getElementById('jrn-level-name').textContent = lvl.name;
+  document.getElementById('jrn-xp-total').textContent = (state.xp || 0).toLocaleString();
+  document.getElementById('jrn-xp-bar').style.width = lvl.pct + '%';
+  document.getElementById('jrn-xp-label').textContent = `${(state.xp||0).toLocaleString()} XP`;
+  document.getElementById('jrn-next-label').textContent = `Next: ${lvl.nextXp.toLocaleString()} XP`;
+
+  // Missions
+  const missions = getDailyMissions();
+  const mEl = document.getElementById('jrn-missions');
+  mEl.innerHTML = missions.map((m, i) => `
+    <div class="mission-card${m.done?' done':''}">
+      <span class="mission-icon">${m.done ? '✅' : m.icon}</span>
+      <div class="mission-body">
+        <div class="mission-title">${m.title}</div>
+        <div class="mission-xp">+${m.xp} XP</div>
+      </div>
+      ${m.done
+        ? '<span class="mission-done-badge">Done</span>'
+        : `<button class="btn btn-primary btn-sm" onclick="completeMission(${i})">Done</button>`}
+    </div>
+  `).join('');
+  const allDone = missions.every(m=>m.done);
+  document.getElementById('jrn-mission-xp').textContent = allDone ? '🎉 All missions complete!' : `${missions.filter(m=>m.done).length}/3 done`;
+
+  // Weekly challenge
+  const ch = getWeeklyChallenge();
+  const chEl = document.getElementById('jrn-challenge');
+  const badge = document.getElementById('jrn-challenge-badge');
+  if (ch.done) {
+    badge.textContent = '✅ Completed';
+    badge.style.background = 'var(--accent-soft)';
+    badge.style.color = 'var(--accent)';
+  } else {
+    badge.textContent = 'In Progress';
+  }
+  let chProgress = '';
+  try { chProgress = ch.check() ? '🟢 Condition met! Claim your reward.' : '🔵 Keep going…'; } catch(e){}
+  chEl.innerHTML = `
+    <div style="font-size:1rem;font-weight:700;margin-bottom:4px;">${ch.title}</div>
+    <div style="font-size:.82rem;color:var(--text-2);margin-bottom:10px;">${ch.desc}</div>
+    <div style="font-size:.78rem;color:var(--text-3);margin-bottom:10px;">${chProgress}</div>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <span style="font-size:.78rem;font-weight:700;color:var(--accent);">+${ch.xp} XP reward</span>
+      ${!ch.done ? `<button class="btn btn-accent btn-sm" onclick="completeChallenge()">Claim Reward</button>` : ''}
+    </div>
+  `;
+
+  // Recovery program
+  const pEl = document.getElementById('jrn-program');
+  const pAct = document.getElementById('jrn-program-actions');
+  if (state.program) {
+    const prog = PROGRAMS[state.program];
+    const daysDone = Math.min(prog.days, Math.floor((new Date()-new Date(state.programStart+'T00:00:00'))/86400000));
+    const weeksDone = Math.floor(daysDone/7);
+    const pct = Math.round((daysDone/prog.days)*100);
+    pAct.innerHTML = `<button class="btn btn-ghost btn-sm" onclick="abandonProgram()">Abandon</button>`;
+    pEl.innerHTML = `
+      <div style="font-size:1rem;font-weight:700;margin-bottom:4px;">${prog.icon} ${prog.name}</div>
+      <div style="font-size:.78rem;color:var(--text-3);margin-bottom:10px;">Day ${daysDone} of ${prog.days} · ${pct}% complete</div>
+      <div class="bar-track" style="height:8px;margin-bottom:14px;"><div class="bar-fill" style="width:${pct}%;background:var(--blue);"></div></div>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        ${prog.weeks.map((w,i) => `
+          <div style="display:flex;gap:10px;align-items:flex-start;opacity:${i<=weeksDone?1:.4};">
+            <div style="width:24px;height:24px;border-radius:50%;background:${i<weeksDone?'var(--accent)':i===weeksDone?'var(--blue)':'var(--surface-2)'};display:flex;align-items:center;justify-content:center;font-size:.65rem;font-weight:800;flex-shrink:0;margin-top:2px;">${i<weeksDone?'✓':i+1}</div>
+            <div><div style="font-size:.82rem;font-weight:700;">Week ${w.week}: ${w.theme}</div><div style="font-size:.75rem;color:var(--text-2);">${w.focus}</div></div>
+          </div>`).join('')}
+      </div>
+    `;
+  } else {
+    pAct.innerHTML = '';
+    pEl.innerHTML = `
+      <p style="font-size:.85rem;color:var(--text-2);margin:0 0 14px;">Choose a structured recovery program. Each program gives you a daily roadmap, XP milestones, and week-by-week themes.</p>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;">
+        ${Object.entries(PROGRAMS).map(([id,p])=>`
+          <div style="border:1px solid var(--border);border-radius:var(--r-sm);padding:14px;text-align:center;cursor:pointer;" onclick="startProgram('${id}')">
+            <div style="font-size:2rem;margin-bottom:6px;">${p.icon}</div>
+            <div style="font-size:.82rem;font-weight:700;">${p.name}</div>
+            <div style="font-size:.72rem;color:var(--text-3);margin-top:4px;">${p.days} days</div>
+            <button class="btn btn-primary btn-sm" style="margin-top:10px;width:100%;">Start →</button>
+          </div>`).join('')}
+      </div>
+    `;
+  }
+
+  // Badges
+  const earned = state.badges || [];
+  const bEl = document.getElementById('jrn-badges');
+  document.getElementById('jrn-badge-count').textContent = `(${earned.length} / ${BADGES_DEF.length} earned)`;
+  bEl.innerHTML = BADGES_DEF.map(b => {
+    const have = earned.includes(b.id);
+    return `<div class="badge-tile${have?'':' locked'}" title="${b.desc}">
+      <div class="badge-icon">${have ? b.icon : '🔒'}</div>
+      <div class="badge-name">${b.name}</div>
+    </div>`;
+  }).join('');
+}
+
+// Hook awardXp into existing actions
+const _origAddScreenLog = window.addScreenLog;
+window.addScreenLog = function() {
+  _origAddScreenLog && _origAddScreenLog();
+  awardXp(10, 'Screen time logged');
+  checkBadges();
+};
+const _origMarkDayClean = window.markDayClean;
+window.markDayClean = function() {
+  _origMarkDayClean && _origMarkDayClean();
+  const streak = getCurrentStreak();
+  awardXp(15 + streak * 2, `Clean day (streak ${streak})`);
+  checkBadges();
+};
+const _origTimerComplete = window.timerComplete;
+document.addEventListener('timerComplete', e => {
+  if (e.detail && e.detail.phase === 'focus') {
+    awardXp(20, 'Focus session completed');
+    checkBadges();
+  }
+});
+
 function refreshAll() {
   refreshDashboard();
   renderLogs();
@@ -1988,6 +2592,9 @@ function refreshAll() {
   renderAppLimits();
   renderBlockedApps();
   loadGoalInputs();
+  renderJourney();
+  renderAiInsights();
+  checkBadges();
 }
 
 // ══════════════════════════════════════════
