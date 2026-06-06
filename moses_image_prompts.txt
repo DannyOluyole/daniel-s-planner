@@ -1,0 +1,71 @@
+MOSES VIDEO — IMAGE PROMPTS FOR CHATGPT IMAGE 2
+================================================
+Style reminder for every prompt:
+MS Paint beginner drawing style. White background. Thick wobbly black outlines.
+Stick figures with round heads. Simple dot eyes. Flat colors only. No shading.
+No realism. No polish. Funny and intentionally "bad." Horizontal 16:9 format.
+================================================
+
+--- PROMPT 1 (Timestamp 0:00–0:07) ---
+A simple MS Paint beginner drawing, horizontal 16:9 format, white background,
+thick wobbly black outlines. Three stick figures stand in a row. Above the first
+one is a label that says "MURDERER" in messy handwriting. Above the second one
+is a label that says "FUGITIVE." Above the third one is a label that says
+"NOBODY." All three stick figures look sad with downturned mouths. But above all
+three there is a big glowing yellow star or a hand pointing down from clouds
+drawn with wobbly lines, suggesting God has a plan. Keep it very simple, flat,
+and childish. No polish, no realism.
+
+--- PROMPT 2 (Timestamp 0:07–0:16) ---
+A simple MS Paint beginner drawing, horizontal 16:9 format, white background,
+thick wobbly black outlines. On the left side is a small stick figure (Moses)
+holding a wooden staff, looking up. On the right side is a big throne made of
+basic rectangles. A stick figure sits on the throne wearing a flat yellow crown.
+A speech bubble from Moses says "LET MY PEOPLE GO." A speech bubble from the
+king says "HA HA HA." The king looks bigger and fancier than Moses. Keep it
+flat, simple, funny, and childish. No realism. No polish.
+
+--- PROMPT 3 (Timestamp 0:16–0:26) ---
+A simple MS Paint beginner drawing, horizontal 16:9 format, white background,
+thick wobbly black outlines. On the left side, a huge crowd of stick figures
+walking in a line — at least 10-15 tiny stick figures marching forward with
+happy faces. They are labeled "2 MILLION PEOPLE" in messy handwriting. Behind
+them on the right side are simple box-shaped chariots with circle wheels and
+stick figure soldiers riding them. Draw about 4-5 chariots. Use flat brown and
+gray colors. Keep everything very simple and childish.
+
+--- PROMPT 4 (Timestamp 0:26–0:36) ---
+A simple MS Paint beginner drawing, horizontal 16:9 format, white background,
+thick wobbly black outlines. In the center is a large body of water drawn with
+wobbly blue lines and waves. On the left shore stands a crowd of small stick
+figures looking scared (wide circle eyes, worried mouths). Behind them are
+simple chariots. In front of them is the sea blocking the way. One tall stick
+figure at the front (Moses) holds a wooden staff up in the air. A big red
+question mark floats above the crowd. Keep it flat, simple, and childish.
+
+--- PROMPT 5 (Timestamp 0:36–0:46) ---
+A simple MS Paint beginner drawing, horizontal 16:9 format, white background,
+thick wobbly black outlines. The sea is split into two tall walls of blue water
+on the left and right sides. Between the walls is a dry path of flat brown
+ground. A long line of happy stick figures walks through the middle on dry
+ground. Moses leads at the front holding his staff up. The walls of water are
+drawn with wobbly stacked blue rectangles or wavy lines. Label the walls "WALL
+OF WATER" with an arrow pointing to each side. Keep it flat, simple, funny, and
+childish.
+
+--- PROMPT 6 (Timestamp 0:46–1:00) ---
+A simple MS Paint beginner drawing, horizontal 16:9 format, white background,
+thick wobbly black outlines. On the left side, a large door or gate is wide
+open, drawn with simple rectangles. Rays of light (straight yellow lines) beam
+out from the open door. A stick figure (Moses or a person) walks freely through
+the open door. On the right side, a group of soldier stick figures with simple
+helmets are blocked by a big red X or a wall. One soldier raises a fist looking
+angry. Above the scene in messy handwriting it says "WHEN GOD OPENS A WAY."
+Keep everything very flat, simple, childish, and funny.
+
+================================================
+HOW TO USE:
+Copy one prompt at a time and paste it into ChatGPT (GPT-4o with image
+generation). Ask it to generate a 16:9 horizontal image using that prompt.
+Repeat for all 6 prompts.
+================================================
