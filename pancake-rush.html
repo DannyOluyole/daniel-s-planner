@@ -1,0 +1,888 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Pancake Rush</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #0d1117;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    font-family: 'Courier New', monospace;
+    user-select: none;
+  }
+  h1 {
+    color: #f4a261;
+    font-size: 28px;
+    letter-spacing: 4px;
+    margin-bottom: 12px;
+    text-shadow: 0 0 20px #f4a261aa;
+  }
+  canvas {
+    border: 3px solid #f4a261;
+    border-radius: 10px;
+    box-shadow: 0 0 40px #f4a26133;
+    cursor: none;
+  }
+  #overlay {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.85);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: #f4e29e;
+    border-radius: 10px;
+    z-index: 10;
+  }
+  #overlay h2 { font-size: 32px; color: #f4a261; margin-bottom: 10px; }
+  #overlay p { font-size: 15px; margin: 5px 0; color: #ccc; }
+  #overlay .controls { margin: 18px 0; background: #ffffff11; padding: 14px 24px; border-radius: 8px; line-height: 2; }
+  #overlay button {
+    margin-top: 16px;
+    padding: 12px 36px;
+    font-size: 18px;
+    font-family: monospace;
+    background: #f4a261;
+    color: #1a1a2e;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: bold;
+    letter-spacing: 2px;
+    transition: transform 0.1s;
+  }
+  #overlay button:hover { transform: scale(1.05); }
+  #wrap { position: relative; }
+</style>
+</head>
+<body>
+<h1>🥞 PANCAKE RUSH</h1>
+<div id="wrap">
+  <canvas id="game" width="820" height="580"></canvas>
+  <div id="overlay">
+    <h2>🌾 PANCAKE RUSH 🥞</h2>
+    <p>Harvest wheat → Feed the machine → Deliver pancakes!</p>
+    <div class="controls">
+      <b>WASD</b> or <b>Arrow Keys</b> — Move<br>
+      <b>E</b> — Interact (harvest / deposit / pickup / deliver)<br>
+      Hold <b>E</b> near wheat to fill your bag<br>
+      Keep customers happy before their patience runs out!
+    </div>
+    <button id="startBtn">START GAME</button>
+  </div>
+</div>
+
+<script>
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
+const W = canvas.width, H = canvas.height;
+
+// ─── Input ────────────────────────────────────────────────────────────────────
+const keys = {};
+addEventListener('keydown', e => {
+  keys[e.code] = true;
+  if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(e.key)) e.preventDefault();
+});
+addEventListener('keyup', e => { keys[e.code] = false; });
+
+// ─── Audio ────────────────────────────────────────────────────────────────────
+let audioCtx;
+function initAudio() {
+  audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+}
+function beep(freq, dur, type = 'sine', vol = 0.08) {
+  if (!audioCtx) return;
+  try {
+    const o = audioCtx.createOscillator();
+    const g = audioCtx.createGain();
+    o.type = type;
+    o.frequency.value = freq;
+    o.connect(g); g.connect(audioCtx.destination);
+    const now = audioCtx.currentTime;
+    g.gain.setValueAtTime(vol, now);
+    g.gain.exponentialRampToValueAtTime(0.001, now + dur);
+    o.start(now); o.stop(now + dur);
+  } catch(e) {}
+}
+function playHarvest() { beep(440, 0.15); }
+function playDeposit() { beep(300, 0.12); setTimeout(()=>beep(200,0.15),100); }
+function playPickup()  { beep(550, 0.1); setTimeout(()=>beep(700,0.12),80); }
+function playDeliver() {
+  [523,659,784,1047].forEach((f,i) => setTimeout(()=>beep(f,0.18,'square',0.07), i*80));
+}
+function playReady()   { beep(880,0.15); setTimeout(()=>beep(1100,0.2),130); }
+function playImpatient(){ beep(200, 0.3, 'sawtooth', 0.06); }
+
+// ─── World Layout ──────────────────────────────────────────────────────────────
+const WHEAT = { x: 40,  y: 70,  w: 240, h: 190 };
+const MCH   = { x: 340, y: 170, w: 130, h: 110 }; // machine rect
+
+const CUSTOMERS = [
+  { x: 640, y: 100 },
+  { x: 700, y: 270 },
+  { x: 640, y: 430 },
+];
+
+// ─── State ─────────────────────────────────────────────────────────────────────
+let score, day, gameRunning;
+let player, wheatPlants, machine, customers, particles, floatTexts;
+
+function initGame() {
+  score = 0;
+  day = 1;
+  gameRunning = true;
+
+  player = {
+    x: 430, y: 360,
+    vx: 0, vy: 0,
+    walkFrame: 0, walkTick: 0,
+    carrying: null, // null | 'wheat' | 'pancakes'
+    wheatBag: 0,
+    pancakeStack: 0,
+    harvestTimer: 0,
+    facing: 1, // 1=right, -1=left
+  };
+
+  machine = {
+    processing: false,
+    timer: 0,
+    duration: 4,
+    pancakesReady: 0,
+  };
+
+  particles = [];
+  floatTexts = [];
+
+  buildWheatField();
+  spawnCustomers();
+}
+
+function buildWheatField() {
+  wheatPlants = [];
+  for (let row = 0; row < 4; row++) {
+    for (let col = 0; col < 6; col++) {
+      wheatPlants.push({
+        x: WHEAT.x + 28 + col * 36,
+        y: WHEAT.y + 28 + row * 40,
+        grown: true,
+        growTimer: 0,
+        sway: Math.random() * Math.PI * 2,
+      });
+    }
+  }
+}
+
+function spawnCustomers() {
+  customers = CUSTOMERS.map((pos, i) => ({
+    x: pos.x, y: pos.y,
+    order: Math.floor(Math.random() * 3) + 1,
+    patience: 1,
+    satisfied: false,
+    impatientFlash: 0,
+    delay: i * 0.5, // stagger appearance
+    visible: false,
+  }));
+}
+
+// ─── Utility ───────────────────────────────────────────────────────────────────
+function dist(a, b) { return Math.hypot(a.x - b.x, a.y - b.y); }
+function nearMachine() {
+  return dist(player, { x: MCH.x + MCH.w/2, y: MCH.y + MCH.h/2 }) < 85;
+}
+
+// ─── Floating Text ─────────────────────────────────────────────────────────────
+function spawnFloat(x, y, text, color = '#f4e29e') {
+  floatTexts.push({ x, y, text, color, life: 1.5, vy: -40 });
+}
+
+// ─── Update ────────────────────────────────────────────────────────────────────
+let lastTs = 0;
+
+function update(dt, t) {
+  // ── Player movement ──
+  let ax = 0, ay = 0;
+  if (keys['KeyW'] || keys['ArrowUp'])    ay -= 1;
+  if (keys['KeyS'] || keys['ArrowDown'])  ay += 1;
+  if (keys['KeyA'] || keys['ArrowLeft'])  { ax -= 1; player.facing = -1; }
+  if (keys['KeyD'] || keys['ArrowRight']) { ax += 1; player.facing =  1; }
+  const mag = Math.hypot(ax, ay);
+  if (mag > 0) { ax /= mag; ay /= mag; }
+  const spd = 170;
+  player.vx += (ax * spd - player.vx) * Math.min(1, dt * 14);
+  player.vy += (ay * spd - player.vy) * Math.min(1, dt * 14);
+  player.x = Math.max(18, Math.min(W - 18, player.x + player.vx * dt));
+  player.y = Math.max(50, Math.min(H - 40, player.y + player.vy * dt));
+
+  // Walk animation
+  const moving = Math.hypot(player.vx, player.vy) > 12;
+  if (moving) {
+    player.walkTick += dt * 9;
+    player.walkFrame = Math.floor(player.walkTick) % 4;
+  } else {
+    player.walkTick = 0;
+    player.walkFrame = 0;
+  }
+
+  // ── E interaction ──
+  if (keys['KeyE']) {
+    // Harvest wheat
+    const nearW = wheatPlants.find(w => w.grown && dist(player, w) < 45);
+    if (nearW && player.carrying !== 'pancakes' && player.wheatBag < 6) {
+      player.harvestTimer += dt;
+      if (player.harvestTimer >= 0.7) {
+        player.harvestTimer = 0;
+        nearW.grown = false;
+        nearW.growTimer = 0;
+        player.wheatBag++;
+        player.carrying = 'wheat';
+        playHarvest();
+        spawnParticles(nearW.x, nearW.y, '#DAA520', 5);
+      }
+    } else {
+      player.harvestTimer = 0;
+    }
+
+    // Deposit wheat into machine
+    if (nearMachine() && player.carrying === 'wheat' && !machine.processing && machine.pancakesReady === 0) {
+      machine.processing = true;
+      machine.timer = 0;
+      machine.wheatIn = player.wheatBag;
+      player.wheatBag = 0;
+      player.carrying = null;
+      playDeposit();
+      spawnFloat(MCH.x + MCH.w/2, MCH.y - 10, '🌾 Processing!', '#f4a261');
+    }
+
+    // Collect pancakes from machine
+    if (nearMachine() && machine.pancakesReady > 0) {
+      player.pancakeStack = machine.pancakesReady;
+      machine.pancakesReady = 0;
+      player.carrying = 'pancakes';
+      playPickup();
+      spawnFloat(player.x, player.y - 30, `🥞 ×${player.pancakeStack}`, '#f4e29e');
+    }
+
+    // Deliver to customer
+    customers.forEach(c => {
+      if (!c.satisfied && c.visible && dist(player, c) < 65 && player.carrying === 'pancakes' && player.pancakeStack > 0) {
+        const give = Math.min(player.pancakeStack, c.order);
+        player.pancakeStack -= give;
+        c.order -= give;
+        if (c.order <= 0) {
+          c.satisfied = true;
+          const pts = Math.max(10, Math.ceil(c.patience * 150));
+          score += pts;
+          spawnFloat(c.x, c.y - 40, `+${pts}pts!`, '#2ecc71');
+          playDeliver();
+          spawnParticles(c.x, c.y - 20, '#f4a261', 12);
+        }
+        if (player.pancakeStack <= 0) player.carrying = null;
+      }
+    });
+  } else {
+    player.harvestTimer = 0;
+  }
+
+  // ── Machine ──
+  if (machine.processing) {
+    machine.timer += dt;
+    // Smoke particles
+    if (Math.random() < dt * 6) {
+      particles.push({
+        x: MCH.x + MCH.w - 18 + (Math.random()-0.5)*8,
+        y: MCH.y - 5,
+        vx: (Math.random()-0.5)*15,
+        vy: -25 - Math.random()*20,
+        life: 1, maxLife: 1,
+        size: 5 + Math.random()*5,
+        type: 'smoke',
+      });
+    }
+    if (machine.timer >= machine.duration) {
+      machine.processing = false;
+      machine.pancakesReady = Math.min(Math.ceil(machine.wheatIn * 1.5), 8);
+      playReady();
+      spawnFloat(MCH.x + MCH.w/2, MCH.y - 15, '🥞 Ready!', '#f4a261');
+    }
+  }
+
+  // ── Wheat regrowth ──
+  wheatPlants.forEach(w => {
+    if (!w.grown) {
+      w.growTimer += dt;
+      if (w.growTimer >= 15) w.grown = true;
+    }
+  });
+
+  // ── Customers ──
+  let allDone = true;
+  customers.forEach(c => {
+    if (!c.visible) {
+      c.delay -= dt;
+      if (c.delay <= 0) c.visible = true;
+    }
+    if (!c.satisfied && c.visible) {
+      allDone = false;
+      c.patience -= dt / (40 + day * 5);
+      if (c.patience <= 0.2) {
+        c.impatientFlash += dt * 6;
+        if (Math.floor(c.impatientFlash) % 30 === 0) playImpatient();
+      }
+      if (c.patience <= 0) {
+        // Customer leaves without food
+        c.satisfied = true;
+        c.left = true;
+        spawnFloat(c.x, c.y - 30, 'Left! 😤', '#e74c3c');
+      }
+    }
+  });
+
+  // New day
+  if (allDone) {
+    day++;
+    spawnCustomers();
+  }
+
+  // ── Particles ──
+  particles = particles.filter(p => p.life > 0);
+  particles.forEach(p => {
+    p.x += p.vx * dt;
+    p.y += p.vy * dt;
+    if (p.type === 'smoke') { p.vy *= 0.98; p.size *= 1 + dt*0.4; }
+    else { p.vy += 200 * dt; }
+    p.life -= dt * (p.type === 'smoke' ? 1 : 2.5);
+  });
+
+  // ── Float texts ──
+  floatTexts = floatTexts.filter(f => f.life > 0);
+  floatTexts.forEach(f => { f.y += f.vy * dt; f.life -= dt; });
+}
+
+function spawnParticles(x, y, color, n) {
+  for (let i = 0; i < n; i++) {
+    const angle = (i / n) * Math.PI * 2;
+    const spd = 60 + Math.random() * 80;
+    particles.push({
+      x, y, color,
+      vx: Math.cos(angle) * spd,
+      vy: Math.sin(angle) * spd - 40,
+      life: 1, maxLife: 1,
+      size: 3 + Math.random()*3,
+      type: 'burst',
+    });
+  }
+}
+
+// ─── Draw ──────────────────────────────────────────────────────────────────────
+function draw(t) {
+  // Background: sky → ground
+  const bg = ctx.createLinearGradient(0, 0, 0, H);
+  bg.addColorStop(0,   '#87CEEB');
+  bg.addColorStop(0.42,'#9BD67E');
+  bg.addColorStop(0.43,'#6B9E45');
+  bg.addColorStop(1,   '#557A38');
+  ctx.fillStyle = bg;
+  ctx.fillRect(0, 0, W, H);
+
+  // Ground path (dirt road from wheat → machine → customers)
+  ctx.fillStyle = '#c2a46a';
+  ctx.beginPath();
+  ctx.moveTo(170, 240); ctx.bezierCurveTo(250, 240, 280, 300, 340, 300);
+  ctx.bezierCurveTo(420, 300, 430, 240, 430, 220);
+  ctx.bezierCurveTo(430, 180, 480, 140, 600, 180);
+  ctx.lineTo(620, 320); ctx.bezierCurveTo(560, 340, 500, 360, 450, 380);
+  ctx.bezierCurveTo(400, 400, 380, 420, 360, 450);
+  ctx.lineTo(260, 450); ctx.lineTo(230, 350); ctx.lineTo(200, 310);
+  ctx.closePath();
+  ctx.fill();
+
+  // Wheat field zone
+  ctx.fillStyle = '#6B5B3E';
+  roundRect(WHEAT.x - 6, WHEAT.y - 6, WHEAT.w + 12, WHEAT.h + 12, 8);
+  ctx.fill();
+  ctx.fillStyle = '#7A6545';
+  roundRect(WHEAT.x, WHEAT.y, WHEAT.w, WHEAT.h, 6);
+  ctx.fill();
+
+  // Zone label
+  ctx.fillStyle = '#f4e29e';
+  ctx.font = 'bold 12px monospace';
+  ctx.textAlign = 'center';
+  ctx.fillText('WHEAT FIELD', WHEAT.x + WHEAT.w/2, WHEAT.y - 12);
+  ctx.textAlign = 'left';
+
+  // Wheat plants
+  wheatPlants.forEach(w => {
+    if (w.grown) {
+      drawWheat(w.x, w.y, 1, Math.sin(t * 1.8 + w.sway) * 4);
+    } else if (w.growTimer > 5) {
+      drawWheat(w.x, w.y, Math.min(1, (w.growTimer - 5) / 10), 0);
+    }
+  });
+
+  // Harvest indicator
+  const nearW = wheatPlants.find(w => w.grown && dist(player, w) < 45);
+  if (nearW && player.carrying !== 'pancakes' && player.wheatBag < 6) {
+    if (keys['KeyE']) {
+      // Progress arc
+      ctx.strokeStyle = '#f4a261';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.arc(nearW.x, nearW.y - 34, 10, -Math.PI/2, -Math.PI/2 + Math.PI*2*(player.harvestTimer/0.7));
+      ctx.stroke();
+    } else {
+      ctx.fillStyle = 'rgba(244,162,97,0.85)';
+      ctx.font = '11px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('[E] Harvest', nearW.x, nearW.y - 30);
+      ctx.textAlign = 'left';
+    }
+  }
+
+  // Machine
+  drawMachine(t);
+
+  // Machine hints
+  if (nearMachine()) {
+    if (player.carrying === 'wheat' && !machine.processing && machine.pancakesReady === 0) {
+      drawHint(MCH.x + MCH.w/2, MCH.y - 25, '[E] Deposit Wheat');
+    } else if (machine.pancakesReady > 0) {
+      drawHint(MCH.x + MCH.w/2, MCH.y - 25, '[E] Collect Pancakes');
+    }
+  }
+
+  // Customers
+  customers.forEach((c, i) => { if (c.visible) drawCustomer(c, i, t); });
+
+  // Particles
+  particles.forEach(p => {
+    ctx.save();
+    ctx.globalAlpha = Math.max(0, p.life / p.maxLife) * (p.type === 'smoke' ? 0.55 : 0.9);
+    ctx.fillStyle = p.color || '#aaa';
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  });
+
+  // Player stickman
+  drawStickman(player.x, player.y, player.walkFrame, player.facing, player.carrying, player.pancakeStack, player.wheatBag, t);
+
+  // Float texts
+  floatTexts.forEach(f => {
+    ctx.save();
+    ctx.globalAlpha = Math.min(1, f.life);
+    ctx.fillStyle = f.color;
+    ctx.font = 'bold 14px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText(f.text, f.x, f.y);
+    ctx.restore();
+  });
+  ctx.textAlign = 'left';
+
+  // HUD
+  drawHUD(t);
+}
+
+function drawHint(x, y, text) {
+  ctx.fillStyle = 'rgba(244,162,97,0.9)';
+  ctx.font = 'bold 11px monospace';
+  ctx.textAlign = 'center';
+  ctx.fillText(text, x, y);
+  ctx.textAlign = 'left';
+}
+
+function drawWheat(x, y, scale, sway) {
+  ctx.save();
+  ctx.translate(x + sway * scale, y);
+  ctx.scale(scale, scale);
+
+  ctx.lineWidth = 2;
+  ctx.lineCap = 'round';
+
+  // Stem
+  ctx.strokeStyle = '#8B7355';
+  ctx.beginPath();
+  ctx.moveTo(0, 2); ctx.lineTo(0, -20);
+  ctx.stroke();
+
+  // Grains
+  const grainColors = ['#DAA520','#F4D03F','#E8C028'];
+  for (let i = 0; i < 5; i++) {
+    const gy = -13 - i * 3.5;
+    const gx = (i % 2 === 0) ? 3.5 : -3.5;
+    ctx.fillStyle = grainColors[i % 3];
+    ctx.beginPath();
+    ctx.ellipse(gx, gy, 2.8, 4.5, gx > 0 ? 0.4 : -0.4, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  // Top grain
+  ctx.fillStyle = '#F0C030';
+  ctx.beginPath();
+  ctx.ellipse(0, -26, 2.5, 5.5, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.restore();
+}
+
+function drawMachine(t) {
+  const mx = MCH.x, my = MCH.y, mw = MCH.w, mh = MCH.h;
+
+  // Shadow
+  ctx.fillStyle = 'rgba(0,0,0,0.22)';
+  ctx.beginPath();
+  ctx.ellipse(mx + mw/2, my + mh + 6, mw/2 + 4, 10, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Body
+  const mGrad = ctx.createLinearGradient(mx, my, mx + mw, my + mh);
+  mGrad.addColorStop(0, '#5ba3e8');
+  mGrad.addColorStop(1, '#2c6faa');
+  ctx.fillStyle = mGrad;
+  roundRect(mx, my, mw, mh, 10);
+  ctx.fill();
+
+  // Border
+  ctx.strokeStyle = '#1a4a7a';
+  ctx.lineWidth = 2.5;
+  roundRect(mx, my, mw, mh, 10);
+  ctx.stroke();
+
+  // Inner panel
+  ctx.fillStyle = 'rgba(0,0,0,0.2)';
+  roundRect(mx + 10, my + 10, mw - 20, mh - 20, 6);
+  ctx.fill();
+
+  // Chimney
+  ctx.fillStyle = '#1a3a5a';
+  ctx.fillRect(mx + mw - 28, my - 24, 16, 26);
+  ctx.fillStyle = '#1a2a3a';
+  roundRect(mx + mw - 32, my - 28, 24, 10, 4);
+  ctx.fill();
+
+  if (machine.processing) {
+    // Spinning gear
+    const gx = mx + mw/2, gy = my + mh/2 - 5;
+    const angle = t * 3;
+    ctx.save();
+    ctx.translate(gx, gy);
+    ctx.rotate(angle);
+    const teeth = 8, r1 = 18, r2 = 24;
+    ctx.fillStyle = '#f4a261';
+    ctx.beginPath();
+    for (let i = 0; i < teeth * 2; i++) {
+      const a = (i / (teeth * 2)) * Math.PI * 2;
+      const r = i % 2 === 0 ? r2 : r1;
+      i === 0 ? ctx.moveTo(Math.cos(a)*r, Math.sin(a)*r) : ctx.lineTo(Math.cos(a)*r, Math.sin(a)*r);
+    }
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = '#2c6faa';
+    ctx.beginPath();
+    ctx.arc(0, 0, 8, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+
+    // Progress bar
+    const prog = machine.timer / machine.duration;
+    ctx.fillStyle = '#1a3a5a';
+    roundRect(mx + 12, my + mh - 18, mw - 24, 10, 4);
+    ctx.fill();
+    ctx.fillStyle = '#f4a261';
+    roundRect(mx + 12, my + mh - 18, (mw - 24) * prog, 10, 4);
+    ctx.fill();
+  } else if (machine.pancakesReady > 0) {
+    // Pancake stack on machine
+    for (let i = 0; i < Math.min(machine.pancakesReady, 5); i++) {
+      const py = my - 14 - i * 7;
+      ctx.fillStyle = i % 2 === 0 ? '#F4A261' : '#E8855A';
+      ctx.strokeStyle = '#C06030';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.ellipse(mx + mw/2, py, 18, 6, 0, 0, Math.PI * 2);
+      ctx.fill(); ctx.stroke();
+    }
+    // Bounce arrow
+    const bounce = Math.sin(t * 4) * 3;
+    ctx.fillStyle = '#f4a261';
+    ctx.font = 'bold 11px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('▲ READY!', mx + mw/2, my - 40 + bounce);
+    ctx.textAlign = 'left';
+  } else {
+    // IDLE label
+    ctx.fillStyle = '#a8d4f5';
+    ctx.font = 'bold 12px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('IDLE', mx + mw/2, my + mh/2 + 4);
+    ctx.textAlign = 'left';
+  }
+
+  // Machine label
+  ctx.fillStyle = '#f4e29e';
+  ctx.font = 'bold 11px monospace';
+  ctx.textAlign = 'center';
+  ctx.fillText('PANCAKE', mx + mw/2, my - 30);
+  ctx.fillText('MACHINE', mx + mw/2, my - 18);
+  ctx.textAlign = 'left';
+}
+
+function drawCustomer(c, i, t) {
+  if (c.left) {
+    ctx.save();
+    ctx.globalAlpha = 0.3;
+    drawStickman(c.x, c.y, 0, 1, null, 0, 0, t);
+    ctx.restore();
+    return;
+  }
+
+  // Table
+  ctx.fillStyle = '#7B5E2A';
+  roundRect(c.x - 22, c.y + 15, 44, 8, 3);
+  ctx.fill();
+  ctx.fillStyle = '#5A3F10';
+  ctx.fillRect(c.x - 16, c.y + 23, 5, 16);
+  ctx.fillRect(c.x + 11, c.y + 23, 5, 16);
+
+  drawStickman(c.x, c.y, 0, 1, null, 0, 0, t);
+
+  if (!c.satisfied) {
+    // Impatience flash
+    const flash = c.patience < 0.25 && Math.sin(t * 8) > 0;
+
+    // Speech bubble
+    const bx = c.x + 22, by = c.y - 58, bw = 66, bh = 40;
+    ctx.fillStyle = flash ? '#ffe0e0' : 'white';
+    ctx.strokeStyle = flash ? '#e74c3c' : '#555';
+    ctx.lineWidth = 1.8;
+    roundRect(bx, by, bw, bh, 8);
+    ctx.fill(); ctx.stroke();
+    // Tail
+    ctx.fillStyle = flash ? '#ffe0e0' : 'white';
+    ctx.beginPath();
+    ctx.moveTo(bx + 4, by + bh);
+    ctx.lineTo(bx + 14, by + bh);
+    ctx.lineTo(bx, by + bh + 10);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.fillStyle = '#222';
+    ctx.font = '14px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText(`🥞 ×${c.order}`, bx + bw/2, by + 26);
+    ctx.textAlign = 'left';
+
+    // Patience bar
+    const barW = 44;
+    ctx.fillStyle = '#444';
+    roundRect(c.x - barW/2, c.y + 45, barW, 6, 3);
+    ctx.fill();
+    const col = c.patience > 0.55 ? '#2ecc71' : c.patience > 0.28 ? '#f39c12' : '#e74c3c';
+    ctx.fillStyle = col;
+    roundRect(c.x - barW/2, c.y + 45, barW * c.patience, 6, 3);
+    ctx.fill();
+  } else {
+    // Happy
+    ctx.font = '20px serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('😊', c.x, c.y - 32);
+    ctx.textAlign = 'left';
+  }
+}
+
+function drawStickman(x, y, frame, facing, carrying, pancakes, wheat, t) {
+  ctx.save();
+  ctx.translate(x, y);
+  if (facing < 0) ctx.scale(-1, 1);
+
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+
+  // Shadow
+  ctx.fillStyle = 'rgba(0,0,0,0.18)';
+  ctx.beginPath();
+  ctx.ellipse(0, 12, 12, 4, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  const swing = Math.sin((frame / 4) * Math.PI * 2) * 28;
+
+  // Legs
+  ctx.strokeStyle = '#1a1a2e';
+  ctx.lineWidth = 2.8;
+  // Left leg
+  ctx.save();
+  ctx.rotate((swing) * Math.PI / 180);
+  ctx.beginPath(); ctx.moveTo(-2, 5); ctx.lineTo(-4, 22); ctx.lineTo(-6, 32); ctx.stroke();
+  ctx.restore();
+  // Right leg
+  ctx.save();
+  ctx.rotate((-swing) * Math.PI / 180);
+  ctx.beginPath(); ctx.moveTo(2, 5); ctx.lineTo(4, 22); ctx.lineTo(8, 32); ctx.stroke();
+  ctx.restore();
+
+  // Body
+  ctx.strokeStyle = '#1a1a2e';
+  ctx.lineWidth = 3;
+  ctx.beginPath(); ctx.moveTo(0, -18); ctx.lineTo(0, 6); ctx.stroke();
+
+  // Arms
+  ctx.lineWidth = 2.5;
+  // Left arm
+  ctx.save();
+  ctx.rotate((-swing * 0.6 + (carrying ? -25 : 0)) * Math.PI / 180);
+  ctx.beginPath(); ctx.moveTo(-1, -12); ctx.lineTo(-16, 2); ctx.stroke();
+  ctx.restore();
+  // Right arm (holding item)
+  ctx.save();
+  ctx.rotate((swing * 0.6 + (carrying ? 25 : 0)) * Math.PI / 180);
+  ctx.beginPath(); ctx.moveTo(1, -12); ctx.lineTo(16, 2); ctx.stroke();
+  ctx.restore();
+
+  // Head
+  ctx.fillStyle = '#FFDEAD';
+  ctx.strokeStyle = '#1a1a2e';
+  ctx.lineWidth = 2.2;
+  ctx.beginPath();
+  ctx.arc(0, -28, 11, 0, Math.PI * 2);
+  ctx.fill(); ctx.stroke();
+
+  // Face
+  ctx.fillStyle = '#1a1a2e';
+  ctx.beginPath(); ctx.arc(-3.5, -30, 1.8, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(3.5, -30, 1.8, 0, Math.PI * 2); ctx.fill();
+  ctx.lineWidth = 1.5;
+  ctx.strokeStyle = '#1a1a2e';
+  ctx.beginPath(); ctx.arc(0, -26, 4.5, 0.1, Math.PI - 0.1); ctx.stroke();
+
+  // Hair
+  ctx.strokeStyle = '#8B4513';
+  ctx.lineWidth = 2;
+  for (let i = -2; i <= 2; i++) {
+    ctx.beginPath();
+    ctx.moveTo(i * 3.5, -38);
+    ctx.lineTo(i * 3.5, -34);
+    ctx.stroke();
+  }
+
+  // Carrying item
+  if (carrying === 'wheat') {
+    // Bag
+    ctx.fillStyle = '#A0845A';
+    ctx.strokeStyle = '#7A5A30';
+    ctx.lineWidth = 2;
+    ctx.save();
+    ctx.translate(20, -8);
+    ctx.beginPath();
+    ctx.ellipse(0, 0, 11, 15, 0.25, 0, Math.PI * 2);
+    ctx.fill(); ctx.stroke();
+    // Tie
+    ctx.fillStyle = '#7A5A30';
+    ctx.fillRect(-5, -16, 10, 5);
+    // Stalks
+    ctx.strokeStyle = '#DAA520';
+    ctx.lineWidth = 1.5;
+    for (let i = -1; i <= 1; i++) {
+      ctx.beginPath(); ctx.moveTo(i*4, -13); ctx.lineTo(i*5, -22); ctx.stroke();
+    }
+    ctx.restore();
+  } else if (carrying === 'pancakes' && pancakes > 0) {
+    ctx.save();
+    ctx.translate(20, -10);
+    for (let i = 0; i < Math.min(pancakes, 5); i++) {
+      const py = -i * 6;
+      ctx.fillStyle = i % 2 === 0 ? '#F4A261' : '#E8855A';
+      ctx.strokeStyle = '#C06030';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.ellipse(0, py, 13, 4.5, 0, 0, Math.PI * 2);
+      ctx.fill(); ctx.stroke();
+    }
+    // Drizzle
+    ctx.fillStyle = '#C8860A';
+    ctx.font = '8px serif';
+    ctx.fillText('~', -4, -pancakes * 6 - 8);
+    ctx.restore();
+  }
+
+  ctx.restore();
+}
+
+function drawHUD(t) {
+  // Score + Day panel
+  ctx.fillStyle = 'rgba(0,0,0,0.65)';
+  roundRect(10, 10, 175, 78, 10);
+  ctx.fill();
+  ctx.fillStyle = '#f4e29e';
+  ctx.font = 'bold 18px monospace';
+  ctx.fillText(`🏆 ${score} pts`, 22, 38);
+  ctx.font = '14px monospace';
+  ctx.fillStyle = '#aad4ff';
+  ctx.fillText(`📅 Day ${day}`, 22, 60);
+  // Wheat bag count
+  if (player.wheatBag > 0) {
+    ctx.fillStyle = '#f4d03f';
+    ctx.fillText(`🌾 ×${player.wheatBag}`, 22, 78);
+  }
+
+  // Controls bar
+  ctx.fillStyle = 'rgba(0,0,0,0.5)';
+  roundRect(8, H - 42, 255, 30, 8);
+  ctx.fill();
+  ctx.fillStyle = '#aaa';
+  ctx.font = '11px monospace';
+  ctx.fillText('WASD: Move    E: Harvest/Interact', 16, H - 22);
+
+  // Machine ready pulse
+  if (machine.pancakesReady > 0 && !nearMachine()) {
+    const pulse = 0.7 + Math.sin(t * 5) * 0.3;
+    ctx.save();
+    ctx.globalAlpha = pulse;
+    ctx.fillStyle = '#f4a261';
+    ctx.font = 'bold 13px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('⬆ Pancakes ready!', MCH.x + MCH.w/2, MCH.y - 55);
+    ctx.restore();
+    ctx.textAlign = 'left';
+  }
+}
+
+function roundRect(x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  ctx.lineTo(x + r, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.closePath();
+}
+
+// ─── Game Loop ─────────────────────────────────────────────────────────────────
+function loop(ts) {
+  const dt = Math.min((ts - lastTs) / 1000, 0.05);
+  lastTs = ts;
+  if (gameRunning) {
+    update(dt, ts / 1000);
+    draw(ts / 1000);
+  }
+  requestAnimationFrame(loop);
+}
+
+document.getElementById('startBtn').addEventListener('click', () => {
+  initAudio();
+  initGame();
+  document.getElementById('overlay').style.display = 'none';
+  requestAnimationFrame(ts => { lastTs = ts; requestAnimationFrame(loop); });
+});
+</script>
+</body>
+</html>
