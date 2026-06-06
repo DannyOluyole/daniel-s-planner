@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
@@ -8,247 +8,30 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 <title>ScreenGuard — Digital Wellness</title>
 <link rel="stylesheet" href="styles.css" />
-<!-- Capacitor runtime (injected automatically in native builds; no-op in browser) -->
 <script>
-  // Stub so native-bridge.js works in browser without Capacitor
+  // Apply saved theme before paint (prevents flash)
+  (function(){
+    const t = localStorage.getItem('sg_theme') || 'dark';
+    document.documentElement.setAttribute('data-theme', t);
+  })();
+  // Capacitor stub for browser
   if (!window.Capacitor) {
     window.Capacitor = { isNativePlatform: () => false, Plugins: {} };
   }
 </script>
-<style>
-/* ── ScreenGuard extra styles ── */
-:root {
-  --focus: #7c5cfc;
-  --focus-dim: rgba(124,92,252,0.18);
-  --danger-dim: rgba(255,77,79,0.15);
-  --warn-dim: rgba(255,176,32,0.15);
-  --green-dim: rgba(57,217,138,0.15);
-}
-
-/* nav tabs */
-.sg-tabs { display:flex; gap:8px; flex-wrap:wrap; margin:18px 0; }
-.sg-tab {
-  padding:8px 18px; border-radius:99px;
-  border:1px solid var(--border); background:var(--panel);
-  cursor:pointer; font-size:.875rem; transition:.15s;
-}
-.sg-tab:hover { background:var(--panel-2); }
-.sg-tab.active { background:var(--focus); border-color:var(--focus); color:#fff; }
-
-/* views */
-.sg-view { display:none; }
-.sg-view.active { display:block; }
-
-/* cards */
-.sg-card {
-  background:var(--panel); border:1px solid var(--border);
-  border-radius:var(--radius); padding:22px; margin-bottom:16px;
-}
-.sg-card h3 { margin:0 0 14px; font-size:1rem; color:var(--text); }
-
-/* grid helpers */
-.sg-grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
-.sg-grid-3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:14px; }
-@media(max-width:640px){ .sg-grid-2,.sg-grid-3 { grid-template-columns:1fr; } }
-
-/* stat tiles */
-.stat-tile {
-  background:var(--panel-2); border:1px solid var(--border);
-  border-radius:12px; padding:18px 14px; text-align:center;
-}
-.stat-tile .val { font-size:2rem; font-weight:700; color:var(--accent); line-height:1; }
-.stat-tile .lbl { font-size:.78rem; color:var(--faint); margin-top:4px; }
-
-/* focus timer */
-#timer-ring-wrap {
-  display:flex; flex-direction:column; align-items:center; gap:14px; margin:10px 0;
-}
-#timer-svg { transform:rotate(-90deg); }
-#timer-circle-bg { fill:none; stroke:var(--border); stroke-width:10; }
-#timer-circle { fill:none; stroke:var(--focus); stroke-width:10;
-  stroke-linecap:round; transition:stroke-dashoffset .8s linear; }
-#timer-display {
-  font-size:2.8rem; font-weight:700; letter-spacing:.04em;
-  color:var(--text); margin-top:-4px;
-}
-#timer-phase { font-size:.85rem; color:var(--faint); }
-.timer-btns { display:flex; gap:10px; }
-.timer-btns button { flex:1; }
-
-/* inputs */
-.sg-input {
-  width:100%; padding:10px 14px; border-radius:10px;
-  border:1px solid var(--border); background:rgba(255,255,255,0.06);
-  color:var(--text); outline:none; margin-bottom:10px;
-}
-.sg-input:focus { border-color:var(--focus); }
-textarea.sg-input { resize:vertical; min-height:90px; }
-
-/* buttons */
-.btn { padding:10px 22px; border-radius:10px; border:none; cursor:pointer; font-weight:600; transition:.15s; }
-.btn-primary { background:var(--focus); color:#fff; }
-.btn-primary:hover { opacity:.88; }
-.btn-accent { background:var(--accent); color:#0b1220; }
-.btn-accent:hover { opacity:.88; }
-.btn-ghost { background:transparent; border:1px solid var(--border); color:var(--text); }
-.btn-ghost:hover { background:var(--panel-2); }
-.btn-danger { background:var(--danger); color:#fff; }
-.btn-danger:hover { opacity:.88; }
-.btn-sm { padding:6px 14px; font-size:.82rem; }
-
-/* progress bars */
-.bar-track {
-  background:rgba(255,255,255,0.08); border-radius:99px; height:10px; overflow:hidden;
-}
-.bar-fill {
-  height:100%; border-radius:99px; transition:.4s;
-  background: linear-gradient(90deg, var(--focus), var(--accent));
-}
-.bar-fill.warn { background: linear-gradient(90deg, var(--warn), #ff6b35); }
-.bar-fill.danger { background: linear-gradient(90deg, var(--danger), #ff7070); }
-
-/* streak badge */
-.streak-badge {
-  display:inline-flex; align-items:center; gap:6px;
-  background:var(--warn-dim); border:1px solid var(--warn);
-  border-radius:99px; padding:5px 14px; font-weight:700; color:var(--warn);
-}
-
-/* log list */
-.log-item {
-  display:flex; align-items:center; gap:12px;
-  padding:10px 14px; border-radius:10px;
-  background:rgba(255,255,255,0.04); margin-bottom:8px;
-  border:1px solid var(--border);
-}
-.log-item .li-icon {
-  width:34px; height:34px; border-radius:8px;
-  display:flex; align-items:center; justify-content:center;
-  font-size:1.1rem; flex-shrink:0;
-}
-.log-item .li-meta { flex:1; }
-.log-item .li-title { font-size:.9rem; font-weight:600; }
-.log-item .li-sub { font-size:.78rem; color:var(--faint); }
-.log-item .li-right { font-size:.85rem; color:var(--faint); }
-
-/* blocked sites */
-.site-chip {
-  display:inline-flex; align-items:center; gap:6px;
-  background:var(--danger-dim); border:1px solid var(--danger);
-  border-radius:99px; padding:4px 12px; font-size:.82rem;
-  margin:4px;
-}
-.site-chip button { background:none; border:none; cursor:pointer;
-  color:var(--danger); padding:0 2px; font-size:1rem; line-height:1; }
-
-/* category pills */
-.cat-pill {
-  display:inline-block; padding:3px 10px; border-radius:99px;
-  font-size:.75rem; font-weight:600; margin:2px;
-}
-.cat-social { background:rgba(88,166,255,0.18); color:var(--accent-2); border:1px solid var(--accent-2); }
-.cat-adult  { background:var(--danger-dim); color:var(--danger); border:1px solid var(--danger); }
-.cat-games  { background:rgba(124,92,252,0.18); color:#a78bfa; border:1px solid #a78bfa; }
-.cat-news   { background:var(--warn-dim); color:var(--warn); border:1px solid var(--warn); }
-.cat-custom { background:var(--green-dim); color:var(--accent); border:1px solid var(--accent); }
-
-/* breathing circle */
-#breathe-circle {
-  width:160px; height:160px; border-radius:50%;
-  background:radial-gradient(circle, var(--focus) 0%, rgba(124,92,252,0.15) 70%);
-  display:flex; align-items:center; justify-content:center;
-  font-size:1rem; font-weight:600; margin:0 auto;
-  transition: transform 0s, box-shadow 0s;
-  box-shadow: 0 0 0 0 rgba(124,92,252,0.4);
-  cursor:pointer; user-select:none;
-}
-#breathe-circle.breathing-in {
-  transition: transform 4s ease-in-out, box-shadow 4s ease-in-out;
-  transform: scale(1.5);
-  box-shadow: 0 0 0 30px rgba(124,92,252,0.1);
-}
-#breathe-circle.breathing-out {
-  transition: transform 4s ease-in-out, box-shadow 4s ease-in-out;
-  transform: scale(1);
-  box-shadow: 0 0 0 0 rgba(124,92,252,0);
-}
-
-/* hosts output */
-#hosts-output {
-  background:rgba(0,0,0,0.4); border:1px solid var(--border);
-  border-radius:10px; padding:14px; font-family:monospace; font-size:.8rem;
-  color:#7effa1; white-space:pre-wrap; word-break:break-all;
-  max-height:200px; overflow-y:auto;
-}
-
-/* chart bars */
-.chart-row {
-  display:flex; align-items:center; gap:10px; margin-bottom:10px;
-}
-.chart-row .cr-label { width:60px; font-size:.78rem; color:var(--faint); text-align:right; }
-.chart-row .cr-bar { flex:1; }
-.chart-row .cr-val { width:50px; font-size:.78rem; color:var(--muted); }
-
-/* modal */
-.modal-overlay {
-  position:fixed; inset:0; background:rgba(0,0,0,0.7);
-  display:none; align-items:center; justify-content:center;
-  z-index:200; padding:20px;
-}
-.modal-overlay.open { display:flex; }
-.modal-box {
-  background:#131c2e; border:1px solid var(--border);
-  border-radius:var(--radius); padding:28px; max-width:480px; width:100%;
-  box-shadow:var(--shadow);
-}
-.modal-box h3 { margin:0 0 14px; }
-
-/* notification bell toggle */
-.notif-toggle {
-  display:flex; align-items:center; justify-content:space-between;
-  padding:12px 14px; border-radius:10px;
-  background:rgba(255,255,255,0.04); border:1px solid var(--border);
-  margin-bottom:8px;
-}
-.notif-toggle .nt-label { font-size:.9rem; }
-.nt-switch {
-  width:44px; height:24px; border-radius:99px;
-  background:rgba(255,255,255,0.15); position:relative;
-  cursor:pointer; transition:.2s; border:none; flex-shrink:0;
-}
-.nt-switch.on { background:var(--accent); }
-.nt-switch::after {
-  content:''; position:absolute; top:3px; left:3px;
-  width:18px; height:18px; border-radius:50%; background:#fff;
-  transition:.2s;
-}
-.nt-switch.on::after { left:23px; }
-
-/* misc */
-.section-title { font-size:1.1rem; font-weight:700; margin:0 0 12px; }
-.text-faint { color:var(--faint); font-size:.85rem; }
-.text-accent { color:var(--accent); }
-.text-warn { color:var(--warn); }
-.text-danger { color:var(--danger); }
-.mt-8 { margin-top:8px; } .mt-16 { margin-top:16px; } .mt-24 { margin-top:24px; }
-.flex { display:flex; } .gap-8 { gap:8px; } .gap-12 { gap:12px; }
-.items-center { align-items:center; } .justify-between { justify-content:space-between; }
-.flex-wrap { flex-wrap:wrap; }
-.w-full { width:100%; }
-hr.sg-divider { border:none; border-top:1px solid var(--border); margin:18px 0; }
-</style>
 </head>
 <body>
 <div class="app">
 
   <!-- TOP BAR -->
   <div class="topbar">
-    <div class="brand">
-      <div class="title">🛡️ ScreenGuard</div>
-      <div style="font-size:.72rem;color:var(--faint);">Digital Wellness & Addiction Recovery</div>
+    <div>
+      <div class="brand-name">🛡️ ScreenGuard</div>
+      <div class="brand-sub">Digital Wellness & Addiction Recovery</div>
     </div>
-    <div style="display:flex;gap:10px;align-items:center;">
+    <div class="topbar-right">
       <span class="streak-badge" id="topbar-streak">🔥 0-day streak</span>
+      <button class="theme-toggle" id="theme-toggle-btn" onclick="toggleTheme()" title="Toggle light/dark mode">🌙</button>
       <a href="index.html" class="btn btn-ghost btn-sm">← Planner</a>
     </div>
   </div>
@@ -268,58 +51,59 @@ hr.sg-divider { border:none; border-top:1px solid var(--border); margin:18px 0; 
   <!-- ══════════ DASHBOARD ══════════ -->
   <div id="view-dashboard" class="sg-view active">
 
-    <div class="sg-grid-3">
-      <div class="stat-tile">
+    <div class="sg-grid-3 mt-8">
+      <div class="stat-tile c-warn">
         <div class="val" id="dash-streak">0</div>
-        <div class="lbl">🔥 Day Streak</div>
+        <div class="lbl">Day Streak 🔥</div>
       </div>
-      <div class="stat-tile">
-        <div class="val" id="dash-today">0h</div>
-        <div class="lbl">📱 Screen Time Today</div>
+      <div class="stat-tile c-blue">
+        <div class="val" id="dash-today">0m</div>
+        <div class="lbl">Screen Time Today</div>
       </div>
-      <div class="stat-tile">
+      <div class="stat-tile c-danger">
         <div class="val" id="dash-blocked">0</div>
-        <div class="lbl">🚫 Sites Blocked</div>
+        <div class="lbl">Sites Blocked 🛡️</div>
       </div>
     </div>
 
     <!-- Today's screen time vs goal -->
-    <div class="sg-card mt-16">
-      <h3>Today's Screen Time vs Goal</h3>
-      <div id="today-bar-wrap">
-        <div style="display:flex;justify-content:space-between;font-size:.8rem;color:var(--faint);margin-bottom:6px;">
-          <span id="today-bar-label">0 min used</span>
-          <span id="today-bar-goal">Goal: 120 min</span>
-        </div>
-        <div class="bar-track">
-          <div class="bar-fill" id="today-bar" style="width:0%"></div>
-        </div>
+    <div class="sg-card mt-16 card-primary">
+      <div class="section-header">
+        <h3 style="margin:0;">Today's Screen Time</h3>
+        <span style="font-size:.78rem;color:var(--text-3);" id="today-bar-goal">Goal: 120 min</span>
       </div>
-      <div class="mt-16" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
-        <button class="btn btn-primary" onclick="quickLogModal()">+ Log Screen Time</button>
-        <button class="btn btn-accent" onclick="switchTab('focus')">Start Focus Session</button>
-        <button class="btn btn-ghost" onclick="markDayClean()">✅ Mark Day Clean</button>
+      <div style="display:flex;justify-content:space-between;font-size:.8rem;color:var(--text-3);margin-bottom:8px;">
+        <span id="today-bar-label">0 min used</span>
+      </div>
+      <div class="bar-track" style="height:12px;">
+        <div class="bar-fill" id="today-bar" style="width:0%"></div>
+      </div>
+      <div class="mt-16 flex gap-8 flex-wrap">
+        <button class="btn btn-primary" onclick="quickLogModal()">+ Log Time</button>
+        <button class="btn btn-accent" onclick="switchTab('focus')">⏱ Focus Session</button>
+        <button class="btn btn-ghost" onclick="markDayClean()">✅ Mark Clean</button>
         <button class="btn btn-ghost" onclick="switchTab('usage')">📊 App Usage</button>
-        <button class="btn btn-ghost" onclick="setupDailyReminders()">🔔 Set Reminders</button>
+        <button class="btn btn-ghost" onclick="setupDailyReminders()">🔔 Reminders</button>
       </div>
     </div>
 
-    <!-- Active commitments preview -->
-    <div class="sg-card">
-      <h3>Active Commitments</h3>
-      <div id="dash-commitments-list"><p class="text-faint">No commitments yet. Add one in the Commitments tab.</p></div>
+    <div class="sg-grid-2">
+      <!-- Active commitments preview -->
+      <div class="sg-card">
+        <h3>Active Commitments</h3>
+        <div id="dash-commitments-list"><div class="empty-state"><div class="empty-icon">🤝</div>No commitments yet.</div></div>
+      </div>
+      <!-- Recent check-ins -->
+      <div class="sg-card">
+        <h3>Recent Check-ins</h3>
+        <div id="dash-urge-log"><div class="empty-state"><div class="empty-icon">📝</div>No check-ins yet.</div></div>
+      </div>
     </div>
 
-    <!-- Recent urge log -->
-    <div class="sg-card">
-      <h3>Recent Check-ins</h3>
-      <div id="dash-urge-log"><p class="text-faint">No check-ins recorded yet.</p></div>
-    </div>
-
-    <!-- Quick tips -->
-    <div class="sg-card" style="border-color:var(--focus);">
-      <h3 style="color:var(--focus);">💡 Tip of the Day</h3>
-      <p id="tip-text" style="margin:0;font-size:.9rem;color:var(--muted);line-height:1.6;"></p>
+    <!-- Tip of the day -->
+    <div class="sg-card card-primary">
+      <h3 style="color:var(--primary);">💡 Tip of the Day</h3>
+      <p id="tip-text" style="margin:0;font-size:.88rem;color:var(--text-2);line-height:1.7;"></p>
     </div>
   </div>
 
@@ -327,23 +111,23 @@ hr.sg-divider { border:none; border-top:1px solid var(--border); margin:18px 0; 
   <div id="view-usage" class="sg-view">
 
     <!-- Permission gate -->
-    <div id="usage-permission-gate" class="sg-card" style="border-color:var(--warn);text-align:center;padding:32px;">
-      <div style="font-size:2.5rem;margin-bottom:12px;">📊</div>
-      <h3 style="color:var(--warn);">Usage Stats Permission Required</h3>
-      <p class="text-faint" style="margin:0 0 18px;">
+    <div id="usage-permission-gate" class="sg-card card-warn mt-8" style="text-align:center;padding:32px 22px;">
+      <div style="font-size:2.8rem;margin-bottom:12px;">📊</div>
+      <h3 style="color:var(--warn);margin-bottom:10px;">Usage Stats Permission Required</h3>
+      <p class="text-faint" style="margin:0 0 20px;line-height:1.7;">
         To show your real app usage, ScreenGuard needs access to Android's Usage Stats.
-        This opens your phone's settings — tap <strong style="color:var(--text);">ScreenGuard</strong> and enable the permission.
+        Tap the button below — then find <strong style="color:var(--text);">ScreenGuard</strong> in the list and enable it.
       </p>
-      <button class="btn btn-accent" onclick="requestUsagePermission()">Grant Permission</button>
-      <p class="text-faint" style="margin-top:12px;font-size:.8rem;">Android only. On iOS, use Settings → Screen Time.</p>
+      <button class="btn btn-warn w-full" onclick="requestUsagePermission()" style="max-width:260px;margin:0 auto;">Grant Permission →</button>
+      <p class="text-faint mt-12" style="font-size:.76rem;">Android only. On iOS, use Settings → Screen Time.</p>
     </div>
 
     <!-- Actual usage content (shown after permission) -->
     <div id="usage-content" style="display:none;">
-      <div class="sg-grid-3" id="usage-stats-tiles">
-        <div class="stat-tile"><div class="val" id="usage-total">—</div><div class="lbl">Total today (min)</div></div>
-        <div class="stat-tile"><div class="val" id="usage-top-app">—</div><div class="lbl">Most used app</div></div>
-        <div class="stat-tile"><div class="val" id="usage-apps-count">—</div><div class="lbl">Apps used today</div></div>
+      <div class="sg-grid-3 mt-8">
+        <div class="stat-tile c-danger"><div class="val" id="usage-total">—</div><div class="lbl">Total today (min)</div></div>
+        <div class="stat-tile c-blue"><div class="val" id="usage-top-app">—</div><div class="lbl">Top App</div></div>
+        <div class="stat-tile c-accent"><div class="val" id="usage-apps-count">—</div><div class="lbl">Apps Used</div></div>
       </div>
 
       <div class="sg-card mt-16">
@@ -406,9 +190,9 @@ hr.sg-divider { border:none; border-top:1px solid var(--border); margin:18px 0; 
           Enable Blocking
         </button>
       </div>
-      <div style="margin-top:12px;font-size:.82rem;color:var(--faint);">
+      <div style="margin-top:12px;font-size:.82rem;opacity:.6;">
         <span id="blocker-sites-count">0</span> sites in your block list.
-        <a href="#" onclick="switchTab('blocklist');return false;" style="color:var(--accent-2);">Manage →</a>
+        <a href="#" onclick="switchTab('blocklist');return false;" style="color:var(--accent);">Manage →</a>
       </div>
     </div>
   </div>
@@ -472,25 +256,27 @@ hr.sg-divider { border:none; border-top:1px solid var(--border); margin:18px 0; 
     </div>
 
     <!-- Notification blocking guide -->
-    <div class="sg-card" style="border-color:var(--warn);">
+    <div class="sg-card card-warn">
       <h3 style="color:var(--warn);">🔕 Block Notifications During Focus</h3>
-      <p class="text-faint" style="margin:0 0 12px;">Your phone can't do this for you from a webpage — but here's how:</p>
+      <p class="text-faint" style="margin:0 0 14px;">Your phone can't do this from a webpage — but here's the exact setup:</p>
       <div class="sg-grid-2">
-        <div style="background:rgba(255,176,32,0.08);border-radius:10px;padding:14px;">
-          <div style="font-weight:700;margin-bottom:6px;">📱 iPhone / iOS</div>
-          <ol style="margin:0;padding-left:18px;font-size:.82rem;color:var(--muted);line-height:1.8;">
+        <div class="strategy-card">
+          <div class="strategy-icon">📱</div>
+          <div class="strategy-title">iPhone / iOS</div>
+          <ol style="margin:0;padding-left:18px;font-size:.78rem;color:var(--text-3);line-height:1.85;">
             <li>Settings → Focus → Do Not Disturb</li>
             <li>Tap "Add Schedule" → set your focus hours</li>
             <li>Allow only essential contacts</li>
             <li>Enable Focus Filters to hide distracting apps</li>
           </ol>
         </div>
-        <div style="background:rgba(255,176,32,0.08);border-radius:10px;padding:14px;">
-          <div style="font-weight:700;margin-bottom:6px;">🤖 Android</div>
-          <ol style="margin:0;padding-left:18px;font-size:.82rem;color:var(--muted);line-height:1.8;">
+        <div class="strategy-card">
+          <div class="strategy-icon">🤖</div>
+          <div class="strategy-title">Android</div>
+          <ol style="margin:0;padding-left:18px;font-size:.78rem;color:var(--text-3);line-height:1.85;">
             <li>Settings → Digital Wellbeing → Focus Mode</li>
             <li>Select apps to pause during focus</li>
-            <li>Alternatively: Settings → Sound → Do Not Disturb</li>
+            <li>Settings → Sound → Do Not Disturb</li>
             <li>Schedule automatic DND during work hours</li>
           </ol>
         </div>
@@ -568,13 +354,13 @@ hr.sg-divider { border:none; border-top:1px solid var(--border); margin:18px 0; 
 
   <!-- ══════════ SITE BLOCKER ══════════ -->
   <div id="view-blocklist" class="sg-view">
-    <div class="sg-card" style="border-color:var(--danger);">
-      <h3>⚠️ How Website Blocking Works</h3>
-      <p class="text-faint" style="margin:0;font-size:.85rem;line-height:1.7;">
+    <div class="sg-card card-danger">
+      <h3 style="color:var(--danger);">⚠️ How Website Blocking Works</h3>
+      <p class="text-faint" style="margin:0;font-size:.84rem;line-height:1.75;">
         Browsers can't block other websites on their own — that requires a browser extension or editing your system's hosts file.
         This tool lets you <strong style="color:var(--text);">build and manage your block list</strong>, then gives you the exact config to apply.
-        For the most powerful blocking (including adult content), use the free extension
-        <strong style="color:var(--accent-2);">Cold Turkey</strong>, <strong style="color:var(--accent-2);">BlockSite</strong>, or <strong style="color:var(--accent-2);">Freedom</strong>.
+        For the most powerful blocking, use the free extension
+        <strong style="color:var(--blue);">Cold Turkey</strong>, <strong style="color:var(--blue);">BlockSite</strong>, or <strong style="color:var(--blue);">Freedom</strong>.
       </p>
     </div>
 
@@ -662,19 +448,19 @@ hr.sg-divider { border:none; border-top:1px solid var(--border); margin:18px 0; 
       <div class="sg-grid-3">
         <div style="background:var(--panel-2);border-radius:10px;padding:14px;">
           <div style="font-weight:700;margin-bottom:4px;">Cold Turkey Blocker</div>
-          <div style="font-size:.8rem;color:var(--faint);margin-bottom:8px;">Very powerful. Supports scheduled blocks. Hard to bypass.</div>
+          <div style="font-size:.8rem;opacity:.6;margin-bottom:8px;">Very powerful. Supports scheduled blocks. Hard to bypass.</div>
           <span class="cat-pill cat-social">Chrome</span>
           <span class="cat-pill cat-social">Firefox</span>
         </div>
         <div style="background:var(--panel-2);border-radius:10px;padding:14px;">
           <div style="font-weight:700;margin-bottom:4px;">BlockSite</div>
-          <div style="font-size:.8rem;color:var(--faint);margin-bottom:8px;">Easy setup. Blocks adult content with one toggle. Password lock.</div>
+          <div style="font-size:.8rem;opacity:.6;margin-bottom:8px;">Easy setup. Blocks adult content with one toggle. Password lock.</div>
           <span class="cat-pill cat-games">Chrome</span>
           <span class="cat-pill cat-games">Firefox</span>
         </div>
         <div style="background:var(--panel-2);border-radius:10px;padding:14px;">
           <div style="font-weight:700;margin-bottom:4px;">Freedom</div>
-          <div style="font-size:.8rem;color:var(--faint);margin-bottom:8px;">Blocks across ALL devices simultaneously. Sync Mac, iPhone, Android.</div>
+          <div style="font-size:.8rem;opacity:.6;margin-bottom:8px;">Blocks across ALL devices simultaneously. Sync Mac, iPhone, Android.</div>
           <span class="cat-pill cat-news">All platforms</span>
         </div>
       </div>
@@ -690,7 +476,7 @@ hr.sg-divider { border:none; border-top:1px solid var(--border); margin:18px 0; 
         <h3 style="align-self:flex-start;">4-4-4 Box Breathing</h3>
         <p class="text-faint" style="margin:0;font-size:.85rem;">Tap the circle to start. Breathing resets the nervous system and weakens urges within 2–3 minutes.</p>
         <div id="breathe-circle" onclick="startBreathing()">Tap to start</div>
-        <div id="breathe-instruction" style="font-size:.95rem;color:var(--focus);font-weight:600;min-height:24px;"></div>
+        <div id="breathe-instruction" style="font-size:.95rem;color:var(--primary);font-weight:600;min-height:24px;"></div>
         <div id="breathe-count" class="text-faint" style="font-size:.82rem;"></div>
       </div>
 
@@ -716,38 +502,38 @@ hr.sg-divider { border:none; border-top:1px solid var(--border); margin:18px 0; 
     </div>
 
     <!-- Emergency strategies -->
-    <div class="sg-card">
+    <div class="sg-card card-danger">
       <h3>🆘 When the Urge is Strong — Do One of These NOW</h3>
       <div class="sg-grid-3">
-        <div style="background:var(--green-dim);border:1px solid var(--accent);border-radius:10px;padding:14px;">
-          <div style="font-size:1.5rem;margin-bottom:6px;">🏃</div>
-          <div style="font-weight:700;margin-bottom:4px;">Move Your Body</div>
-          <div style="font-size:.82rem;color:var(--faint);">20 jumping jacks, a brisk 5-min walk, or 10 push-ups. Physical movement redirects the dopamine spike.</div>
+        <div class="strategy-card" style="border-color:rgba(0,200,150,.3);background:var(--accent-soft);">
+          <div class="strategy-icon">🏃</div>
+          <div class="strategy-title">Move Your Body</div>
+          <div class="strategy-desc">20 jumping jacks, a brisk 5-min walk, or 10 push-ups. Physical movement redirects the dopamine spike.</div>
         </div>
-        <div style="background:var(--focus-dim);border:1px solid var(--focus);border-radius:10px;padding:14px;">
-          <div style="font-size:1.5rem;margin-bottom:6px;">📞</div>
-          <div style="font-weight:700;margin-bottom:4px;">Call Someone</div>
-          <div style="font-size:.82rem;color:var(--faint);">Reach out to a friend, family member, or accountability partner. Connection > screen.</div>
+        <div class="strategy-card" style="border-color:rgba(124,92,252,.3);background:var(--primary-soft);">
+          <div class="strategy-icon">📞</div>
+          <div class="strategy-title">Call Someone</div>
+          <div class="strategy-desc">Reach out to a friend, family member, or accountability partner. Connection beats the screen every time.</div>
         </div>
-        <div style="background:var(--warn-dim);border:1px solid var(--warn);border-radius:10px;padding:14px;">
-          <div style="font-size:1.5rem;margin-bottom:6px;">⏱️</div>
-          <div style="font-weight:700;margin-bottom:4px;">Surf the Urge (10 min)</div>
-          <div style="font-size:.82rem;color:var(--faint);">Urges peak at ~10 min then fade. Set a timer. Breathe. The wave will pass without crashing.</div>
+        <div class="strategy-card" style="border-color:rgba(245,166,35,.3);background:var(--warn-soft);">
+          <div class="strategy-icon">⏱️</div>
+          <div class="strategy-title">Surf the Urge (10 min)</div>
+          <div class="strategy-desc">Urges peak at ~10 min then fade. Set a timer. Breathe. The wave will pass.</div>
         </div>
-        <div style="background:var(--danger-dim);border:1px solid var(--danger);border-radius:10px;padding:14px;">
-          <div style="font-size:1.5rem;margin-bottom:6px;">🚿</div>
-          <div style="font-weight:700;margin-bottom:4px;">Cold Shower / Water</div>
-          <div style="font-size:.82rem;color:var(--faint);">Splash cold water on your face or take a brief cold shower. Immediately resets your arousal system.</div>
+        <div class="strategy-card" style="border-color:rgba(61,142,248,.3);background:var(--blue-soft);">
+          <div class="strategy-icon">🚿</div>
+          <div class="strategy-title">Cold Shower</div>
+          <div class="strategy-desc">Splash cold water on your face or take a brief cold shower. Immediately resets your arousal system.</div>
         </div>
-        <div style="background:var(--panel-2);border-radius:10px;padding:14px;border:1px solid var(--border);">
-          <div style="font-size:1.5rem;margin-bottom:6px;">📖</div>
-          <div style="font-weight:700;margin-bottom:4px;">Read Your Why</div>
-          <div style="font-size:.82rem;color:var(--faint);">Go to Commitments and re-read why you started this journey. Reconnect with your values.</div>
+        <div class="strategy-card">
+          <div class="strategy-icon">📖</div>
+          <div class="strategy-title">Read Your Why</div>
+          <div class="strategy-desc">Go to Commitments and re-read why you started this journey. Reconnect with your values.</div>
         </div>
-        <div style="background:var(--panel-2);border-radius:10px;padding:14px;border:1px solid var(--border);">
-          <div style="font-size:1.5rem;margin-bottom:6px;">🙏</div>
-          <div style="font-weight:700;margin-bottom:4px;">Pray / Meditate</div>
-          <div style="font-size:.82rem;color:var(--faint);">Even 3 minutes of prayer, gratitude, or silent breathing can shift the mental state entirely.</div>
+        <div class="strategy-card">
+          <div class="strategy-icon">🙏</div>
+          <div class="strategy-title">Pray / Meditate</div>
+          <div class="strategy-desc">Even 3 minutes of prayer, gratitude, or silent breathing can shift the mental state entirely.</div>
         </div>
       </div>
     </div>
@@ -807,15 +593,15 @@ hr.sg-divider { border:none; border-top:1px solid var(--border); margin:18px 0; 
     </div>
 
     <!-- Relapse section -->
-    <div class="sg-card" style="border-color:var(--warn);">
+    <div class="sg-card card-warn">
       <h3 style="color:var(--warn);">If You Relapse — This Is Still Progress</h3>
-      <p style="font-size:.88rem;color:var(--muted);line-height:1.7;margin:0 0 12px;">
+      <p style="font-size:.86rem;color:var(--text-2);line-height:1.75;margin:0 0 14px;">
         Relapse is part of recovery, not failure. The brain's neural pathways took years to form — they take time to rewire.
         What matters is that you get back up. Log the relapse honestly, reflect on what triggered it, and restart your streak.
       </p>
       <div id="relapse-list" style="margin-bottom:12px;"></div>
       <textarea class="sg-input" id="relapse-note" placeholder="What happened? What will you do differently?"></textarea>
-      <button class="btn btn-ghost" onclick="logRelapse()">📝 Log Relapse & Restart Streak</button>
+      <button class="btn btn-warn" onclick="logRelapse()">📝 Log Relapse & Restart Streak</button>
     </div>
   </div>
 
@@ -833,18 +619,29 @@ hr.sg-divider { border:none; border-top:1px solid var(--border); margin:18px 0; 
     </div>
 
     <!-- Global Comparison -->
-    <div class="sg-card" style="border-color:var(--accent-2);">
-      <h3 style="color:var(--accent-2);">🌍 How You Compare Globally</h3>
-      <p class="text-faint" style="font-size:.82rem;margin:0 0 16px;">Based on DataReportal 2024 global averages. Your data is from manual logs.</p>
-      <div id="global-comparison-chart"></div>
-      <div class="sg-grid-3" style="margin-top:16px;" id="global-tiles"></div>
-      <div style="margin-top:16px;padding:14px;background:rgba(88,166,255,0.08);border-radius:10px;border:1px solid rgba(88,166,255,0.2);">
-        <div style="font-weight:700;margin-bottom:6px;font-size:.9rem;">📊 Your Score vs World</div>
-        <div id="global-score-text" style="font-size:.85rem;color:var(--muted);line-height:1.7;"></div>
+    <div class="sg-card card-blue">
+      <div class="section-header">
+        <h3 style="margin:0;color:var(--blue);">🌍 You vs. The World</h3>
+        <span style="font-size:.72rem;color:var(--text-3);font-weight:600;">DataReportal 2025 · Statista 2025</span>
       </div>
-      <p style="font-size:.72rem;color:var(--faint);margin:10px 0 0;">
-        Sources: DataReportal Digital 2024, Statista, App Annie State of Mobile 2024.
-        Global averages: 6h 37min/day total screen time · 2h 23min social media · 4.8 pickups/hour.
+
+      <!-- Category bars -->
+      <div id="global-comparison-chart"></div>
+
+      <!-- Age group tiles -->
+      <h3 style="margin:16px 0 10px;font-size:.82rem;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em;">Average by Age Group (Global, 2025)</h3>
+      <div id="global-tiles" style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;"></div>
+
+      <!-- Country leaderboard -->
+      <h3 style="margin:18px 0 10px;font-size:.82rem;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em;">Highest Screen Time by Country</h3>
+      <div id="country-list"></div>
+
+      <!-- Verdict -->
+      <div id="global-verdict"></div>
+
+      <p style="font-size:.7rem;color:var(--text-3);margin-top:14px;line-height:1.6;">
+        Sources: DataReportal Digital 2025/2026 Mid-Year · Statista Social Media Usage 2025 · App Annie State of Mobile 2025.
+        Global avg: <strong>6h 51min/day</strong> · Social media: <strong>2h 21min/day</strong> · Highest: South Africa 9h 24min.
       </p>
     </div>
 
@@ -1126,6 +923,25 @@ function defaultState() {
 let state = load();
 
 // ══════════════════════════════════════════
+// THEME
+// ══════════════════════════════════════════
+function toggleTheme() {
+  const current = document.documentElement.getAttribute('data-theme') || 'dark';
+  const next = current === 'dark' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', next);
+  localStorage.setItem('sg_theme', next);
+  const btn = document.getElementById('theme-toggle-btn');
+  if (btn) btn.textContent = next === 'dark' ? '🌙' : '☀️';
+}
+
+function initTheme() {
+  const t = localStorage.getItem('sg_theme') || 'dark';
+  document.documentElement.setAttribute('data-theme', t);
+  const btn = document.getElementById('theme-toggle-btn');
+  if (btn) btn.textContent = t === 'dark' ? '🌙' : '☀️';
+}
+
+// ══════════════════════════════════════════
 // NAVIGATION
 // ══════════════════════════════════════════
 function switchTab(name) {
@@ -1273,7 +1089,7 @@ function timerStart() {
     timerSeconds = timerTotal;
     timerPhase = 'focus';
     document.getElementById('timer-phase').textContent = 'Focus';
-    document.getElementById('timer-circle').style.stroke = 'var(--focus)';
+    document.getElementById('timer-circle').style.stroke = 'var(--primary)';
   }
   timerRunning = true;
   document.getElementById('timer-start-btn').textContent = '⏸ Pause';
@@ -1333,7 +1149,7 @@ function timerReset() {
   document.getElementById('timer-display').textContent = `${String(parseInt(document.getElementById('focus-duration').value)||25).padStart(2,'0')}:00`;
   document.getElementById('timer-phase').textContent = 'Focus';
   document.getElementById('timer-circle').style.strokeDashoffset = '0';
-  document.getElementById('timer-circle').style.stroke = 'var(--focus)';
+  document.getElementById('timer-circle').style.stroke = 'var(--primary)';
   document.getElementById('timer-start-btn').textContent = '▶ Start';
 }
 
@@ -1346,7 +1162,7 @@ function renderFocusHistory() {
   if (!todaySessions.length) { el.innerHTML = '<p class="text-faint">None yet today.</p>'; return; }
   el.innerHTML = todaySessions.reverse().map(s => `
     <div class="log-item" style="padding:8px 12px;margin-bottom:6px;">
-      <div class="li-icon" style="background:var(--focus-dim);">⏱️</div>
+      <div class="li-icon" style="background:rgba(124,92,252,0.15);">⏱️</div>
       <div class="li-meta">
         <div class="li-title">${escHtml(s.task)}</div>
         <div class="li-sub">${s.mins} min</div>
@@ -1539,7 +1355,7 @@ function showUrgeHistory() {
   if (!state.urgeEntries.length) { el.innerHTML = '<p class="text-faint">No entries yet.</p>'; return; }
   el.innerHTML = [...state.urgeEntries].reverse().map(e => `
     <div class="sg-card" style="margin-bottom:10px;padding:14px;">
-      <div style="font-size:.78rem;color:var(--faint);margin-bottom:6px;">${e.date} ${e.ts}</div>
+      <div style="font-size:.78rem;opacity:.6;margin-bottom:6px;">${e.date} ${e.ts}</div>
       <div><strong>Urge:</strong> ${escHtml(e.what)}</div>
       ${e.trigger ? `<div style="margin-top:4px;"><strong>Trigger:</strong> ${escHtml(e.trigger)}</div>` : ''}
       ${e.replace ? `<div style="margin-top:4px;color:var(--accent);"><strong>Instead:</strong> ${escHtml(e.replace)}</div>` : ''}
@@ -1590,9 +1406,9 @@ function renderCommitments() {
         <div style="font-weight:700;">${catEmoji[c.cat]||'🎯'} ${escHtml(c.title)}</div>
         <button class="btn btn-ghost btn-sm" onclick="deleteCommitment(${c.id})">✕</button>
       </div>
-      ${c.why ? `<div style="font-size:.82rem;color:var(--faint);margin-top:4px;font-style:italic;">"${escHtml(c.why)}"</div>` : ''}
+      ${c.why ? `<div style="font-size:.82rem;opacity:.6;margin-top:4px;font-style:italic;">"${escHtml(c.why)}"</div>` : ''}
       <div style="margin-top:10px;">
-        <div style="display:flex;justify-content:space-between;font-size:.78rem;color:var(--faint);margin-bottom:4px;">
+        <div style="display:flex;justify-content:space-between;font-size:.78rem;opacity:.6;margin-bottom:4px;">
           <span>${done ? '✅ Complete!' : `Day ${days}${c.duration>0?' / '+c.duration:''}`}</span>
           <span>Started ${c.startDate}</span>
         </div>
@@ -1621,7 +1437,7 @@ function renderRelapses() {
   const last3 = [...state.relapses].reverse().slice(0,3);
   el.innerHTML = last3.map(r => `
     <div class="log-item" style="margin-bottom:6px;">
-      <div class="li-icon" style="background:var(--danger-dim);">📝</div>
+      <div class="li-icon" style="background:rgba(255,71,87,0.15);">📝</div>
       <div class="li-meta">
         <div class="li-title">${r.date}</div>
         <div class="li-sub">${r.note ? escHtml(r.note) : 'No note'}</div>
@@ -1694,7 +1510,7 @@ function renderAllTimeStats() {
   const adultTotal = state.screenLogs.filter(l=>l.cat==='adult').reduce((a,l)=>a+l.mins,0);
   el.innerHTML = `
     <div class="stat-tile"><div class="val">${Math.round(total/60)}h</div><div class="lbl">Total screen time logged</div></div>
-    <div class="stat-tile"><div class="val" style="color:var(--focus);">${Math.round(focusTotal/60)}h</div><div class="lbl">Total focus time</div></div>
+    <div class="stat-tile"><div class="val" style="color:var(--primary);">${Math.round(focusTotal/60)}h</div><div class="lbl">Total focus time</div></div>
     <div class="stat-tile"><div class="val" style="color:var(--warn);">${state.bestStreak}</div><div class="lbl">Best clean streak (days)</div></div>
     <div class="stat-tile"><div class="val">${state.screenLogs.length}</div><div class="lbl">Log entries</div></div>
     <div class="stat-tile"><div class="val">${state.urgeEntries.length}</div><div class="lbl">Urges journaled</div></div>
@@ -1917,9 +1733,9 @@ function renderBlockedApps() {
   if (!apps.length) { el.innerHTML = '<p class="text-faint" style="font-size:.82rem;">No apps blocked yet.</p>'; return; }
   const scheduleLabel = { always:'🔴 Always', focus:'🟡 Focus hours', night:'🌙 Night only' };
   el.innerHTML = apps.map(a => `
-    <span class="site-chip" style="background:var(--focus-dim);border-color:var(--focus);">
+    <span class="site-chip" style="background:rgba(124,92,252,0.15);border-color:var(--primary);">
       📵 ${escHtml(a.name)}
-      <span style="font-size:.7rem;color:var(--faint);margin:0 2px;">${scheduleLabel[a.schedule]||''}</span>
+      <span style="font-size:.7rem;opacity:.6;margin:0 2px;">${scheduleLabel[a.schedule]||''}</span>
       <button onclick="removeBlockedApp('${escHtml(a.name)}')">✕</button>
     </span>
   `).join('');
@@ -1936,24 +1752,40 @@ async function syncAppsToNative() {
 // ══════════════════════════════════════════
 // GLOBAL COMPARISON
 // ══════════════════════════════════════════
-// Published global averages (DataReportal Digital 2024, Statista, App Annie 2024)
+// Published global averages (DataReportal Digital 2026, Statista Jan 2026, App Annie 2025)
 const GLOBAL_AVG = {
-  total:         397,  // 6h 37min daily screen time
-  social:        143,  // 2h 23min social media
-  entertainment: 98,   // 1h 38min streaming/entertainment
-  games:         55,   // ~55min gaming
+  total:         411,  // 6h 51min daily screen time (DataReportal 2026)
+  social:        141,  // 2h 21min social media (GWI 2025)
+  entertainment: 105,  // 1h 45min streaming/entertainment (Statista 2025)
+  games:         58,   // ~58min gaming (Newzoo 2025)
   news:          32,   // ~32min news browsing
   work:          80,   // productive/work
 };
 
-// Age-group averages (minutes/day)
+// Age-group averages (minutes/day) — Statista / DataReportal 2025
 const AGE_GROUPS = [
-  { label: 'Age 16–24', total: 480 },
-  { label: 'Age 25–34', total: 430 },
-  { label: 'Age 35–44', total: 390 },
-  { label: 'Age 45–54', total: 330 },
-  { label: 'Age 55–64', total: 260 },
-  { label: 'Global Avg', total: 397, highlight: true },
+  { label: 'Age 16–24', total: 516 },
+  { label: 'Age 25–34', total: 463 },
+  { label: 'Age 35–44', total: 412 },
+  { label: 'Age 45–54', total: 348 },
+  { label: 'Age 55–64', total: 274 },
+  { label: 'Global Avg', total: 411, highlight: true },
+];
+
+// Top countries by daily screen time (minutes) — DataReportal 2025
+const COUNTRY_DATA = [
+  { name: 'South Africa', mins: 564, flag: '🇿🇦' },
+  { name: 'Brazil',       mins: 553, flag: '🇧🇷' },
+  { name: 'Philippines',  mins: 532, flag: '🇵🇭' },
+  { name: 'Nigeria',      mins: 514, flag: '🇳🇬' },
+  { name: 'Ghana',        mins: 502, flag: '🇬🇭' },
+  { name: 'India',        mins: 463, flag: '🇮🇳' },
+  { name: 'Indonesia',    mins: 455, flag: '🇮🇩' },
+  { name: 'Mexico',       mins: 449, flag: '🇲🇽' },
+  { name: 'Global Avg',   mins: 411, flag: '🌍', highlight: true },
+  { name: 'USA',          mins: 398, flag: '🇺🇸' },
+  { name: 'UK',           mins: 356, flag: '🇬🇧' },
+  { name: 'Japan',        mins: 302, flag: '🇯🇵' },
 ];
 
 function renderGlobalComparison() {
@@ -1964,7 +1796,6 @@ function renderGlobalComparison() {
     ? [...new Set(recentLogs.map(l => l.date))].length
     : 1;
 
-  // Your daily averages
   const myTotal = recentLogs.reduce((a,l) => a + l.mins, 0) / days;
   const myCats = {};
   recentLogs.forEach(l => { myCats[l.cat] = (myCats[l.cat]||0) + l.mins; });
@@ -1978,62 +1809,82 @@ function renderGlobalComparison() {
     const mine = Math.round(myCats[cat] || 0);
     const global = GLOBAL_AVG[cat];
     const maxBar = Math.max(mine, global, 1);
+    const over = mine > global;
     return `
-    <div style="margin-bottom:16px;">
-      <div style="font-size:.82rem;font-weight:600;margin-bottom:6px;">${catLabel[cat]}</div>
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
-        <div style="width:60px;font-size:.75rem;color:var(--faint);">You</div>
-        <div style="flex:1;">
-          <div class="bar-track">
-            <div class="bar-fill ${mine > global ? 'danger' : ''}"
-                 style="width:${(mine/maxBar)*100}%;background:${mine > global ? '' : 'var(--accent)'}"></div>
-          </div>
-        </div>
-        <div style="width:50px;font-size:.78rem;text-align:right;color:${mine>global?'var(--danger)':'var(--accent)'};">${mine}m</div>
+    <div style="margin-bottom:18px;">
+      <div style="font-size:.82rem;font-weight:600;margin-bottom:8px;color:var(--text);">${catLabel[cat]}</div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;">
+        <div style="width:56px;font-size:.72rem;opacity:.6;text-align:right;">You</div>
+        <div style="flex:1;"><div class="bar-track"><div class="bar-fill ${over?'danger':''}" style="width:${(mine/maxBar)*100}%"></div></div></div>
+        <div style="width:44px;font-size:.78rem;text-align:right;color:${over?'var(--danger)':'var(--accent)'};">${mine}m</div>
       </div>
       <div style="display:flex;align-items:center;gap:8px;">
-        <div style="width:60px;font-size:.75rem;color:var(--faint);">Global</div>
-        <div style="flex:1;">
-          <div class="bar-track">
-            <div class="bar-fill" style="width:${(global/maxBar)*100}%;background:rgba(255,255,255,0.25);"></div>
-          </div>
-        </div>
-        <div style="width:50px;font-size:.78rem;text-align:right;color:var(--faint);">${global}m</div>
+        <div style="width:56px;font-size:.72rem;opacity:.6;text-align:right;">World</div>
+        <div style="flex:1;"><div class="bar-track"><div class="bar-fill global" style="width:${(global/maxBar)*100}%"></div></div></div>
+        <div style="width:44px;font-size:.78rem;text-align:right;opacity:.55;">${global}m</div>
       </div>
     </div>`;
   }).join('');
 
-  // Global tiles — age group comparison
+  // Age group tiles
   const tilesEl = document.getElementById('global-tiles');
   tilesEl.innerHTML = AGE_GROUPS.map(ag => `
-    <div class="stat-tile" style="${ag.highlight ? 'border:1px solid var(--accent-2);' : ''}">
-      <div class="val" style="font-size:1.3rem;color:${ag.highlight ? 'var(--accent-2)' : 'var(--text)'};">${Math.floor(ag.total/60)}h${ag.total%60}m</div>
-      <div class="lbl">${ag.label}</div>
+    <div class="age-tile${ag.highlight?' highlight':''}">
+      <div class="age-val">${Math.floor(ag.total/60)}h${ag.total%60}m</div>
+      <div class="age-lbl">${ag.label}</div>
     </div>
   `).join('');
 
-  // Score text
-  const scoreEl = document.getElementById('global-score-text');
+  // Country leaderboard
+  const countryEl = document.getElementById('country-list');
+  if (countryEl) {
+    const myRounded = Math.round(myTotal);
+    countryEl.innerHTML = COUNTRY_DATA.map((c, i) => {
+      const isMe = c.highlight;
+      return `
+      <div class="country-row${isMe?' highlight':''}">
+        <span class="country-rank">${isMe ? '—' : i+1}</span>
+        <span class="country-flag">${c.flag}</span>
+        <span class="country-name">${c.name}</span>
+        <span class="country-time">${Math.floor(c.mins/60)}h ${c.mins%60}m</span>
+      </div>`;
+    }).join('');
+  }
+
+  // Verdict box
+  const verdictEl = document.getElementById('global-verdict');
   const myRounded = Math.round(myTotal);
   const diff = myRounded - GLOBAL_AVG.total;
-  let verdict, tip;
+  let cls, icon, verdict, tip;
   if (myRounded === 0) {
-    verdict = 'Log your screen time to see how you compare to the world.';
-    tip = 'Start by tapping "+ Log Screen Time" on the dashboard.';
+    cls='v-good'; icon='📊';
+    verdict = 'Log your screen time to see how you compare globally.';
+    tip = 'Tap "+ Log Screen Time" on the dashboard to get started.';
   } else if (diff <= -60) {
-    verdict = `🏆 You use ${Math.abs(diff)} min/day LESS than the global average — you're in the top tier for digital wellness.`;
-    tip = 'Keep it up. Your brain is getting more rest than most people on the planet.';
+    cls='v-great'; icon='🏆';
+    verdict = `${Math.abs(diff)} min/day below world average — top-tier digital wellness!`;
+    tip = 'Your brain gets more downtime than most people on earth. Keep the streak alive.';
   } else if (diff <= 0) {
-    verdict = `✅ You use ${Math.abs(diff)} min/day less than the global average of 6h 37min. Slightly better than most.`;
-    tip = 'You\'re close to average — small daily reductions will put you well ahead.';
+    cls='v-good'; icon='✅';
+    verdict = `${Math.abs(diff)} min/day below the global average of 6h 51min.`;
+    tip = 'Slightly ahead of the world — small daily cuts will move you into elite territory.';
   } else if (diff <= 60) {
-    verdict = `⚠️ You use ${diff} min/day more than the global average. Just slightly above.`;
-    tip = 'Try the Focus Timer to carve out 30 min of phone-free time per day.';
+    cls='v-warn'; icon='⚠️';
+    verdict = `${diff} min/day above the global average.`;
+    tip = 'Use the Focus Timer to reclaim 30 min of phone-free time each day.';
   } else {
-    verdict = `🔴 You use ${diff} min/day MORE than the global average — that\'s ${Math.round(diff/60*10)/10} extra hours every day.`;
-    tip = 'Set a daily limit in the Screen Time Log tab and use the Urge Relief tab when the urge hits.';
+    cls='v-danger'; icon='🔴';
+    verdict = `${diff} min/day above average — ${(diff/60).toFixed(1)} extra hours daily.`;
+    tip = 'Set a daily limit in Screen Time Log and use Urge Relief when cravings hit.';
   }
-  scoreEl.innerHTML = `<strong>${verdict}</strong><br/><span style="color:var(--accent);">${tip}</span>`;
+  if (verdictEl) {
+    verdictEl.className = `verdict-box ${cls}`;
+    verdictEl.innerHTML = `<div class="verdict-title">${icon} ${verdict}</div><div class="verdict-tip">${tip}</div>`;
+  }
+
+  // Legacy score text fallback
+  const scoreEl = document.getElementById('global-score-text');
+  if (scoreEl) scoreEl.innerHTML = '';
 }
 
 // ══════════════════════════════════════════
@@ -2067,7 +1918,7 @@ function refreshDashboard() {
     const catEmoji = { adult:'🔞', social:'📱', screen:'📺', games:'🎮', other:'🎯' };
     cl.innerHTML = state.commitments.slice(0,3).map(c => {
       const days = Math.floor((new Date() - new Date(c.startDate))/86400000);
-      return `<div class="log-item"><div class="li-icon" style="background:var(--focus-dim);">${catEmoji[c.cat]||'🎯'}</div><div class="li-meta"><div class="li-title">${escHtml(c.title)}</div><div class="li-sub">Day ${days} · ${c.startDate}</div></div></div>`;
+      return `<div class="log-item"><div class="li-icon" style="background:rgba(124,92,252,0.15);">${catEmoji[c.cat]||'🎯'}</div><div class="li-meta"><div class="li-title">${escHtml(c.title)}</div><div class="li-sub">Day ${days} · ${c.startDate}</div></div></div>`;
     }).join('');
   }
 
@@ -2077,7 +1928,7 @@ function refreshDashboard() {
   if (!recent.length) {
     ul.innerHTML = '<p class="text-faint">No check-ins recorded yet.</p>';
   } else {
-    ul.innerHTML = recent.map(e => `<div class="log-item"><div class="li-icon" style="background:var(--focus-dim);">📝</div><div class="li-meta"><div class="li-title">${escHtml(e.what.slice(0,60))}</div><div class="li-sub">${e.date} ${e.ts}</div></div></div>`).join('');
+    ul.innerHTML = recent.map(e => `<div class="log-item"><div class="li-icon" style="background:rgba(124,92,252,0.15);">📝</div><div class="li-meta"><div class="li-title">${escHtml(e.what.slice(0,60))}</div><div class="li-sub">${e.date} ${e.ts}</div></div></div>`).join('');
   }
 }
 
@@ -2143,9 +1994,8 @@ function refreshAll() {
 // INIT
 // ══════════════════════════════════════════
 (function init() {
-  // Set today's date in log form
+  initTheme();
   document.getElementById('log-date').value = todayStr();
-  // Request notification permission for timer
   if ('Notification' in window && Notification.permission === 'default') {
     Notification.requestPermission();
   }
