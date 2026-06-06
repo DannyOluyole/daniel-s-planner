@@ -2,7 +2,7 @@ name: Build Android APK / AAB
 
 on:
   push:
-    branches: [main, master, claude/happy-shannon-vqRxv]
+    branches: [main, master]
   workflow_dispatch:
 
 jobs:

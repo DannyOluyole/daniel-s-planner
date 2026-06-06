@@ -37,6 +37,9 @@
     </div>
   </div>
 
+  <!-- scroll container holds all views -->
+  <div class="sg-scroll">
+
   <!-- ══════════ DASHBOARD ══════════ -->
   <div id="view-dashboard" class="sg-view active">
 
@@ -734,6 +737,8 @@
 
   </div>
 
+  </div><!-- /sg-scroll -->
+
   <!-- BOTTOM NAV -->
   <nav class="bottom-nav">
     <button class="nav-item active" id="nav-dashboard" onclick="switchTab('dashboard')">
@@ -1058,6 +1063,9 @@ function initTheme() {
 function switchTab(name) {
   document.querySelectorAll('.sg-view').forEach(v => v.classList.remove('active'));
   document.getElementById('view-' + name).classList.add('active');
+  // Scroll content area to top
+  const scroller = document.querySelector('.sg-scroll');
+  if (scroller) scroller.scrollTop = 0;
   // Update bottom nav
   const navMap = { dashboard:'nav-dashboard', focus:'nav-focus', blocklist:'nav-blocklist', insights:'nav-insights', journey:'nav-journey' };
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
