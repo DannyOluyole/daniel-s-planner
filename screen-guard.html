@@ -1,0 +1,1477 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ScreenGuard — Digital Wellness</title>
+<link rel="stylesheet" href="styles.css" />
+<style>
+/* ── ScreenGuard extra styles ── */
+:root {
+  --focus: #7c5cfc;
+  --focus-dim: rgba(124,92,252,0.18);
+  --danger-dim: rgba(255,77,79,0.15);
+  --warn-dim: rgba(255,176,32,0.15);
+  --green-dim: rgba(57,217,138,0.15);
+}
+
+/* nav tabs */
+.sg-tabs { display:flex; gap:8px; flex-wrap:wrap; margin:18px 0; }
+.sg-tab {
+  padding:8px 18px; border-radius:99px;
+  border:1px solid var(--border); background:var(--panel);
+  cursor:pointer; font-size:.875rem; transition:.15s;
+}
+.sg-tab:hover { background:var(--panel-2); }
+.sg-tab.active { background:var(--focus); border-color:var(--focus); color:#fff; }
+
+/* views */
+.sg-view { display:none; }
+.sg-view.active { display:block; }
+
+/* cards */
+.sg-card {
+  background:var(--panel); border:1px solid var(--border);
+  border-radius:var(--radius); padding:22px; margin-bottom:16px;
+}
+.sg-card h3 { margin:0 0 14px; font-size:1rem; color:var(--text); }
+
+/* grid helpers */
+.sg-grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+.sg-grid-3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:14px; }
+@media(max-width:640px){ .sg-grid-2,.sg-grid-3 { grid-template-columns:1fr; } }
+
+/* stat tiles */
+.stat-tile {
+  background:var(--panel-2); border:1px solid var(--border);
+  border-radius:12px; padding:18px 14px; text-align:center;
+}
+.stat-tile .val { font-size:2rem; font-weight:700; color:var(--accent); line-height:1; }
+.stat-tile .lbl { font-size:.78rem; color:var(--faint); margin-top:4px; }
+
+/* focus timer */
+#timer-ring-wrap {
+  display:flex; flex-direction:column; align-items:center; gap:14px; margin:10px 0;
+}
+#timer-svg { transform:rotate(-90deg); }
+#timer-circle-bg { fill:none; stroke:var(--border); stroke-width:10; }
+#timer-circle { fill:none; stroke:var(--focus); stroke-width:10;
+  stroke-linecap:round; transition:stroke-dashoffset .8s linear; }
+#timer-display {
+  font-size:2.8rem; font-weight:700; letter-spacing:.04em;
+  color:var(--text); margin-top:-4px;
+}
+#timer-phase { font-size:.85rem; color:var(--faint); }
+.timer-btns { display:flex; gap:10px; }
+.timer-btns button { flex:1; }
+
+/* inputs */
+.sg-input {
+  width:100%; padding:10px 14px; border-radius:10px;
+  border:1px solid var(--border); background:rgba(255,255,255,0.06);
+  color:var(--text); outline:none; margin-bottom:10px;
+}
+.sg-input:focus { border-color:var(--focus); }
+textarea.sg-input { resize:vertical; min-height:90px; }
+
+/* buttons */
+.btn { padding:10px 22px; border-radius:10px; border:none; cursor:pointer; font-weight:600; transition:.15s; }
+.btn-primary { background:var(--focus); color:#fff; }
+.btn-primary:hover { opacity:.88; }
+.btn-accent { background:var(--accent); color:#0b1220; }
+.btn-accent:hover { opacity:.88; }
+.btn-ghost { background:transparent; border:1px solid var(--border); color:var(--text); }
+.btn-ghost:hover { background:var(--panel-2); }
+.btn-danger { background:var(--danger); color:#fff; }
+.btn-danger:hover { opacity:.88; }
+.btn-sm { padding:6px 14px; font-size:.82rem; }
+
+/* progress bars */
+.bar-track {
+  background:rgba(255,255,255,0.08); border-radius:99px; height:10px; overflow:hidden;
+}
+.bar-fill {
+  height:100%; border-radius:99px; transition:.4s;
+  background: linear-gradient(90deg, var(--focus), var(--accent));
+}
+.bar-fill.warn { background: linear-gradient(90deg, var(--warn), #ff6b35); }
+.bar-fill.danger { background: linear-gradient(90deg, var(--danger), #ff7070); }
+
+/* streak badge */
+.streak-badge {
+  display:inline-flex; align-items:center; gap:6px;
+  background:var(--warn-dim); border:1px solid var(--warn);
+  border-radius:99px; padding:5px 14px; font-weight:700; color:var(--warn);
+}
+
+/* log list */
+.log-item {
+  display:flex; align-items:center; gap:12px;
+  padding:10px 14px; border-radius:10px;
+  background:rgba(255,255,255,0.04); margin-bottom:8px;
+  border:1px solid var(--border);
+}
+.log-item .li-icon {
+  width:34px; height:34px; border-radius:8px;
+  display:flex; align-items:center; justify-content:center;
+  font-size:1.1rem; flex-shrink:0;
+}
+.log-item .li-meta { flex:1; }
+.log-item .li-title { font-size:.9rem; font-weight:600; }
+.log-item .li-sub { font-size:.78rem; color:var(--faint); }
+.log-item .li-right { font-size:.85rem; color:var(--faint); }
+
+/* blocked sites */
+.site-chip {
+  display:inline-flex; align-items:center; gap:6px;
+  background:var(--danger-dim); border:1px solid var(--danger);
+  border-radius:99px; padding:4px 12px; font-size:.82rem;
+  margin:4px;
+}
+.site-chip button { background:none; border:none; cursor:pointer;
+  color:var(--danger); padding:0 2px; font-size:1rem; line-height:1; }
+
+/* category pills */
+.cat-pill {
+  display:inline-block; padding:3px 10px; border-radius:99px;
+  font-size:.75rem; font-weight:600; margin:2px;
+}
+.cat-social { background:rgba(88,166,255,0.18); color:var(--accent-2); border:1px solid var(--accent-2); }
+.cat-adult  { background:var(--danger-dim); color:var(--danger); border:1px solid var(--danger); }
+.cat-games  { background:rgba(124,92,252,0.18); color:#a78bfa; border:1px solid #a78bfa; }
+.cat-news   { background:var(--warn-dim); color:var(--warn); border:1px solid var(--warn); }
+.cat-custom { background:var(--green-dim); color:var(--accent); border:1px solid var(--accent); }
+
+/* breathing circle */
+#breathe-circle {
+  width:160px; height:160px; border-radius:50%;
+  background:radial-gradient(circle, var(--focus) 0%, rgba(124,92,252,0.15) 70%);
+  display:flex; align-items:center; justify-content:center;
+  font-size:1rem; font-weight:600; margin:0 auto;
+  transition: transform 0s, box-shadow 0s;
+  box-shadow: 0 0 0 0 rgba(124,92,252,0.4);
+  cursor:pointer; user-select:none;
+}
+#breathe-circle.breathing-in {
+  transition: transform 4s ease-in-out, box-shadow 4s ease-in-out;
+  transform: scale(1.5);
+  box-shadow: 0 0 0 30px rgba(124,92,252,0.1);
+}
+#breathe-circle.breathing-out {
+  transition: transform 4s ease-in-out, box-shadow 4s ease-in-out;
+  transform: scale(1);
+  box-shadow: 0 0 0 0 rgba(124,92,252,0);
+}
+
+/* hosts output */
+#hosts-output {
+  background:rgba(0,0,0,0.4); border:1px solid var(--border);
+  border-radius:10px; padding:14px; font-family:monospace; font-size:.8rem;
+  color:#7effa1; white-space:pre-wrap; word-break:break-all;
+  max-height:200px; overflow-y:auto;
+}
+
+/* chart bars */
+.chart-row {
+  display:flex; align-items:center; gap:10px; margin-bottom:10px;
+}
+.chart-row .cr-label { width:60px; font-size:.78rem; color:var(--faint); text-align:right; }
+.chart-row .cr-bar { flex:1; }
+.chart-row .cr-val { width:50px; font-size:.78rem; color:var(--muted); }
+
+/* modal */
+.modal-overlay {
+  position:fixed; inset:0; background:rgba(0,0,0,0.7);
+  display:none; align-items:center; justify-content:center;
+  z-index:200; padding:20px;
+}
+.modal-overlay.open { display:flex; }
+.modal-box {
+  background:#131c2e; border:1px solid var(--border);
+  border-radius:var(--radius); padding:28px; max-width:480px; width:100%;
+  box-shadow:var(--shadow);
+}
+.modal-box h3 { margin:0 0 14px; }
+
+/* notification bell toggle */
+.notif-toggle {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:12px 14px; border-radius:10px;
+  background:rgba(255,255,255,0.04); border:1px solid var(--border);
+  margin-bottom:8px;
+}
+.notif-toggle .nt-label { font-size:.9rem; }
+.nt-switch {
+  width:44px; height:24px; border-radius:99px;
+  background:rgba(255,255,255,0.15); position:relative;
+  cursor:pointer; transition:.2s; border:none; flex-shrink:0;
+}
+.nt-switch.on { background:var(--accent); }
+.nt-switch::after {
+  content:''; position:absolute; top:3px; left:3px;
+  width:18px; height:18px; border-radius:50%; background:#fff;
+  transition:.2s;
+}
+.nt-switch.on::after { left:23px; }
+
+/* misc */
+.section-title { font-size:1.1rem; font-weight:700; margin:0 0 12px; }
+.text-faint { color:var(--faint); font-size:.85rem; }
+.text-accent { color:var(--accent); }
+.text-warn { color:var(--warn); }
+.text-danger { color:var(--danger); }
+.mt-8 { margin-top:8px; } .mt-16 { margin-top:16px; } .mt-24 { margin-top:24px; }
+.flex { display:flex; } .gap-8 { gap:8px; } .gap-12 { gap:12px; }
+.items-center { align-items:center; } .justify-between { justify-content:space-between; }
+.flex-wrap { flex-wrap:wrap; }
+.w-full { width:100%; }
+hr.sg-divider { border:none; border-top:1px solid var(--border); margin:18px 0; }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- TOP BAR -->
+  <div class="topbar">
+    <div class="brand">
+      <div class="title">🛡️ ScreenGuard</div>
+      <div style="font-size:.72rem;color:var(--faint);">Digital Wellness & Addiction Recovery</div>
+    </div>
+    <div style="display:flex;gap:10px;align-items:center;">
+      <span class="streak-badge" id="topbar-streak">🔥 0-day streak</span>
+      <a href="index.html" class="btn btn-ghost btn-sm">← Planner</a>
+    </div>
+  </div>
+
+  <!-- TABS -->
+  <div class="sg-tabs">
+    <button class="sg-tab active" onclick="switchTab('dashboard')">Dashboard</button>
+    <button class="sg-tab" onclick="switchTab('focus')">Focus Timer</button>
+    <button class="sg-tab" onclick="switchTab('log')">Screen Time Log</button>
+    <button class="sg-tab" onclick="switchTab('blocklist')">Site Blocker</button>
+    <button class="sg-tab" onclick="switchTab('urge')">Urge Relief</button>
+    <button class="sg-tab" onclick="switchTab('commitments')">Commitments</button>
+    <button class="sg-tab" onclick="switchTab('insights')">Insights</button>
+  </div>
+
+  <!-- ══════════ DASHBOARD ══════════ -->
+  <div id="view-dashboard" class="sg-view active">
+
+    <div class="sg-grid-3">
+      <div class="stat-tile">
+        <div class="val" id="dash-streak">0</div>
+        <div class="lbl">🔥 Day Streak</div>
+      </div>
+      <div class="stat-tile">
+        <div class="val" id="dash-today">0h</div>
+        <div class="lbl">📱 Screen Time Today</div>
+      </div>
+      <div class="stat-tile">
+        <div class="val" id="dash-blocked">0</div>
+        <div class="lbl">🚫 Sites Blocked</div>
+      </div>
+    </div>
+
+    <!-- Today's screen time vs goal -->
+    <div class="sg-card mt-16">
+      <h3>Today's Screen Time vs Goal</h3>
+      <div id="today-bar-wrap">
+        <div style="display:flex;justify-content:space-between;font-size:.8rem;color:var(--faint);margin-bottom:6px;">
+          <span id="today-bar-label">0 min used</span>
+          <span id="today-bar-goal">Goal: 120 min</span>
+        </div>
+        <div class="bar-track">
+          <div class="bar-fill" id="today-bar" style="width:0%"></div>
+        </div>
+      </div>
+      <div class="mt-16" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+        <button class="btn btn-primary" onclick="quickLogModal()">+ Log Screen Time</button>
+        <button class="btn btn-accent" onclick="switchTab('focus')">Start Focus Session</button>
+        <button class="btn btn-ghost" onclick="markDayClean()">✅ Mark Day Clean</button>
+      </div>
+    </div>
+
+    <!-- Active commitments preview -->
+    <div class="sg-card">
+      <h3>Active Commitments</h3>
+      <div id="dash-commitments-list"><p class="text-faint">No commitments yet. Add one in the Commitments tab.</p></div>
+    </div>
+
+    <!-- Recent urge log -->
+    <div class="sg-card">
+      <h3>Recent Check-ins</h3>
+      <div id="dash-urge-log"><p class="text-faint">No check-ins recorded yet.</p></div>
+    </div>
+
+    <!-- Quick tips -->
+    <div class="sg-card" style="border-color:var(--focus);">
+      <h3 style="color:var(--focus);">💡 Tip of the Day</h3>
+      <p id="tip-text" style="margin:0;font-size:.9rem;color:var(--muted);line-height:1.6;"></p>
+    </div>
+  </div>
+
+  <!-- ══════════ FOCUS TIMER ══════════ -->
+  <div id="view-focus" class="sg-view">
+    <div class="sg-grid-2">
+
+      <!-- Timer -->
+      <div class="sg-card" style="display:flex;flex-direction:column;align-items:center;gap:10px;">
+        <h3 style="align-self:flex-start;">Focus Session</h3>
+        <div id="timer-ring-wrap">
+          <div style="position:relative;display:inline-block;">
+            <svg id="timer-svg" width="180" height="180" viewBox="0 0 180 180">
+              <circle id="timer-circle-bg" cx="90" cy="90" r="80"/>
+              <circle id="timer-circle" cx="90" cy="90" r="80"
+                stroke-dasharray="502" stroke-dashoffset="0"/>
+            </svg>
+            <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;transform:rotate(90deg);">
+              <div id="timer-display">25:00</div>
+              <div id="timer-phase">Focus</div>
+            </div>
+          </div>
+        </div>
+        <div class="timer-btns w-full">
+          <button class="btn btn-primary w-full" id="timer-start-btn" onclick="timerStart()">▶ Start</button>
+          <button class="btn btn-ghost w-full" id="timer-reset-btn" onclick="timerReset()">↺ Reset</button>
+        </div>
+        <p class="text-faint" style="text-align:center;font-size:.8rem;margin:0;">
+          Put the phone face-down. You've got this.
+        </p>
+      </div>
+
+      <!-- Timer settings -->
+      <div class="sg-card">
+        <h3>Session Settings</h3>
+        <label class="text-faint" style="font-size:.82rem;">Focus Duration (minutes)</label>
+        <input class="sg-input" type="number" id="focus-duration" value="25" min="1" max="120" />
+
+        <label class="text-faint" style="font-size:.82rem;">Break Duration (minutes)</label>
+        <input class="sg-input" type="number" id="break-duration" value="5" min="1" max="60" />
+
+        <label class="text-faint" style="font-size:.82rem;">What are you focusing on?</label>
+        <input class="sg-input" type="text" id="focus-task" placeholder="e.g. Study, Deep work, No phone…" />
+
+        <label class="text-faint" style="font-size:.82rem;">Daily Focus Goal (sessions)</label>
+        <input class="sg-input" type="number" id="focus-goal" value="4" min="1" max="20" />
+
+        <hr class="sg-divider" />
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <span class="text-faint" style="font-size:.85rem;">Sessions today</span>
+          <span id="sessions-today" style="font-weight:700;color:var(--accent);">0 / 4</span>
+        </div>
+
+        <hr class="sg-divider" />
+        <h3 style="margin-bottom:10px;">Completed Sessions</h3>
+        <div id="focus-history" style="max-height:180px;overflow-y:auto;">
+          <p class="text-faint">None yet today.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Notification blocking guide -->
+    <div class="sg-card" style="border-color:var(--warn);">
+      <h3 style="color:var(--warn);">🔕 Block Notifications During Focus</h3>
+      <p class="text-faint" style="margin:0 0 12px;">Your phone can't do this for you from a webpage — but here's how:</p>
+      <div class="sg-grid-2">
+        <div style="background:rgba(255,176,32,0.08);border-radius:10px;padding:14px;">
+          <div style="font-weight:700;margin-bottom:6px;">📱 iPhone / iOS</div>
+          <ol style="margin:0;padding-left:18px;font-size:.82rem;color:var(--muted);line-height:1.8;">
+            <li>Settings → Focus → Do Not Disturb</li>
+            <li>Tap "Add Schedule" → set your focus hours</li>
+            <li>Allow only essential contacts</li>
+            <li>Enable Focus Filters to hide distracting apps</li>
+          </ol>
+        </div>
+        <div style="background:rgba(255,176,32,0.08);border-radius:10px;padding:14px;">
+          <div style="font-weight:700;margin-bottom:6px;">🤖 Android</div>
+          <ol style="margin:0;padding-left:18px;font-size:.82rem;color:var(--muted);line-height:1.8;">
+            <li>Settings → Digital Wellbeing → Focus Mode</li>
+            <li>Select apps to pause during focus</li>
+            <li>Alternatively: Settings → Sound → Do Not Disturb</li>
+            <li>Schedule automatic DND during work hours</li>
+          </ol>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════ SCREEN TIME LOG ══════════ -->
+  <div id="view-log" class="sg-view">
+    <div class="sg-grid-2">
+      <div class="sg-card">
+        <h3>Log Screen Time</h3>
+        <label class="text-faint" style="font-size:.82rem;">Date</label>
+        <input class="sg-input" type="date" id="log-date" />
+
+        <label class="text-faint" style="font-size:.82rem;">Category</label>
+        <select class="sg-input" id="log-category">
+          <option value="social">Social Media</option>
+          <option value="entertainment">Entertainment / Streaming</option>
+          <option value="games">Gaming</option>
+          <option value="adult">Adult Content</option>
+          <option value="news">News / Doomscrolling</option>
+          <option value="work">Productive / Work</option>
+          <option value="other">Other</option>
+        </select>
+
+        <label class="text-faint" style="font-size:.82rem;">Time Spent (minutes)</label>
+        <input class="sg-input" type="number" id="log-minutes" placeholder="e.g. 45" min="1" />
+
+        <label class="text-faint" style="font-size:.82rem;">App / Website (optional)</label>
+        <input class="sg-input" type="text" id="log-app" placeholder="e.g. Instagram, YouTube…" />
+
+        <label class="text-faint" style="font-size:.82rem;">Note (optional)</label>
+        <input class="sg-input" type="text" id="log-note" placeholder="How did you feel after?" />
+
+        <button class="btn btn-primary w-full" onclick="addScreenLog()">Save Entry</button>
+      </div>
+
+      <div class="sg-card">
+        <h3>Daily Goals</h3>
+        <label class="text-faint" style="font-size:.82rem;">Daily Screen Time Limit (minutes)</label>
+        <input class="sg-input" type="number" id="goal-daily" placeholder="120" />
+        <label class="text-faint" style="font-size:.82rem;">Social Media Limit (min/day)</label>
+        <input class="sg-input" type="number" id="goal-social" placeholder="30" />
+        <label class="text-faint" style="font-size:.82rem;">Entertainment Limit (min/day)</label>
+        <input class="sg-input" type="number" id="goal-entertainment" placeholder="60" />
+        <label class="text-faint" style="font-size:.82rem;">Adult Content Goal</label>
+        <select class="sg-input" id="goal-adult">
+          <option value="zero">Zero Tolerance — 0 minutes</option>
+          <option value="reduce">Reducing — track & limit</option>
+          <option value="track">Just tracking for now</option>
+        </select>
+        <button class="btn btn-accent w-full" onclick="saveGoals()">Save Goals</button>
+      </div>
+    </div>
+
+    <!-- Log history -->
+    <div class="sg-card">
+      <div class="flex justify-between items-center" style="margin-bottom:14px;">
+        <h3 style="margin:0;">Recent Logs</h3>
+        <select class="sg-input" id="log-filter" style="width:auto;margin:0;padding:6px 10px;" onchange="renderLogs()">
+          <option value="all">All Categories</option>
+          <option value="social">Social Media</option>
+          <option value="entertainment">Entertainment</option>
+          <option value="games">Gaming</option>
+          <option value="adult">Adult Content</option>
+          <option value="news">News</option>
+          <option value="work">Productive</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+      <div id="log-list"><p class="text-faint">No logs yet.</p></div>
+    </div>
+  </div>
+
+  <!-- ══════════ SITE BLOCKER ══════════ -->
+  <div id="view-blocklist" class="sg-view">
+    <div class="sg-card" style="border-color:var(--danger);">
+      <h3>⚠️ How Website Blocking Works</h3>
+      <p class="text-faint" style="margin:0;font-size:.85rem;line-height:1.7;">
+        Browsers can't block other websites on their own — that requires a browser extension or editing your system's hosts file.
+        This tool lets you <strong style="color:var(--text);">build and manage your block list</strong>, then gives you the exact config to apply.
+        For the most powerful blocking (including adult content), use the free extension
+        <strong style="color:var(--accent-2);">Cold Turkey</strong>, <strong style="color:var(--accent-2);">BlockSite</strong>, or <strong style="color:var(--accent-2);">Freedom</strong>.
+      </p>
+    </div>
+
+    <div class="sg-grid-2">
+      <!-- Add site -->
+      <div class="sg-card">
+        <h3>Add Site to Block</h3>
+        <label class="text-faint" style="font-size:.82rem;">Domain or URL</label>
+        <input class="sg-input" type="text" id="block-site-input" placeholder="e.g. reddit.com, pornhub.com…" />
+
+        <label class="text-faint" style="font-size:.82rem;">Category</label>
+        <select class="sg-input" id="block-cat">
+          <option value="social">Social Media</option>
+          <option value="adult">Adult / Pornography</option>
+          <option value="games">Gaming</option>
+          <option value="news">News / Clickbait</option>
+          <option value="custom">Custom</option>
+        </select>
+
+        <button class="btn btn-danger w-full" onclick="addBlockedSite()">🚫 Block This Site</button>
+
+        <hr class="sg-divider"/>
+        <h3 style="margin-bottom:10px;">Quick-Add Presets</h3>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;">
+          <button class="btn btn-ghost btn-sm" onclick="addPreset('social')">📱 Social Media Pack</button>
+          <button class="btn btn-ghost btn-sm" onclick="addPreset('adult')">🔞 Adult Content Pack</button>
+          <button class="btn btn-ghost btn-sm" onclick="addPreset('games')">🎮 Gaming Sites Pack</button>
+          <button class="btn btn-ghost btn-sm" onclick="addPreset('news')">📰 News/Doom Pack</button>
+        </div>
+      </div>
+
+      <!-- Blocked list -->
+      <div class="sg-card">
+        <div class="flex justify-between items-center" style="margin-bottom:12px;">
+          <h3 style="margin:0;">Blocked Sites (<span id="blocked-count">0</span>)</h3>
+          <button class="btn btn-ghost btn-sm" onclick="clearBlocklist()">Clear All</button>
+        </div>
+        <div id="blocked-chips" style="min-height:60px;"></div>
+      </div>
+    </div>
+
+    <!-- Hosts file export -->
+    <div class="sg-card">
+      <h3>Export for /etc/hosts (Desktop Blocking)</h3>
+      <p class="text-faint" style="margin:0 0 12px;font-size:.85rem;line-height:1.6;">
+        On Mac/Linux: <code style="background:rgba(255,255,255,0.1);padding:2px 6px;border-radius:4px;">sudo nano /etc/hosts</code> and paste the lines below.<br/>
+        On Windows: Edit <code style="background:rgba(255,255,255,0.1);padding:2px 6px;border-radius:4px;">C:\Windows\System32\drivers\etc\hosts</code> as Administrator.
+      </p>
+      <div id="hosts-output"># ScreenGuard block list — paste into /etc/hosts
+# (no sites blocked yet)</div>
+      <div style="margin-top:10px;display:flex;gap:8px;">
+        <button class="btn btn-primary" onclick="copyHosts()">📋 Copy to Clipboard</button>
+        <button class="btn btn-ghost" onclick="downloadHosts()">⬇ Download .txt</button>
+      </div>
+    </div>
+
+    <!-- Extension recommendations -->
+    <div class="sg-card">
+      <h3>🔌 Recommended Free Extensions</h3>
+      <div class="sg-grid-3">
+        <div style="background:var(--panel-2);border-radius:10px;padding:14px;">
+          <div style="font-weight:700;margin-bottom:4px;">Cold Turkey Blocker</div>
+          <div style="font-size:.8rem;color:var(--faint);margin-bottom:8px;">Very powerful. Supports scheduled blocks. Hard to bypass.</div>
+          <span class="cat-pill cat-social">Chrome</span>
+          <span class="cat-pill cat-social">Firefox</span>
+        </div>
+        <div style="background:var(--panel-2);border-radius:10px;padding:14px;">
+          <div style="font-weight:700;margin-bottom:4px;">BlockSite</div>
+          <div style="font-size:.8rem;color:var(--faint);margin-bottom:8px;">Easy setup. Blocks adult content with one toggle. Password lock.</div>
+          <span class="cat-pill cat-games">Chrome</span>
+          <span class="cat-pill cat-games">Firefox</span>
+        </div>
+        <div style="background:var(--panel-2);border-radius:10px;padding:14px;">
+          <div style="font-weight:700;margin-bottom:4px;">Freedom</div>
+          <div style="font-size:.8rem;color:var(--faint);margin-bottom:8px;">Blocks across ALL devices simultaneously. Sync Mac, iPhone, Android.</div>
+          <span class="cat-pill cat-news">All platforms</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════ URGE RELIEF ══════════ -->
+  <div id="view-urge" class="sg-view">
+    <div class="sg-grid-2">
+
+      <!-- Breathing -->
+      <div class="sg-card" style="display:flex;flex-direction:column;align-items:center;text-align:center;gap:14px;">
+        <h3 style="align-self:flex-start;">4-4-4 Box Breathing</h3>
+        <p class="text-faint" style="margin:0;font-size:.85rem;">Tap the circle to start. Breathing resets the nervous system and weakens urges within 2–3 minutes.</p>
+        <div id="breathe-circle" onclick="startBreathing()">Tap to start</div>
+        <div id="breathe-instruction" style="font-size:.95rem;color:var(--focus);font-weight:600;min-height:24px;"></div>
+        <div id="breathe-count" class="text-faint" style="font-size:.82rem;"></div>
+      </div>
+
+      <!-- Urge journal -->
+      <div class="sg-card">
+        <h3>Urge Journal</h3>
+        <p class="text-faint" style="font-size:.82rem;margin:0 0 10px;">Write it out. Naming the urge reduces its power. This stays on your device only.</p>
+
+        <label class="text-faint" style="font-size:.82rem;">What's happening right now?</label>
+        <textarea class="sg-input" id="urge-what" placeholder="What are you feeling the urge to do?"></textarea>
+
+        <label class="text-faint" style="font-size:.82rem;">What triggered it?</label>
+        <textarea class="sg-input" id="urge-trigger" placeholder="Boredom? Stress? Loneliness? Time of day?"></textarea>
+
+        <label class="text-faint" style="font-size:.82rem;">What will you do instead?</label>
+        <textarea class="sg-input" id="urge-replace" placeholder="Call a friend, go for a walk, do 20 push-ups…"></textarea>
+
+        <div class="flex gap-8">
+          <button class="btn btn-primary flex-1" onclick="saveUrgeEntry()">Save Entry</button>
+          <button class="btn btn-ghost" onclick="showUrgeHistory()">History</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Emergency strategies -->
+    <div class="sg-card">
+      <h3>🆘 When the Urge is Strong — Do One of These NOW</h3>
+      <div class="sg-grid-3">
+        <div style="background:var(--green-dim);border:1px solid var(--accent);border-radius:10px;padding:14px;">
+          <div style="font-size:1.5rem;margin-bottom:6px;">🏃</div>
+          <div style="font-weight:700;margin-bottom:4px;">Move Your Body</div>
+          <div style="font-size:.82rem;color:var(--faint);">20 jumping jacks, a brisk 5-min walk, or 10 push-ups. Physical movement redirects the dopamine spike.</div>
+        </div>
+        <div style="background:var(--focus-dim);border:1px solid var(--focus);border-radius:10px;padding:14px;">
+          <div style="font-size:1.5rem;margin-bottom:6px;">📞</div>
+          <div style="font-weight:700;margin-bottom:4px;">Call Someone</div>
+          <div style="font-size:.82rem;color:var(--faint);">Reach out to a friend, family member, or accountability partner. Connection > screen.</div>
+        </div>
+        <div style="background:var(--warn-dim);border:1px solid var(--warn);border-radius:10px;padding:14px;">
+          <div style="font-size:1.5rem;margin-bottom:6px;">⏱️</div>
+          <div style="font-weight:700;margin-bottom:4px;">Surf the Urge (10 min)</div>
+          <div style="font-size:.82rem;color:var(--faint);">Urges peak at ~10 min then fade. Set a timer. Breathe. The wave will pass without crashing.</div>
+        </div>
+        <div style="background:var(--danger-dim);border:1px solid var(--danger);border-radius:10px;padding:14px;">
+          <div style="font-size:1.5rem;margin-bottom:6px;">🚿</div>
+          <div style="font-weight:700;margin-bottom:4px;">Cold Shower / Water</div>
+          <div style="font-size:.82rem;color:var(--faint);">Splash cold water on your face or take a brief cold shower. Immediately resets your arousal system.</div>
+        </div>
+        <div style="background:var(--panel-2);border-radius:10px;padding:14px;border:1px solid var(--border);">
+          <div style="font-size:1.5rem;margin-bottom:6px;">📖</div>
+          <div style="font-weight:700;margin-bottom:4px;">Read Your Why</div>
+          <div style="font-size:.82rem;color:var(--faint);">Go to Commitments and re-read why you started this journey. Reconnect with your values.</div>
+        </div>
+        <div style="background:var(--panel-2);border-radius:10px;padding:14px;border:1px solid var(--border);">
+          <div style="font-size:1.5rem;margin-bottom:6px;">🙏</div>
+          <div style="font-weight:700;margin-bottom:4px;">Pray / Meditate</div>
+          <div style="font-size:.82rem;color:var(--faint);">Even 3 minutes of prayer, gratitude, or silent breathing can shift the mental state entirely.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Urge history modal trigger -->
+    <div class="sg-card" id="urge-history-card" style="display:none;">
+      <div class="flex justify-between items-center" style="margin-bottom:12px;">
+        <h3 style="margin:0;">Urge Journal History</h3>
+        <button class="btn btn-ghost btn-sm" onclick="document.getElementById('urge-history-card').style.display='none'">Hide</button>
+      </div>
+      <div id="urge-history-list"><p class="text-faint">No entries yet.</p></div>
+    </div>
+  </div>
+
+  <!-- ══════════ COMMITMENTS ══════════ -->
+  <div id="view-commitments" class="sg-view">
+    <div class="sg-grid-2">
+      <div class="sg-card">
+        <h3>Make a Commitment</h3>
+        <p class="text-faint" style="font-size:.85rem;margin:0 0 12px;">
+          Written commitments are significantly more effective than mental ones. Be specific about what you're committing to and why.
+        </p>
+
+        <label class="text-faint" style="font-size:.82rem;">Commitment Title</label>
+        <input class="sg-input" type="text" id="commit-title" placeholder="e.g. No pornography for 30 days" />
+
+        <label class="text-faint" style="font-size:.82rem;">Why does this matter to me?</label>
+        <textarea class="sg-input" id="commit-why" placeholder="Write your deep reason. Health? Relationships? Self-respect? Faith?"></textarea>
+
+        <label class="text-faint" style="font-size:.82rem;">Duration</label>
+        <select class="sg-input" id="commit-duration">
+          <option value="7">7 days</option>
+          <option value="14">14 days</option>
+          <option value="21" selected>21 days</option>
+          <option value="30">30 days</option>
+          <option value="60">60 days</option>
+          <option value="90">90 days</option>
+          <option value="0">Ongoing (no end date)</option>
+        </select>
+
+        <label class="text-faint" style="font-size:.82rem;">Category</label>
+        <select class="sg-input" id="commit-cat">
+          <option value="adult">🔞 Adult Content / Pornography</option>
+          <option value="social">📱 Social Media</option>
+          <option value="screen">📺 General Screen Time</option>
+          <option value="games">🎮 Gaming</option>
+          <option value="other">Other</option>
+        </select>
+
+        <button class="btn btn-primary w-full" onclick="addCommitment()">🤝 Make This Commitment</button>
+      </div>
+
+      <div class="sg-card">
+        <h3>My Commitments</h3>
+        <div id="commitments-list"><p class="text-faint">No commitments yet.</p></div>
+      </div>
+    </div>
+
+    <!-- Relapse section -->
+    <div class="sg-card" style="border-color:var(--warn);">
+      <h3 style="color:var(--warn);">If You Relapse — This Is Still Progress</h3>
+      <p style="font-size:.88rem;color:var(--muted);line-height:1.7;margin:0 0 12px;">
+        Relapse is part of recovery, not failure. The brain's neural pathways took years to form — they take time to rewire.
+        What matters is that you get back up. Log the relapse honestly, reflect on what triggered it, and restart your streak.
+      </p>
+      <div id="relapse-list" style="margin-bottom:12px;"></div>
+      <textarea class="sg-input" id="relapse-note" placeholder="What happened? What will you do differently?"></textarea>
+      <button class="btn btn-ghost" onclick="logRelapse()">📝 Log Relapse & Restart Streak</button>
+    </div>
+  </div>
+
+  <!-- ══════════ INSIGHTS ══════════ -->
+  <div id="view-insights" class="sg-view">
+    <div class="sg-grid-2">
+      <div class="sg-card">
+        <h3>Weekly Overview</h3>
+        <div id="weekly-chart"></div>
+      </div>
+      <div class="sg-card">
+        <h3>By Category (Last 7 Days)</h3>
+        <div id="category-chart"></div>
+      </div>
+    </div>
+    <div class="sg-card">
+      <h3>All-time Stats</h3>
+      <div class="sg-grid-3" id="alltime-stats"></div>
+    </div>
+    <div class="sg-card">
+      <h3>Streak History</h3>
+      <div id="streak-history-view"><p class="text-faint">No streaks recorded yet.</p></div>
+    </div>
+  </div>
+
+</div><!-- /app -->
+
+<!-- Quick Log Modal -->
+<div class="modal-overlay" id="quick-log-modal">
+  <div class="modal-box">
+    <h3>Quick Log</h3>
+    <label class="text-faint" style="font-size:.82rem;">Category</label>
+    <select class="sg-input" id="ql-cat">
+      <option value="social">Social Media</option>
+      <option value="entertainment">Entertainment</option>
+      <option value="games">Gaming</option>
+      <option value="adult">Adult Content</option>
+      <option value="news">News</option>
+      <option value="other">Other</option>
+    </select>
+    <label class="text-faint" style="font-size:.82rem;">Minutes</label>
+    <input class="sg-input" type="number" id="ql-mins" placeholder="How many minutes?" min="1"/>
+    <div class="flex gap-8 mt-8">
+      <button class="btn btn-primary flex-1" onclick="saveQuickLog()">Save</button>
+      <button class="btn btn-ghost flex-1" onclick="closeModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════
+// DATA LAYER
+// ══════════════════════════════════════════
+const KEY = 'screenguard_v1';
+
+function load() {
+  try { return JSON.parse(localStorage.getItem(KEY)) || defaultState(); }
+  catch { return defaultState(); }
+}
+
+function save(s) { localStorage.setItem(KEY, JSON.stringify(s)); }
+
+function defaultState() {
+  return {
+    goals: { daily: 120, social: 30, entertainment: 60, adult: 'zero' },
+    screenLogs: [],
+    focusSessions: [],
+    urgeEntries: [],
+    commitments: [],
+    relapses: [],
+    cleanDays: [],
+    streakStartDate: null,
+    bestStreak: 0,
+    blockedSites: [],
+  };
+}
+
+let state = load();
+
+// ══════════════════════════════════════════
+// NAVIGATION
+// ══════════════════════════════════════════
+function switchTab(name) {
+  document.querySelectorAll('.sg-view').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('.sg-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('view-' + name).classList.add('active');
+  document.querySelectorAll('.sg-tab').forEach(t => {
+    if (t.textContent.toLowerCase().includes(name.toLowerCase()) ||
+        (name === 'log' && t.textContent.includes('Screen Time')) ||
+        (name === 'blocklist' && t.textContent.includes('Site')) ||
+        (name === 'urge' && t.textContent.includes('Urge')) ||
+        (name === 'commitments' && t.textContent.includes('Commit')) ||
+        (name === 'insights' && t.textContent.includes('Insight')) ||
+        (name === 'focus' && t.textContent.includes('Focus')) ||
+        (name === 'dashboard' && t.textContent.includes('Dashboard'))
+    ) t.classList.add('active');
+  });
+  if (name === 'insights') renderInsights();
+}
+
+// ══════════════════════════════════════════
+// STREAK LOGIC
+// ══════════════════════════════════════════
+function todayStr() { return new Date().toISOString().slice(0,10); }
+
+function getCurrentStreak() {
+  if (!state.streakStartDate) return 0;
+  const start = new Date(state.streakStartDate);
+  const today = new Date();
+  const days = Math.floor((today - start) / 86400000);
+  return Math.max(0, days);
+}
+
+function markDayClean() {
+  const t = todayStr();
+  if (!state.cleanDays.includes(t)) {
+    state.cleanDays.push(t);
+    if (!state.streakStartDate) state.streakStartDate = t;
+    const s = getCurrentStreak();
+    if (s > state.bestStreak) state.bestStreak = s;
+    save(state);
+    refreshAll();
+    alert('Great work! Day marked as clean. Keep going! 🔥');
+  } else {
+    alert('Already marked today as clean!');
+  }
+}
+
+// ══════════════════════════════════════════
+// SCREEN TIME LOGGING
+// ══════════════════════════════════════════
+function addScreenLog() {
+  const date = document.getElementById('log-date').value || todayStr();
+  const cat = document.getElementById('log-category').value;
+  const mins = parseInt(document.getElementById('log-minutes').value);
+  const app = document.getElementById('log-app').value.trim();
+  const note = document.getElementById('log-note').value.trim();
+  if (!mins || mins < 1) { alert('Please enter minutes.'); return; }
+  state.screenLogs.push({ id: Date.now(), date, cat, mins, app, note });
+  save(state);
+  document.getElementById('log-minutes').value = '';
+  document.getElementById('log-app').value = '';
+  document.getElementById('log-note').value = '';
+  renderLogs();
+  refreshDashboard();
+}
+
+function saveQuickLog() {
+  const cat = document.getElementById('ql-cat').value;
+  const mins = parseInt(document.getElementById('ql-mins').value);
+  if (!mins || mins < 1) { alert('Enter minutes.'); return; }
+  state.screenLogs.push({ id: Date.now(), date: todayStr(), cat, mins, app: '', note: '' });
+  save(state);
+  closeModal();
+  refreshDashboard();
+}
+
+function deleteLog(id) {
+  state.screenLogs = state.screenLogs.filter(l => l.id !== id);
+  save(state);
+  renderLogs();
+  refreshDashboard();
+}
+
+function renderLogs() {
+  const filter = document.getElementById('log-filter')?.value || 'all';
+  const list = document.getElementById('log-list');
+  let logs = [...state.screenLogs].reverse();
+  if (filter !== 'all') logs = logs.filter(l => l.cat === filter);
+  if (!logs.length) { list.innerHTML = '<p class="text-faint">No logs yet.</p>'; return; }
+
+  const catMeta = { social:'📱', entertainment:'📺', games:'🎮', adult:'🔞', news:'📰', work:'💼', other:'📋' };
+  list.innerHTML = logs.map(l => `
+    <div class="log-item">
+      <div class="li-icon" style="background:var(--panel-2);">${catMeta[l.cat]||'📋'}</div>
+      <div class="li-meta">
+        <div class="li-title">${l.app || l.cat} ${l.note ? '— ' + escHtml(l.note) : ''}</div>
+        <div class="li-sub">${l.date} · <span class="cat-pill cat-${l.cat}" style="padding:1px 7px;font-size:.72rem;">${l.cat}</span></div>
+      </div>
+      <div class="li-right">${l.mins} min</div>
+      <button class="btn btn-ghost btn-sm" onclick="deleteLog(${l.id})">✕</button>
+    </div>
+  `).join('');
+}
+
+function saveGoals() {
+  state.goals.daily = parseInt(document.getElementById('goal-daily').value) || 120;
+  state.goals.social = parseInt(document.getElementById('goal-social').value) || 30;
+  state.goals.entertainment = parseInt(document.getElementById('goal-entertainment').value) || 60;
+  state.goals.adult = document.getElementById('goal-adult').value;
+  save(state);
+  refreshDashboard();
+  alert('Goals saved!');
+}
+
+function loadGoalInputs() {
+  const g = state.goals;
+  const el = id => document.getElementById(id);
+  if (el('goal-daily')) el('goal-daily').value = g.daily || 120;
+  if (el('goal-social')) el('goal-social').value = g.social || 30;
+  if (el('goal-entertainment')) el('goal-entertainment').value = g.entertainment || 60;
+  if (el('goal-adult') && g.adult) el('goal-adult').value = g.adult;
+}
+
+// ══════════════════════════════════════════
+// FOCUS TIMER
+// ══════════════════════════════════════════
+let timerInterval = null;
+let timerSeconds = 0;
+let timerTotal = 0;
+let timerRunning = false;
+let timerPhase = 'focus'; // 'focus' | 'break'
+
+function timerStart() {
+  if (timerRunning) {
+    clearInterval(timerInterval);
+    timerRunning = false;
+    document.getElementById('timer-start-btn').textContent = '▶ Resume';
+    return;
+  }
+  if (timerSeconds === 0) {
+    const focusMins = parseInt(document.getElementById('focus-duration').value) || 25;
+    timerTotal = focusMins * 60;
+    timerSeconds = timerTotal;
+    timerPhase = 'focus';
+    document.getElementById('timer-phase').textContent = 'Focus';
+    document.getElementById('timer-circle').style.stroke = 'var(--focus)';
+  }
+  timerRunning = true;
+  document.getElementById('timer-start-btn').textContent = '⏸ Pause';
+  timerInterval = setInterval(timerTick, 1000);
+}
+
+function timerTick() {
+  timerSeconds--;
+  updateTimerDisplay();
+  if (timerSeconds <= 0) {
+    clearInterval(timerInterval);
+    timerRunning = false;
+    if (timerPhase === 'focus') {
+      // Log completed focus session
+      const task = document.getElementById('focus-task').value || 'Focus session';
+      state.focusSessions.push({ date: todayStr(), task, mins: parseInt(document.getElementById('focus-duration').value)||25, ts: Date.now() });
+      save(state);
+      renderFocusHistory();
+      // Switch to break
+      timerPhase = 'break';
+      const breakMins = parseInt(document.getElementById('break-duration').value) || 5;
+      timerTotal = breakMins * 60;
+      timerSeconds = timerTotal;
+      document.getElementById('timer-phase').textContent = 'Break';
+      document.getElementById('timer-circle').style.stroke = 'var(--accent)';
+      document.getElementById('timer-start-btn').textContent = '▶ Start Break';
+      if (Notification.permission === 'granted') {
+        new Notification('Focus complete! 🎉', { body: 'Take a break — you earned it.' });
+      }
+    } else {
+      timerReset();
+      document.getElementById('timer-phase').textContent = 'Ready';
+      if (Notification.permission === 'granted') {
+        new Notification('Break over!', { body: 'Ready for another focus session?' });
+      }
+    }
+    updateTimerDisplay();
+  }
+}
+
+function updateTimerDisplay() {
+  const m = String(Math.floor(timerSeconds / 60)).padStart(2,'0');
+  const s = String(timerSeconds % 60).padStart(2,'0');
+  document.getElementById('timer-display').textContent = `${m}:${s}`;
+  const pct = timerTotal > 0 ? (timerSeconds / timerTotal) : 1;
+  const circumference = 2 * Math.PI * 80;
+  document.getElementById('timer-circle').style.strokeDashoffset = circumference * (1 - pct);
+}
+
+function timerReset() {
+  clearInterval(timerInterval);
+  timerRunning = false;
+  timerSeconds = 0;
+  timerPhase = 'focus';
+  document.getElementById('timer-display').textContent = `${String(parseInt(document.getElementById('focus-duration').value)||25).padStart(2,'0')}:00`;
+  document.getElementById('timer-phase').textContent = 'Focus';
+  document.getElementById('timer-circle').style.strokeDashoffset = '0';
+  document.getElementById('timer-circle').style.stroke = 'var(--focus)';
+  document.getElementById('timer-start-btn').textContent = '▶ Start';
+}
+
+function renderFocusHistory() {
+  const today = todayStr();
+  const todaySessions = state.focusSessions.filter(s => s.date === today);
+  const goal = parseInt(document.getElementById('focus-goal').value)||4;
+  document.getElementById('sessions-today').textContent = `${todaySessions.length} / ${goal}`;
+  const el = document.getElementById('focus-history');
+  if (!todaySessions.length) { el.innerHTML = '<p class="text-faint">None yet today.</p>'; return; }
+  el.innerHTML = todaySessions.reverse().map(s => `
+    <div class="log-item" style="padding:8px 12px;margin-bottom:6px;">
+      <div class="li-icon" style="background:var(--focus-dim);">⏱️</div>
+      <div class="li-meta">
+        <div class="li-title">${escHtml(s.task)}</div>
+        <div class="li-sub">${s.mins} min</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+// ══════════════════════════════════════════
+// SITE BLOCKER
+// ══════════════════════════════════════════
+const PRESETS = {
+  social: ['facebook.com','instagram.com','twitter.com','x.com','tiktok.com','snapchat.com','reddit.com','pinterest.com','linkedin.com'],
+  adult: ['pornhub.com','xvideos.com','xnxx.com','xhamster.com','redtube.com','youporn.com','tube8.com','spankbang.com','brazzers.com','onlyfans.com'],
+  games: ['twitch.tv','roblox.com','miniclip.com','poki.com','coolmathgames.com','y8.com','friv.com','addictinggames.com'],
+  news: ['buzzfeed.com','dailymail.co.uk','tmz.com','huffpost.com','nypost.com','foxnews.com','infowars.com'],
+};
+
+function addBlockedSite() {
+  let site = document.getElementById('block-site-input').value.trim()
+    .replace(/^https?:\/\//,'').replace(/^www\./,'').split('/')[0];
+  if (!site) { alert('Enter a domain.'); return; }
+  const cat = document.getElementById('block-cat').value;
+  if (!state.blockedSites.find(s => s.domain === site)) {
+    state.blockedSites.push({ domain: site, cat });
+    save(state);
+    document.getElementById('block-site-input').value = '';
+    renderBlocklist();
+    refreshDashboard();
+  } else { alert('Already in list!'); }
+}
+
+function addPreset(cat) {
+  let added = 0;
+  (PRESETS[cat]||[]).forEach(d => {
+    if (!state.blockedSites.find(s => s.domain === d)) {
+      state.blockedSites.push({ domain: d, cat });
+      added++;
+    }
+  });
+  save(state);
+  renderBlocklist();
+  refreshDashboard();
+  alert(`Added ${added} sites to your block list.`);
+}
+
+function removeBlockedSite(domain) {
+  state.blockedSites = state.blockedSites.filter(s => s.domain !== domain);
+  save(state);
+  renderBlocklist();
+  refreshDashboard();
+}
+
+function clearBlocklist() {
+  if (!confirm('Clear all blocked sites?')) return;
+  state.blockedSites = [];
+  save(state);
+  renderBlocklist();
+  refreshDashboard();
+}
+
+function renderBlocklist() {
+  const chips = document.getElementById('blocked-chips');
+  const count = document.getElementById('blocked-count');
+  count.textContent = state.blockedSites.length;
+  if (!state.blockedSites.length) {
+    chips.innerHTML = '<p class="text-faint">No sites blocked yet.</p>';
+  } else {
+    chips.innerHTML = state.blockedSites.map(s => `
+      <span class="site-chip">
+        <span class="cat-pill cat-${s.cat}" style="padding:1px 5px;font-size:.68rem;margin:0;">${s.cat}</span>
+        ${escHtml(s.domain)}
+        <button onclick="removeBlockedSite('${escHtml(s.domain)}')">✕</button>
+      </span>
+    `).join('');
+  }
+  renderHostsOutput();
+}
+
+function renderHostsOutput() {
+  const el = document.getElementById('hosts-output');
+  if (!el) return;
+  if (!state.blockedSites.length) {
+    el.textContent = '# ScreenGuard block list — paste into /etc/hosts\n# (no sites blocked yet)';
+    return;
+  }
+  const lines = ['# ScreenGuard block list — generated by ScreenGuard','# Paste into /etc/hosts to block on this computer',''];
+  state.blockedSites.forEach(s => {
+    lines.push(`# [${s.cat}]`);
+    lines.push(`0.0.0.0 ${s.domain}`);
+    lines.push(`0.0.0.0 www.${s.domain}`);
+    lines.push('');
+  });
+  el.textContent = lines.join('\n');
+}
+
+function copyHosts() {
+  const el = document.getElementById('hosts-output');
+  navigator.clipboard.writeText(el.textContent).then(() => alert('Copied to clipboard!'));
+}
+
+function downloadHosts() {
+  const el = document.getElementById('hosts-output');
+  const blob = new Blob([el.textContent], { type: 'text/plain' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url;
+  a.download = 'screenguard-hosts.txt'; a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ══════════════════════════════════════════
+// URGE RELIEF — BREATHING
+// ══════════════════════════════════════════
+let breatheInterval = null;
+let breathePhase = 0;
+let breatheCycles = 0;
+const BREATHE_PHASES = [
+  { label: 'Breathe IN', duration: 4000, cls: 'breathing-in' },
+  { label: 'Hold', duration: 4000, cls: '' },
+  { label: 'Breathe OUT', duration: 4000, cls: 'breathing-out' },
+  { label: 'Hold', duration: 4000, cls: '' },
+];
+
+function startBreathing() {
+  if (breatheInterval) {
+    clearTimeout(breatheInterval);
+    breatheInterval = null;
+    document.getElementById('breathe-circle').className = '';
+    document.getElementById('breathe-circle').textContent = 'Tap to start';
+    document.getElementById('breathe-instruction').textContent = '';
+    document.getElementById('breathe-count').textContent = '';
+    breatheCycles = 0;
+    return;
+  }
+  breatheCycles = 0;
+  runBreathePhase(0);
+}
+
+function runBreathePhase(i) {
+  const p = BREATHE_PHASES[i];
+  const circle = document.getElementById('breathe-circle');
+  const inst = document.getElementById('breathe-instruction');
+  const cnt = document.getElementById('breathe-count');
+
+  circle.className = '';
+  void circle.offsetWidth; // reflow
+  circle.textContent = p.label;
+  circle.className = p.cls || '';
+  inst.textContent = p.label;
+
+  breatheInterval = setTimeout(() => {
+    const next = (i + 1) % 4;
+    if (next === 0) {
+      breatheCycles++;
+      cnt.textContent = `${breatheCycles} of 4 cycles`;
+      if (breatheCycles >= 4) {
+        clearTimeout(breatheInterval);
+        breatheInterval = null;
+        circle.className = '';
+        circle.textContent = 'Done ✓';
+        inst.textContent = 'Well done. Take a moment.';
+        return;
+      }
+    }
+    runBreathePhase(next);
+  }, p.duration);
+}
+
+// ══════════════════════════════════════════
+// URGE JOURNAL
+// ══════════════════════════════════════════
+function saveUrgeEntry() {
+  const what = document.getElementById('urge-what').value.trim();
+  const trigger = document.getElementById('urge-trigger').value.trim();
+  const replace = document.getElementById('urge-replace').value.trim();
+  if (!what) { alert('Describe what you\'re feeling.'); return; }
+  state.urgeEntries.push({ id: Date.now(), date: todayStr(), ts: new Date().toLocaleTimeString(), what, trigger, replace });
+  save(state);
+  document.getElementById('urge-what').value = '';
+  document.getElementById('urge-trigger').value = '';
+  document.getElementById('urge-replace').value = '';
+  refreshDashboard();
+  alert('Entry saved. You\'re doing the work. 💪');
+}
+
+function showUrgeHistory() {
+  const card = document.getElementById('urge-history-card');
+  card.style.display = 'block';
+  const el = document.getElementById('urge-history-list');
+  if (!state.urgeEntries.length) { el.innerHTML = '<p class="text-faint">No entries yet.</p>'; return; }
+  el.innerHTML = [...state.urgeEntries].reverse().map(e => `
+    <div class="sg-card" style="margin-bottom:10px;padding:14px;">
+      <div style="font-size:.78rem;color:var(--faint);margin-bottom:6px;">${e.date} ${e.ts}</div>
+      <div><strong>Urge:</strong> ${escHtml(e.what)}</div>
+      ${e.trigger ? `<div style="margin-top:4px;"><strong>Trigger:</strong> ${escHtml(e.trigger)}</div>` : ''}
+      ${e.replace ? `<div style="margin-top:4px;color:var(--accent);"><strong>Instead:</strong> ${escHtml(e.replace)}</div>` : ''}
+    </div>
+  `).join('');
+}
+
+// ══════════════════════════════════════════
+// COMMITMENTS
+// ══════════════════════════════════════════
+function addCommitment() {
+  const title = document.getElementById('commit-title').value.trim();
+  const why = document.getElementById('commit-why').value.trim();
+  const duration = parseInt(document.getElementById('commit-duration').value);
+  const cat = document.getElementById('commit-cat').value;
+  if (!title) { alert('Give your commitment a title.'); return; }
+  state.commitments.push({
+    id: Date.now(), title, why, duration, cat,
+    startDate: todayStr(), active: true, relapseCount: 0
+  });
+  save(state);
+  document.getElementById('commit-title').value = '';
+  document.getElementById('commit-why').value = '';
+  renderCommitments();
+  refreshDashboard();
+}
+
+function deleteCommitment(id) {
+  if (!confirm('Remove this commitment?')) return;
+  state.commitments = state.commitments.filter(c => c.id !== id);
+  save(state);
+  renderCommitments();
+  refreshDashboard();
+}
+
+function renderCommitments() {
+  const el = document.getElementById('commitments-list');
+  if (!state.commitments.length) { el.innerHTML = '<p class="text-faint">No commitments yet.</p>'; return; }
+  const catEmoji = { adult:'🔞', social:'📱', screen:'📺', games:'🎮', other:'🎯' };
+  el.innerHTML = state.commitments.map(c => {
+    const start = new Date(c.startDate);
+    const days = Math.floor((new Date() - start) / 86400000);
+    const pct = c.duration > 0 ? Math.min(100, (days / c.duration) * 100) : 100;
+    const done = c.duration > 0 && days >= c.duration;
+    return `
+    <div class="sg-card" style="margin-bottom:10px;padding:14px;border-color:${done ? 'var(--accent)' : 'var(--border)'};">
+      <div class="flex justify-between items-center">
+        <div style="font-weight:700;">${catEmoji[c.cat]||'🎯'} ${escHtml(c.title)}</div>
+        <button class="btn btn-ghost btn-sm" onclick="deleteCommitment(${c.id})">✕</button>
+      </div>
+      ${c.why ? `<div style="font-size:.82rem;color:var(--faint);margin-top:4px;font-style:italic;">"${escHtml(c.why)}"</div>` : ''}
+      <div style="margin-top:10px;">
+        <div style="display:flex;justify-content:space-between;font-size:.78rem;color:var(--faint);margin-bottom:4px;">
+          <span>${done ? '✅ Complete!' : `Day ${days}${c.duration>0?' / '+c.duration:''}`}</span>
+          <span>Started ${c.startDate}</span>
+        </div>
+        ${c.duration > 0 ? `<div class="bar-track"><div class="bar-fill ${done?'':''}": style="width:${pct}%"></div></div>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function logRelapse() {
+  const note = document.getElementById('relapse-note').value.trim();
+  state.relapses.push({ date: todayStr(), note, ts: Date.now() });
+  // Reset streak
+  state.streakStartDate = todayStr();
+  save(state);
+  document.getElementById('relapse-note').value = '';
+  renderRelapses();
+  refreshDashboard();
+  alert('Relapse logged. You\'re still in the fight. Start fresh right now — today counts.');
+}
+
+function renderRelapses() {
+  const el = document.getElementById('relapse-list');
+  if (!el) return;
+  if (!state.relapses.length) { el.innerHTML = ''; return; }
+  const last3 = [...state.relapses].reverse().slice(0,3);
+  el.innerHTML = last3.map(r => `
+    <div class="log-item" style="margin-bottom:6px;">
+      <div class="li-icon" style="background:var(--danger-dim);">📝</div>
+      <div class="li-meta">
+        <div class="li-title">${r.date}</div>
+        <div class="li-sub">${r.note ? escHtml(r.note) : 'No note'}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+// ══════════════════════════════════════════
+// INSIGHTS
+// ══════════════════════════════════════════
+function renderInsights() {
+  renderWeeklyChart();
+  renderCategoryChart();
+  renderAllTimeStats();
+  renderStreakHistory();
+}
+
+function renderWeeklyChart() {
+  const el = document.getElementById('weekly-chart');
+  const days = [];
+  for (let i=6; i>=0; i--) {
+    const d = new Date(); d.setDate(d.getDate()-i);
+    const ds = d.toISOString().slice(0,10);
+    const mins = state.screenLogs.filter(l=>l.date===ds).reduce((a,l)=>a+l.mins,0);
+    days.push({ label: d.toLocaleDateString('en',{weekday:'short'}), mins });
+  }
+  const max = Math.max(...days.map(d=>d.mins), 1);
+  el.innerHTML = days.map(d => `
+    <div class="chart-row">
+      <div class="cr-label">${d.label}</div>
+      <div class="cr-bar">
+        <div class="bar-track">
+          <div class="bar-fill ${d.mins > (state.goals.daily||120) ? 'danger' : ''}" style="width:${(d.mins/max)*100}%"></div>
+        </div>
+      </div>
+      <div class="cr-val">${d.mins}m</div>
+    </div>
+  `).join('');
+}
+
+function renderCategoryChart() {
+  const el = document.getElementById('category-chart');
+  const cutoff = new Date(); cutoff.setDate(cutoff.getDate()-7);
+  const cutoffStr = cutoff.toISOString().slice(0,10);
+  const cats = {};
+  state.screenLogs.filter(l=>l.date>=cutoffStr).forEach(l => { cats[l.cat]=(cats[l.cat]||0)+l.mins; });
+  const entries = Object.entries(cats).sort((a,b)=>b[1]-a[1]);
+  if (!entries.length) { el.innerHTML='<p class="text-faint">No logs in last 7 days.</p>'; return; }
+  const max = entries[0][1];
+  const catEmoji = { social:'📱', entertainment:'📺', games:'🎮', adult:'🔞', news:'📰', work:'💼', other:'📋' };
+  el.innerHTML = entries.map(([cat,mins]) => `
+    <div class="chart-row">
+      <div class="cr-label">${catEmoji[cat]||'📋'} ${cat}</div>
+      <div class="cr-bar">
+        <div class="bar-track">
+          <div class="bar-fill ${cat==='adult'?'danger':''}" style="width:${(mins/max)*100}%"></div>
+        </div>
+      </div>
+      <div class="cr-val">${mins}m</div>
+    </div>
+  `).join('');
+}
+
+function renderAllTimeStats() {
+  const el = document.getElementById('alltime-stats');
+  const total = state.screenLogs.reduce((a,l)=>a+l.mins,0);
+  const focusTotal = state.focusSessions.reduce((a,s)=>a+s.mins,0);
+  const adultTotal = state.screenLogs.filter(l=>l.cat==='adult').reduce((a,l)=>a+l.mins,0);
+  el.innerHTML = `
+    <div class="stat-tile"><div class="val">${Math.round(total/60)}h</div><div class="lbl">Total screen time logged</div></div>
+    <div class="stat-tile"><div class="val" style="color:var(--focus);">${Math.round(focusTotal/60)}h</div><div class="lbl">Total focus time</div></div>
+    <div class="stat-tile"><div class="val" style="color:var(--warn);">${state.bestStreak}</div><div class="lbl">Best clean streak (days)</div></div>
+    <div class="stat-tile"><div class="val">${state.screenLogs.length}</div><div class="lbl">Log entries</div></div>
+    <div class="stat-tile"><div class="val">${state.urgeEntries.length}</div><div class="lbl">Urges journaled</div></div>
+    <div class="stat-tile"><div class="val" style="color:${adultTotal>0?'var(--danger)':'var(--accent)'};">${adultTotal}</div><div class="lbl">Adult content minutes logged</div></div>
+  `;
+}
+
+function renderStreakHistory() {
+  const el = document.getElementById('streak-history-view');
+  if (!state.relapses.length && !state.streakStartDate) {
+    el.innerHTML = '<p class="text-faint">No streaks recorded yet.</p>'; return;
+  }
+  const current = getCurrentStreak();
+  el.innerHTML = `
+    <div class="sg-card" style="margin-bottom:10px;padding:14px;">
+      <div style="font-weight:700;">Current Streak</div>
+      <div style="font-size:1.8rem;font-weight:700;color:var(--warn);">🔥 ${current} days</div>
+      ${state.streakStartDate ? `<div class="text-faint" style="font-size:.8rem;">Started ${state.streakStartDate}</div>` : ''}
+    </div>
+    <div class="sg-card" style="padding:14px;">
+      <div style="font-weight:700;margin-bottom:8px;">Best Streak: ${state.bestStreak} days</div>
+      <div style="font-weight:700;margin-bottom:8px;">Relapses logged: ${state.relapses.length}</div>
+    </div>
+  `;
+}
+
+// ══════════════════════════════════════════
+// DASHBOARD REFRESH
+// ══════════════════════════════════════════
+function refreshDashboard() {
+  const streak = getCurrentStreak();
+  document.getElementById('dash-streak').textContent = streak;
+  document.getElementById('topbar-streak').textContent = `🔥 ${streak}-day streak`;
+  document.getElementById('dash-blocked').textContent = state.blockedSites.length;
+
+  const today = todayStr();
+  const todayMins = state.screenLogs.filter(l=>l.date===today).reduce((a,l)=>a+l.mins,0);
+  const hrs = Math.floor(todayMins/60), mins = todayMins%60;
+  document.getElementById('dash-today').textContent = hrs>0 ? `${hrs}h${mins>0?mins+'m':''}` : `${mins}m`;
+
+  // bar
+  const goal = state.goals.daily || 120;
+  const pct = Math.min(100, (todayMins/goal)*100);
+  const bar = document.getElementById('today-bar');
+  bar.style.width = pct + '%';
+  bar.className = 'bar-fill' + (pct > 100 ? ' danger' : pct > 80 ? ' warn' : '');
+  document.getElementById('today-bar-label').textContent = `${todayMins} min used`;
+  document.getElementById('today-bar-goal').textContent = `Goal: ${goal} min`;
+
+  // commitments preview
+  const cl = document.getElementById('dash-commitments-list');
+  if (!state.commitments.length) {
+    cl.innerHTML = '<p class="text-faint">No commitments yet. Add one in the Commitments tab.</p>';
+  } else {
+    const catEmoji = { adult:'🔞', social:'📱', screen:'📺', games:'🎮', other:'🎯' };
+    cl.innerHTML = state.commitments.slice(0,3).map(c => {
+      const days = Math.floor((new Date() - new Date(c.startDate))/86400000);
+      return `<div class="log-item"><div class="li-icon" style="background:var(--focus-dim);">${catEmoji[c.cat]||'🎯'}</div><div class="li-meta"><div class="li-title">${escHtml(c.title)}</div><div class="li-sub">Day ${days} · ${c.startDate}</div></div></div>`;
+    }).join('');
+  }
+
+  // recent urge check-ins
+  const ul = document.getElementById('dash-urge-log');
+  const recent = [...state.urgeEntries].reverse().slice(0,3);
+  if (!recent.length) {
+    ul.innerHTML = '<p class="text-faint">No check-ins recorded yet.</p>';
+  } else {
+    ul.innerHTML = recent.map(e => `<div class="log-item"><div class="li-icon" style="background:var(--focus-dim);">📝</div><div class="li-meta"><div class="li-title">${escHtml(e.what.slice(0,60))}</div><div class="li-sub">${e.date} ${e.ts}</div></div></div>`).join('');
+  }
+}
+
+// ══════════════════════════════════════════
+// TIPS
+// ══════════════════════════════════════════
+const TIPS = [
+  "Every time you resist an urge, you're literally rewiring your brain. Neuroplasticity is real — you are changing.",
+  "Your phone is designed by engineers to maximize your engagement. Recognizing that is the first step to freedom.",
+  "The average person touches their phone 2,617 times a day. Most of those touches are unconscious. Awareness is power.",
+  "Boredom is not the enemy — it's the birthplace of creativity. Sit with it instead of reaching for the screen.",
+  "Replace the habit, don't just remove it. When the urge hits, have a specific replacement behavior ready.",
+  "Social media shows you highlight reels and hides the mundane. What you're comparing to isn't real.",
+  "Pornography rewires the brain's reward system over time. Recovery is possible and the brain can heal — it just takes time.",
+  "Studies show that people overestimate how much they use their phones by 50%. Use this app to see the truth.",
+  "Tell one person about your goal. Accountability increases success rates by up to 65%.",
+  "The first 72 hours of any habit change are the hardest. After that, the urges become more manageable.",
+  "A streak isn't about perfection — it's about direction. Focus on the direction you're moving.",
+  "Sleep is your brain's cleanup cycle. Screens before bed suppress melatonin and increase anxiety. Log off early.",
+  "You are not your urges. An urge is a wave — you can watch it without letting it crash you.",
+  "Philippians 4:8: 'Whatever is true, whatever is noble, whatever is right... think about such things.'",
+];
+
+function showTip() {
+  const el = document.getElementById('tip-text');
+  if (el) el.textContent = TIPS[Math.floor(Math.random() * TIPS.length)];
+}
+
+// ══════════════════════════════════════════
+// MODAL
+// ══════════════════════════════════════════
+function quickLogModal() {
+  document.getElementById('quick-log-modal').classList.add('open');
+}
+function closeModal() {
+  document.getElementById('quick-log-modal').classList.remove('open');
+}
+document.getElementById('quick-log-modal').addEventListener('click', function(e) {
+  if (e.target === this) closeModal();
+});
+
+// ══════════════════════════════════════════
+// UTIL
+// ══════════════════════════════════════════
+function escHtml(str) {
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function refreshAll() {
+  refreshDashboard();
+  renderLogs();
+  renderBlocklist();
+  renderCommitments();
+  renderRelapses();
+  renderFocusHistory();
+  loadGoalInputs();
+}
+
+// ══════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════
+(function init() {
+  // Set today's date in log form
+  document.getElementById('log-date').value = todayStr();
+  // Request notification permission for timer
+  if ('Notification' in window && Notification.permission === 'default') {
+    Notification.requestPermission();
+  }
+  refreshAll();
+  showTip();
+})();
+</script>
+</body>
+</html>
