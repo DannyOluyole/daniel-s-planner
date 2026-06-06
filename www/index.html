@@ -25,28 +25,16 @@
 
   <!-- TOP BAR -->
   <div class="topbar">
-    <div>
+    <div class="topbar-left">
+      <button class="theme-toggle" id="theme-toggle-btn" onclick="toggleTheme()" title="Toggle theme">🌙</button>
+    </div>
+    <div style="text-align:center;">
       <div class="brand-name">🛡️ ScreenGuard</div>
-      <div class="brand-sub">Digital Wellness & Addiction Recovery</div>
+      <div class="brand-sub">Digital Wellness</div>
     </div>
     <div class="topbar-right">
-      <span class="streak-badge" id="topbar-streak">🔥 0-day streak</span>
-      <button class="theme-toggle" id="theme-toggle-btn" onclick="toggleTheme()" title="Toggle light/dark mode">🌙</button>
-      <a href="index.html" class="btn btn-ghost btn-sm">← Planner</a>
+      <span class="streak-badge" id="topbar-streak">🔥 0</span>
     </div>
-  </div>
-
-  <!-- TABS -->
-  <div class="sg-tabs">
-    <button class="sg-tab active" onclick="switchTab('dashboard')">Dashboard</button>
-    <button class="sg-tab" onclick="switchTab('usage')">📊 App Usage</button>
-    <button class="sg-tab" onclick="switchTab('focus')">Focus Timer</button>
-    <button class="sg-tab" onclick="switchTab('log')">Screen Time Log</button>
-    <button class="sg-tab" onclick="switchTab('blocklist')">🚫 Blocker</button>
-    <button class="sg-tab" onclick="switchTab('urge')">Urge Relief</button>
-    <button class="sg-tab" onclick="switchTab('commitments')">Commitments</button>
-    <button class="sg-tab" onclick="switchTab('insights')">Insights</button>
-    <button class="sg-tab" onclick="switchTab('journey')">🏆 Journey</button>
   </div>
 
   <!-- ══════════ DASHBOARD ══════════ -->
@@ -746,6 +734,30 @@
 
   </div>
 
+  <!-- BOTTOM NAV -->
+  <nav class="bottom-nav">
+    <button class="nav-item active" id="nav-dashboard" onclick="switchTab('dashboard')">
+      <span class="nav-icon">🏠</span>
+      <span class="nav-label">Home</span>
+    </button>
+    <button class="nav-item" id="nav-focus" onclick="switchTab('focus')">
+      <span class="nav-icon">⏱</span>
+      <span class="nav-label">Focus</span>
+    </button>
+    <button class="nav-item" id="nav-blocklist" onclick="switchTab('blocklist')">
+      <span class="nav-icon">🚫</span>
+      <span class="nav-label">Block</span>
+    </button>
+    <button class="nav-item" id="nav-insights" onclick="switchTab('insights')">
+      <span class="nav-icon">📊</span>
+      <span class="nav-label">Stats</span>
+    </button>
+    <button class="nav-item" id="nav-journey" onclick="switchTab('journey')">
+      <span class="nav-icon">🏆</span>
+      <span class="nav-label">Journey</span>
+    </button>
+  </nav>
+
 </div><!-- /app -->
 
 <!-- Quick Log Modal -->
@@ -1045,20 +1057,12 @@ function initTheme() {
 // ══════════════════════════════════════════
 function switchTab(name) {
   document.querySelectorAll('.sg-view').forEach(v => v.classList.remove('active'));
-  document.querySelectorAll('.sg-tab').forEach(t => t.classList.remove('active'));
   document.getElementById('view-' + name).classList.add('active');
-  document.querySelectorAll('.sg-tab').forEach(t => {
-    if (t.textContent.toLowerCase().includes(name.toLowerCase()) ||
-        (name === 'log' && t.textContent.includes('Screen Time')) ||
-        (name === 'blocklist' && t.textContent.includes('Site')) ||
-        (name === 'urge' && t.textContent.includes('Urge')) ||
-        (name === 'commitments' && t.textContent.includes('Commit')) ||
-        (name === 'insights' && t.textContent.includes('Insight')) ||
-        (name === 'journey' && t.textContent.includes('Journey')) ||
-        (name === 'focus' && t.textContent.includes('Focus')) ||
-        (name === 'dashboard' && t.textContent.includes('Dashboard'))
-    ) t.classList.add('active');
-  });
+  // Update bottom nav
+  const navMap = { dashboard:'nav-dashboard', focus:'nav-focus', blocklist:'nav-blocklist', insights:'nav-insights', journey:'nav-journey' };
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  const navId = navMap[name];
+  if (navId) document.getElementById(navId)?.classList.add('active');
   if (name === 'insights') { renderInsights(); renderAiInsights(); }
   if (name === 'journey') renderJourney();
 }
