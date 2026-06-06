@@ -1,0 +1,33 @@
+{
+  "name": "screenguard",
+  "version": "1.0.0",
+  "description": "ScreenGuard — Digital Wellness & Screen Addiction Recovery",
+  "main": "index.js",
+  "scripts": {
+    "build": "echo 'No build step — static assets'",
+    "sync": "npx cap sync",
+    "android": "npx cap run android",
+    "ios": "npx cap run ios",
+    "open:android": "npx cap open android",
+    "open:ios": "npx cap open ios",
+    "serve": "npx serve www -p 3000"
+  },
+  "keywords": ["screen-time", "digital-wellness", "addiction", "productivity"],
+  "author": "Daniel Oluyole",
+  "license": "MIT",
+  "dependencies": {
+    "@capacitor/android": "^6.0.0",
+    "@capacitor/app": "^6.0.0",
+    "@capacitor/core": "^6.0.0",
+    "@capacitor/haptics": "^6.0.0",
+    "@capacitor/ios": "^6.0.0",
+    "@capacitor/local-notifications": "^6.0.0",
+    "@capacitor/push-notifications": "^6.0.0",
+    "@capacitor/status-bar": "^6.0.0",
+    "@capacitor/storage": "^1.2.5"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^6.0.0",
+    "serve": "^14.0.0"
+  }
+}
