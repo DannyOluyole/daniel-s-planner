@@ -5,6 +5,7 @@ import 'package:flutter_tabler_icons/flutter_tabler_icons.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../core/theme/app_theme.dart';
+import '../../../auth/application/auth_provider.dart';
 import '../../../dashboard/application/streak_notifier.dart';
 import '../../application/profile_notifier.dart';
 import '../../domain/profile_model.dart';
@@ -14,7 +15,7 @@ class ProfileScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final profileAsync  = ref.watch(userProfileProvider);
+    final authUser      = ref.watch(currentUserProvider);
     final settingsAsync = ref.watch(profileSettingsProvider);
     final streak        = ref.watch(streakNotifierProvider);
 
@@ -29,11 +30,13 @@ class ProfileScreen extends ConsumerWidget {
           padding: const EdgeInsets.symmetric(horizontal: 16),
           children: [
             const SizedBox(height: 16),
-            profileAsync.when(
-              loading: () => const _HeroSkeleton(),
-              error:   (_, __) => const _HeroSkeleton(),
-              data:    (p) => _ProfileHero(profile: p),
-            ),
+            authUser != null
+                ? _AuthHero(user: authUser)
+                : ref.watch(userProfileProvider).when(
+                    loading: () => const _HeroSkeleton(),
+                    error:   (_, __) => const _HeroSkeleton(),
+                    data:    (p) => _ProfileHero(profile: p),
+                  ),
             const SizedBox(height: 14),
             _StreakBanner(
               currentStreak: currentStreak,
@@ -136,6 +139,62 @@ class _ProfileHero extends StatelessWidget {
         const SizedBox(height: 2),
         Text(
             '@${profile.username} · joined ${DateFormat('MMMM yyyy').format(profile.joinDate)}',
+            style: const TextStyle(
+                fontSize: 13, color: ClarityColors.textDisabled)),
+      ],
+    );
+  }
+}
+
+// Hero for authenticated Firebase users
+class _AuthHero extends StatelessWidget {
+  const _AuthHero({required this.user});
+  final dynamic user; // ClarityUser
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Container(
+              width: 72,
+              height: 72,
+              decoration: const BoxDecoration(
+                color: ClarityColors.purpleDeep,
+                shape: BoxShape.circle,
+              ),
+              child: Center(
+                child: Text(user.initials as String,
+                    style: const TextStyle(
+                        fontSize: 26,
+                        fontWeight: FontWeight.w500,
+                        color: ClarityColors.textPrimary)),
+              ),
+            ),
+            Positioned(
+              bottom: -2,
+              right: -2,
+              child: Container(
+                width: 22,
+                height: 22,
+                decoration: const BoxDecoration(
+                    color: ClarityColors.bg, shape: BoxShape.circle),
+                child: const Center(
+                    child: Text('🔥', style: TextStyle(fontSize: 12))),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        Text(user.displayName as String? ?? user.email as String,
+            style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w500,
+                color: ClarityColors.textPrimary)),
+        const SizedBox(height: 2),
+        Text(user.email as String,
             style: const TextStyle(
                 fontSize: 13, color: ClarityColors.textDisabled)),
       ],
@@ -600,13 +659,13 @@ class _MiniSwitch extends StatelessWidget {
 
 // ─── Sign out ─────────────────────────────────────────────────────────────────
 
-class _SignOutButton extends StatelessWidget {
+class _SignOutButton extends ConsumerWidget {
   const _SignOutButton();
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return OutlinedButton(
-      onPressed: () {},
+      onPressed: () => ref.read(authNotifierProvider.notifier).signOut(),
       style: OutlinedButton.styleFrom(
         foregroundColor: ClarityColors.red,
         side: const BorderSide(color: ClarityColors.redDark, width: 0.5),

@@ -2,6 +2,10 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../features/auth/application/auth_provider.dart';
+import '../../features/auth/presentation/screens/sign_in_screen.dart';
+import '../../features/auth/presentation/screens/sign_up_screen.dart';
+import '../../features/auth/presentation/screens/forgot_password_screen.dart';
 import '../../features/onboarding/application/onboarding_provider.dart';
 import '../../features/onboarding/presentation/screens/onboarding_screen.dart';
 import '../../features/dashboard/presentation/screens/dashboard_screen.dart';
@@ -14,55 +18,84 @@ part 'app_router.g.dart';
 
 class Routes {
   Routes._();
-  static const onboarding = '/onboarding';
-  static const home       = '/home';
-  static const block      = '/block';
-  static const community  = '/community';
-  static const profile    = '/profile';
+  static const onboarding    = '/onboarding';
+  static const signIn        = '/sign-in';
+  static const signUp        = '/sign-up';
+  static const forgotPassword = '/forgot-password';
+  static const home          = '/home';
+  static const block         = '/block';
+  static const community     = '/community';
+  static const profile       = '/profile';
 }
 
-GoRouter buildRouter(bool onboardingComplete) {
+// Routes that don't require auth
+const _publicRoutes = {
+  Routes.onboarding,
+  Routes.signIn,
+  Routes.signUp,
+  Routes.forgotPassword,
+};
+
+final appRouterProvider = Provider<GoRouter>((ref) {
+  final authAsync        = ref.watch(authStateProvider);
+  final onboardingAsync  = ref.watch(onboardingNotifierProvider);
+
   return GoRouter(
-    initialLocation: onboardingComplete ? Routes.home : Routes.onboarding,
+    initialLocation: Routes.onboarding,
     debugLogDiagnostics: true,
     redirect: (context, state) {
-      // If user somehow navigates to onboarding after completing it, push to home
-      if (onboardingComplete && state.matchedLocation == Routes.onboarding) {
-        return Routes.home;
+      final isPublic        = _publicRoutes.contains(state.matchedLocation);
+      final onboardingDone  = onboardingAsync.valueOrNull ?? false;
+      final isSignedIn      = authAsync.valueOrNull != null;
+      // Still loading auth — don't redirect yet
+      if (authAsync.isLoading) return null;
+
+      // Not seen onboarding yet
+      if (!onboardingDone) {
+        return isPublic ? null : Routes.onboarding;
       }
+
+      // Onboarding done but not signed in → send to sign-in
+      if (!isSignedIn && !isPublic) return Routes.signIn;
+
+      // Signed in but still on auth screens → send home
+      if (isSignedIn && isPublic) return Routes.home;
+
       return null;
     },
     routes: [
-      GoRoute(
-        path: Routes.onboarding,
-        name: 'onboarding',
-        builder: (context, state) => const OnboardingScreen(),
-      ),
+      // ── Public ──────────────────────────────────────────────────────────
+      GoRoute(path: Routes.onboarding,
+          builder: (_, __) => const OnboardingScreen()),
+      GoRoute(path: Routes.signIn,
+          builder: (_, __) => const SignInScreen()),
+      GoRoute(path: Routes.signUp,
+          builder: (_, __) => const SignUpScreen()),
+      GoRoute(path: Routes.forgotPassword,
+          builder: (_, __) => const ForgotPasswordScreen()),
+
+      // ── Protected shell ──────────────────────────────────────────────────
       StatefulShellRoute.indexedStack(
-        builder: (context, state, navigationShell) =>
-            MainShell(navigationShell: navigationShell),
+        builder: (context, state, shell) => MainShell(navigationShell: shell),
         branches: [
           StatefulShellBranch(routes: [
-            GoRoute(path: Routes.home,      name: 'home',      builder: (_, __) => const DashboardScreen()),
+            GoRoute(path: Routes.home,
+                builder: (_, __) => const DashboardScreen()),
           ]),
           StatefulShellBranch(routes: [
-            GoRoute(path: Routes.block,     name: 'block',     builder: (_, __) => const BlockScreen()),
+            GoRoute(path: Routes.block,
+                builder: (_, __) => const BlockScreen()),
           ]),
           StatefulShellBranch(routes: [
-            GoRoute(path: Routes.community, name: 'community', builder: (_, __) => const CommunityScreen()),
+            GoRoute(path: Routes.community,
+                builder: (_, __) => const CommunityScreen()),
           ]),
           StatefulShellBranch(routes: [
-            GoRoute(path: Routes.profile,   name: 'profile',   builder: (_, __) => const ProfileScreen()),
+            GoRoute(path: Routes.profile,
+                builder: (_, __) => const ProfileScreen()),
           ]),
         ],
       ),
     ],
   );
-}
-
-// Provider — re-reads whenever onboarding state changes
-final appRouterProvider = Provider<GoRouter>((ref) {
-  final onboardingAsync = ref.watch(onboardingNotifierProvider);
-  final complete = onboardingAsync.valueOrNull ?? false;
-  return buildRouter(complete);
 });

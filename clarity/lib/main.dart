@@ -1,13 +1,25 @@
 // lib/main.dart
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'core/theme/app_theme.dart';
 import 'core/router/app_router.dart';
+import 'firebase_options.dart';
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  try {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+  } catch (_) {
+    // Firebase not yet configured — app runs in local-only mode.
+    // Run `flutterfire configure --project=<your-project>` to enable cloud sync.
+  }
+
   SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,
@@ -16,6 +28,7 @@ void main() {
     statusBarColor: Colors.transparent,
     statusBarIconBrightness: Brightness.light,
   ));
+
   runApp(const ProviderScope(child: ClarityApp()));
 }
 

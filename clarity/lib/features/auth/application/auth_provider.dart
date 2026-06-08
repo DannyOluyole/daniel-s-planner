@@ -1,0 +1,164 @@
+// lib/features/auth/application/auth_provider.dart
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../data/auth_repository.dart';
+import '../domain/clarity_user.dart';
+import '../../dashboard/data/firestore_repository.dart';
+
+// ─── Repository ───────────────────────────────────────────────────────────────
+
+final authRepositoryProvider = Provider<AuthRepository>(
+  (_) => AuthRepository(),
+);
+
+// ─── Auth state stream — the single source of truth ──────────────────────────
+// Rebuilds the whole app whenever sign-in state changes.
+
+final authStateProvider = StreamProvider<ClarityUser?>((ref) {
+  return ref.watch(authRepositoryProvider).authStateChanges;
+});
+
+// ─── Convenience — current user (nullable) ────────────────────────────────────
+
+final currentUserProvider = Provider<ClarityUser?>((ref) {
+  return ref.watch(authStateProvider).valueOrNull;
+});
+
+// ─── Auth actions notifier ────────────────────────────────────────────────────
+
+enum AuthStatus { idle, loading, success, error }
+
+class AuthState {
+  const AuthState({
+    this.status  = AuthStatus.idle,
+    this.errorMsg,
+  });
+  final AuthStatus status;
+  final String?    errorMsg;
+
+  bool get isLoading => status == AuthStatus.loading;
+
+  AuthState copyWith({AuthStatus? status, String? errorMsg}) => AuthState(
+    status:   status   ?? this.status,
+    errorMsg: errorMsg ?? this.errorMsg,
+  );
+}
+
+class AuthNotifier extends Notifier<AuthState> {
+  @override
+  AuthState build() => const AuthState();
+
+  AuthRepository get _repo => ref.read(authRepositoryProvider);
+
+  // ── Email sign-up ─────────────────────────────────────────────────────────
+
+  Future<bool> signUp({
+    required String email,
+    required String password,
+    required String displayName,
+  }) async {
+    state = const AuthState(status: AuthStatus.loading);
+    try {
+      final user = await _repo.signUpWithEmail(
+        email: email, password: password, displayName: displayName,
+      );
+      // Write user doc to Firestore
+      await ref.read(firestoreUserRepositoryProvider).createUserDoc(user);
+      state = const AuthState(status: AuthStatus.success);
+      return true;
+    } on Exception catch (e) {
+      state = AuthState(status: AuthStatus.error, errorMsg: _message(e));
+      return false;
+    }
+  }
+
+  // ── Email sign-in ─────────────────────────────────────────────────────────
+
+  Future<bool> signIn({
+    required String email,
+    required String password,
+  }) async {
+    state = const AuthState(status: AuthStatus.loading);
+    try {
+      await _repo.signInWithEmail(email: email, password: password);
+      state = const AuthState(status: AuthStatus.success);
+      return true;
+    } on Exception catch (e) {
+      state = AuthState(status: AuthStatus.error, errorMsg: _message(e));
+      return false;
+    }
+  }
+
+  // ── Google ────────────────────────────────────────────────────────────────
+
+  Future<bool> signInWithGoogle() async {
+    state = const AuthState(status: AuthStatus.loading);
+    try {
+      final user = await _repo.signInWithGoogle();
+      await ref.read(firestoreUserRepositoryProvider).upsertUserDoc(user);
+      state = const AuthState(status: AuthStatus.success);
+      return true;
+    } on Exception catch (e) {
+      state = AuthState(status: AuthStatus.error, errorMsg: _message(e));
+      return false;
+    }
+  }
+
+  // ── Apple ─────────────────────────────────────────────────────────────────
+
+  Future<bool> signInWithApple() async {
+    state = const AuthState(status: AuthStatus.loading);
+    try {
+      final user = await _repo.signInWithApple();
+      await ref.read(firestoreUserRepositoryProvider).upsertUserDoc(user);
+      state = const AuthState(status: AuthStatus.success);
+      return true;
+    } on Exception catch (e) {
+      state = AuthState(status: AuthStatus.error, errorMsg: _message(e));
+      return false;
+    }
+  }
+
+  // ── Password reset ────────────────────────────────────────────────────────
+
+  Future<void> sendPasswordReset(String email) async {
+    await _repo.sendPasswordReset(email);
+  }
+
+  // ── Sign out ──────────────────────────────────────────────────────────────
+
+  Future<void> signOut() async {
+    await _repo.signOut();
+    state = const AuthState();
+  }
+
+  // ── Error message mapper ──────────────────────────────────────────────────
+
+  String _message(Exception e) {
+    final msg = e.toString();
+    if (msg.contains('user-not-found'))    return 'No account found with that email.';
+    if (msg.contains('wrong-password'))    return 'Incorrect password.';
+    if (msg.contains('email-already'))     return 'An account already exists with that email.';
+    if (msg.contains('invalid-email'))     return 'Please enter a valid email address.';
+    if (msg.contains('weak-password'))     return 'Password must be at least 6 characters.';
+    if (msg.contains('network-request'))   return 'No internet connection.';
+    if (msg.contains('cancelled'))         return ''; // user cancelled — no toast needed
+    return 'Something went wrong. Please try again.';
+  }
+}
+
+final authNotifierProvider =
+    NotifierProvider<AuthNotifier, AuthState>(AuthNotifier.new);
+
+// ─── Firestore user repository ────────────────────────────────────────────────
+// Thin wrapper that delegates to FirestoreRepository.
+// Kept here to avoid re-exporting cloud_firestore types from the auth layer.
+
+final firestoreUserRepositoryProvider =
+    Provider<FirestoreUserRepository>((ref) => FirestoreUserRepository());
+
+class FirestoreUserRepository {
+  final _repo = FirestoreRepository();
+  Future<void> createUserDoc(ClarityUser user) => _repo.createUserDoc(user);
+  Future<void> upsertUserDoc(ClarityUser user)  => _repo.upsertUserDoc(user);
+}

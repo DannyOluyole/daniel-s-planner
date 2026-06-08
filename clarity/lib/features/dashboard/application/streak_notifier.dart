@@ -1,112 +1,120 @@
 // lib/features/dashboard/application/streak_notifier.dart
+import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../data/streak_repository.dart';
+import '../data/firestore_repository.dart';
 import '../domain/streak_model.dart';
+import '../../auth/application/auth_provider.dart';
 
-// ─── Repository provider ─────────────────────────────────────────────────────
-
-final streakRepositoryProvider = Provider<StreakRepository>(
-  (_) => StreakRepository(),
-);
-
-// ─── Notifier ────────────────────────────────────────────────────────────────
+final streakRepositoryProvider = Provider<StreakRepository>((_) => StreakRepository());
+final firestoreRepositoryProvider = Provider<FirestoreRepository>((_) => FirestoreRepository());
 
 class StreakNotifier extends AsyncNotifier<StreakModel> {
-  StreakRepository get _repo => ref.read(streakRepositoryProvider);
+  StreamSubscription<StreakModel>? _firestoreSub;
+
+  StreakRepository    get _local => ref.read(streakRepositoryProvider);
+  FirestoreRepository get _cloud => ref.read(firestoreRepositoryProvider);
 
   @override
   Future<StreakModel> build() async {
-    final model = await _repo.load();
-    return _applyDayRollover(model);
+    final user = ref.watch(currentUserProvider);
+    await _firestoreSub?.cancel();
+
+    if (user != null) return _buildForSignedInUser(user.uid);
+
+    final local = await _local.load();
+    return _applyDayRollover(local);
   }
 
-  // ── Public API ─────────────────────────────────────────────────────────────
+  Future<StreakModel> _buildForSignedInUser(String uid) async {
+    final local = await _local.load();
+    if (local.currentStreak > 0 || local.totalBlocksAllTime > 0) {
+      await _cloud.migrateLocalStreak(uid, local);
+      await _local.clear();
+    }
 
-  /// Call when the user taps "Check in" on the dashboard.
+    final initial = await _cloud.streakStream(uid).first;
+    final rolled  = _applyDayRollover(initial);
+    if (rolled.currentStreak != initial.currentStreak) {
+      await _cloud.saveStreak(uid, rolled);
+    }
+    state = AsyncData(rolled);
+
+    _firestoreSub = _cloud.streakStream(uid).listen(
+      (model) => state = AsyncData(model),
+      onError: (e) => state = AsyncError(e, StackTrace.current),
+    );
+    ref.onDispose(() => _firestoreSub?.cancel());
+    return rolled;
+  }
+
   Future<void> checkIn() async {
     final current = state.valueOrNull;
-    if (current == null) return;
-    if (current.checkedInToday) return; // already done today
+    if (current == null || current.checkedInToday) return;
 
-    final now     = DateTime.now();
-    final dayIndex = (now.weekday - 1) % 7; // Mon=0 … Sun=6
-
-    // Update weekly bar for today (cap at 1.0)
-    final newWeekly = List<double>.from(current.weeklyData);
-    newWeekly[dayIndex] = 1.0;
-
+    final now       = DateTime.now();
+    final dayIndex  = (now.weekday - 1) % 7;
     final newStreak = current.currentStreak + 1;
-    final updated   = current.copyWith(
-      currentStreak:   newStreak,
-      bestStreak:      newStreak > current.bestStreak ? newStreak : current.bestStreak,
-      lastCheckInDate: now,
-      weeklyData:      newWeekly,
-    );
+    final best      = newStreak > current.bestStreak ? newStreak : current.bestStreak;
+    final user      = ref.read(currentUserProvider);
 
-    state = AsyncData(updated);
-    await _repo.save(updated);
+    if (user != null) {
+      await _cloud.checkIn(user.uid, newStreak: newStreak, bestStreak: best, dayIndex: dayIndex);
+    } else {
+      final w = List<double>.from(current.weeklyData)..[dayIndex] = 1.0;
+      final updated = current.copyWith(
+        currentStreak: newStreak, bestStreak: best,
+        lastCheckInDate: now, weeklyData: w,
+      );
+      state = AsyncData(updated);
+      await _local.save(updated);
+    }
   }
 
-  /// Call every time the blocking layer fires (Phase 4: from Firestore write).
   Future<void> recordBlock() async {
     final current = state.valueOrNull;
     if (current == null) return;
+    final user = ref.read(currentUserProvider);
 
-    final now      = DateTime.now();
-    final dayIndex = (now.weekday - 1) % 7;
-
-    final newWeekly = List<double>.from(current.weeklyData);
-    // Increment today's bar by 0.1 per block, max 1.0
-    newWeekly[dayIndex] = (newWeekly[dayIndex] + 0.1).clamp(0.0, 1.0);
-
-    final updated = current.copyWith(
-      totalBlocksAllTime: current.totalBlocksAllTime + 1,
-      weeklyData:         newWeekly,
-    );
-
-    state = AsyncData(updated);
-    await _repo.save(updated);
+    if (user != null) {
+      await _cloud.incrementBlocks(user.uid);
+    } else {
+      final now      = DateTime.now();
+      final dayIndex = (now.weekday - 1) % 7;
+      final w = List<double>.from(current.weeklyData)
+        ..[dayIndex] = (current.weeklyData[dayIndex] + 0.1).clamp(0.0, 1.0);
+      final updated = current.copyWith(totalBlocksAllTime: current.totalBlocksAllTime + 1, weeklyData: w);
+      state = AsyncData(updated);
+      await _local.save(updated);
+    }
   }
 
-  /// Seed with realistic demo data (useful for screenshots / first launch).
   Future<void> seedDemoData() async {
     final demo = StreakModel(
-      currentStreak:      14,
-      bestStreak:         21,
-      totalBlocksAllTime: 312,
-      lastCheckInDate:    DateTime.now(),
-      weeklyData:         [0.45, 0.80, 0.30, 0.65, 0.90, 0.55, 1.00],
+      currentStreak: 14, bestStreak: 21, totalBlocksAllTime: 312,
+      lastCheckInDate: DateTime.now(),
+      weeklyData: [0.45, 0.80, 0.30, 0.65, 0.90, 0.55, 1.00],
     );
-    state = AsyncData(demo);
-    await _repo.save(demo);
+    final user = ref.read(currentUserProvider);
+    if (user != null) {
+      await _cloud.saveStreak(user.uid, demo);
+    } else {
+      state = AsyncData(demo);
+      await _local.save(demo);
+    }
   }
 
-  // ── Private helpers ────────────────────────────────────────────────────────
-
-  /// If the user missed yesterday (or more), break the streak.
   StreakModel _applyDayRollover(StreakModel model) {
     final last = model.lastCheckInDate;
     if (last == null) return model;
-
     final now       = DateTime.now();
     final yesterday = DateTime(now.year, now.month, now.day - 1);
     final lastDay   = DateTime(last.year, last.month, last.day);
-
-    // If last check-in was before yesterday → streak broken
-    if (lastDay.isBefore(yesterday)) {
-      final reset = model.copyWith(currentStreak: 0);
-      _repo.save(reset); // fire-and-forget
-      return reset;
-    }
-
-    // On a new week (Monday), reset the weekly bars
+    if (lastDay.isBefore(yesterday)) return model.copyWith(currentStreak: 0);
     if (now.weekday == DateTime.monday && last.weekday != DateTime.monday) {
-      final reset = model.copyWith(weeklyData: List.filled(7, 0.0));
-      _repo.save(reset);
-      return reset;
+      return model.copyWith(weeklyData: List.filled(7, 0.0));
     }
-
     return model;
   }
 }
@@ -114,21 +122,7 @@ class StreakNotifier extends AsyncNotifier<StreakModel> {
 final streakNotifierProvider =
     AsyncNotifierProvider<StreakNotifier, StreakModel>(StreakNotifier.new);
 
-// ─── Convenience selectors (avoid rebuilding whole tree) ─────────────────────
-
-final currentStreakProvider = Provider<int>((ref) {
-  return ref.watch(streakNotifierProvider).valueOrNull?.currentStreak ?? 0;
-});
-
-final bestStreakProvider = Provider<int>((ref) {
-  return ref.watch(streakNotifierProvider).valueOrNull?.bestStreak ?? 0;
-});
-
-final weeklyDataProvider = Provider<List<double>>((ref) {
-  return ref.watch(streakNotifierProvider).valueOrNull?.weeklyData ??
-      List.filled(7, 0.0);
-});
-
-final totalBlocksProvider = Provider<int>((ref) {
-  return ref.watch(streakNotifierProvider).valueOrNull?.totalBlocksAllTime ?? 0;
-});
+final currentStreakProvider  = Provider<int>((ref) => ref.watch(streakNotifierProvider).valueOrNull?.currentStreak      ?? 0);
+final bestStreakProvider      = Provider<int>((ref) => ref.watch(streakNotifierProvider).valueOrNull?.bestStreak         ?? 0);
+final weeklyDataProvider      = Provider<List<double>>((ref) => ref.watch(streakNotifierProvider).valueOrNull?.weeklyData ?? List.filled(7, 0.0));
+final totalBlocksProvider     = Provider<int>((ref) => ref.watch(streakNotifierProvider).valueOrNull?.totalBlocksAllTime ?? 0);
