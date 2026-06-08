@@ -18,7 +18,7 @@ final subscriptionStatusProvider = FutureProvider<SubscriptionStatus>((ref) asyn
 
 // Convenience bool — use this to gate features
 final isPremiumProvider = Provider<bool>((ref) {
-  return ref.watch(subscriptionStatusProvider).valueOrNull?.isActive ?? false;
+  return true; // DEMO MODE: all features unlocked
 });
 
 final isTrialProvider = Provider<bool>((ref) {
