@@ -1,20 +1,28 @@
 // lib/features/block/presentation/screens/block_screen.dart
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_tabler_icons/flutter_tabler_icons.dart';
 
 import '../../../../core/theme/app_theme.dart';
-import '../../data/block_model.dart';
 
-class BlockScreen extends ConsumerStatefulWidget {
+class BlockScreen extends StatefulWidget {
   const BlockScreen({super.key});
 
   @override
-  ConsumerState<BlockScreen> createState() => _BlockScreenState();
+  State<BlockScreen> createState() => _BlockScreenState();
 }
 
-class _BlockScreenState extends ConsumerState<BlockScreen> {
-  int _tab = 0;
+class _BlockScreenState extends State<BlockScreen> {
+  int _tab          = 0; // 0 = Apps, 1 = Keywords
+  int _strictness   = 1; // 0 = Soft, 1 = Standard, 2 = Strict
+
+  final List<_AppEntry> _apps = [
+    _AppEntry(emoji: '📱', name: 'TikTok',    category: 'Short video', blocked: true),
+    _AppEntry(emoji: '📸', name: 'Instagram', category: 'Social',      blocked: true),
+    _AppEntry(emoji: '👽', name: 'Reddit',    category: 'Forums',      blocked: false),
+    _AppEntry(emoji: '🐦', name: 'X / Twitter',category: 'Social',     blocked: false),
+  ];
+
+  final List<String> _keywords = ['porn', 'explicit', 'nsfw'];
   final TextEditingController _kwController = TextEditingController();
 
   @override
@@ -25,9 +33,6 @@ class _BlockScreenState extends ConsumerState<BlockScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final settings = ref.watch(blockSettingsProvider);
-    final notifier = ref.read(blockSettingsProvider.notifier);
-
     return Scaffold(
       backgroundColor: ClarityColors.bgSurface,
       body: SafeArea(
@@ -72,38 +77,27 @@ class _BlockScreenState extends ConsumerState<BlockScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 children: _tab == 0
                     ? [
-                        _AppsList(
-                          apps: settings.apps,
-                          onToggle: notifier.toggleApp,
-                        ),
+                        _AppsList(apps: _apps, onToggle: _toggleApp),
                         const SizedBox(height: 10),
-                        _ScheduleCard(
-                          start: settings.scheduleStart,
-                          end: settings.scheduleEnd,
-                          activeDays: settings.activeDays,
-                          onToggleDay: notifier.toggleDay,
-                        ),
+                        _ScheduleCard(),
                         const SizedBox(height: 10),
                         _StrictnessCard(
-                          current: settings.strictness,
-                          onSelect: notifier.setStrictness,
-                        ),
+                            current: _strictness,
+                            onSelect: (i) =>
+                                setState(() => _strictness = i)),
                         const SizedBox(height: 10),
-                        const _SaveButton(),
+                        _SaveButton(),
                         const SizedBox(height: 20),
                       ]
                     : [
                         _KeywordsPanel(
-                          keywords: settings.keywords,
+                          keywords: _keywords,
                           controller: _kwController,
-                          onAdd: () {
-                            notifier.addKeyword(_kwController.text);
-                            _kwController.clear();
-                          },
-                          onRemove: notifier.removeKeyword,
+                          onAdd: _addKeyword,
+                          onRemove: _removeKeyword,
                         ),
                         const SizedBox(height: 10),
-                        const _SaveButton(),
+                        _SaveButton(),
                         const SizedBox(height: 20),
                       ],
               ),
@@ -113,13 +107,40 @@ class _BlockScreenState extends ConsumerState<BlockScreen> {
       ),
     );
   }
+
+  void _toggleApp(int index) =>
+      setState(() => _apps[index].blocked = !_apps[index].blocked);
+
+  void _addKeyword() {
+    final v = _kwController.text.trim();
+    if (v.isEmpty) return;
+    setState(() {
+      _keywords.add(v);
+      _kwController.clear();
+    });
+  }
+
+  void _removeKeyword(int index) =>
+      setState(() => _keywords.removeAt(index));
 }
 
 // ─── Apps list ───────────────────────────────────────────────────────────────
 
+class _AppEntry {
+  _AppEntry(
+      {required this.emoji,
+      required this.name,
+      required this.category,
+      required this.blocked});
+  final String emoji;
+  final String name;
+  final String category;
+  bool         blocked;
+}
+
 class _AppsList extends StatelessWidget {
   const _AppsList({required this.apps, required this.onToggle});
-  final List<AppEntry>      apps;
+  final List<_AppEntry>     apps;
   final ValueChanged<int>   onToggle;
 
   @override
@@ -145,7 +166,7 @@ class _AppsList extends StatelessWidget {
 class _AppRow extends StatelessWidget {
   const _AppRow(
       {required this.app, required this.isLast, required this.onToggle});
-  final AppEntry app;
+  final _AppEntry app;
   final bool      isLast;
   final VoidCallback onToggle;
 
@@ -191,18 +212,13 @@ class _AppRow extends StatelessWidget {
 
 // ─── Schedule card ───────────────────────────────────────────────────────────
 
-class _ScheduleCard extends StatelessWidget {
-  const _ScheduleCard({
-    required this.start,
-    required this.end,
-    required this.activeDays,
-    required this.onToggleDay,
-  });
-  final String           start;
-  final String           end;
-  final List<bool>       activeDays;
-  final ValueChanged<int> onToggleDay;
+class _ScheduleCard extends StatefulWidget {
+  @override
+  State<_ScheduleCard> createState() => _ScheduleCardState();
+}
 
+class _ScheduleCardState extends State<_ScheduleCard> {
+  final List<bool> _days = [true, true, true, true, true, false, false];
   static const _dayLabels = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
 
   @override
@@ -225,14 +241,14 @@ class _ScheduleCard extends StatelessWidget {
           const SizedBox(height: 10),
           Row(
             children: [
-              _TimePill(label: start),
+              _TimePill(label: '10:00 PM'),
               const Padding(
                 padding: EdgeInsets.symmetric(horizontal: 8),
                 child: Text('to',
                     style: TextStyle(
                         fontSize: 12, color: ClarityColors.textDisabled)),
               ),
-              _TimePill(label: end),
+              _TimePill(label: '7:00 AM'),
             ],
           ),
           const SizedBox(height: 10),
@@ -240,10 +256,10 @@ class _ScheduleCard extends StatelessWidget {
             children: _dayLabels.asMap().entries.map((e) {
               final i   = e.key;
               final lbl = e.value;
-              final on  = activeDays[i];
+              final on  = _days[i];
               return Expanded(
                 child: GestureDetector(
-                  onTap: () => onToggleDay(i),
+                  onTap: () => setState(() => _days[i] = !_days[i]),
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 200),
                     margin: const EdgeInsets.symmetric(horizontal: 2),
@@ -488,8 +504,6 @@ class _KeywordsPanel extends StatelessWidget {
 // ─── Save button ─────────────────────────────────────────────────────────────
 
 class _SaveButton extends StatelessWidget {
-  const _SaveButton();
-
   @override
   Widget build(BuildContext context) {
     return ElevatedButton(

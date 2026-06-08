@@ -1,26 +1,22 @@
 // lib/features/community/presentation/screens/community_screen.dart
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_tabler_icons/flutter_tabler_icons.dart';
 
 import '../../../../core/theme/app_theme.dart';
-import '../../data/community_model.dart';
 
-class CommunityScreen extends ConsumerStatefulWidget {
+class CommunityScreen extends StatefulWidget {
   const CommunityScreen({super.key});
 
   @override
-  ConsumerState<CommunityScreen> createState() => _CommunityScreenState();
+  State<CommunityScreen> createState() => _CommunityScreenState();
 }
 
-class _CommunityScreenState extends ConsumerState<CommunityScreen> {
+class _CommunityScreenState extends State<CommunityScreen> {
   int _tab = 0;
+  int _mood = -1;
 
   @override
   Widget build(BuildContext context) {
-    final community = ref.watch(communityProvider);
-    final notifier  = ref.read(communityProvider.notifier);
-
     return Scaffold(
       backgroundColor: ClarityColors.bgSurface,
       body: SafeArea(
@@ -58,15 +54,10 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen> {
             // ── Body ──
             Expanded(
               child: _tab == 0
-                  ? _FeedTab(
-                      mood: community.mood,
-                      posts: community.posts,
-                      onMoodSelect: notifier.setMood,
-                      onToggleLike: notifier.toggleLike,
-                    )
+                  ? _FeedTab(mood: _mood, onMoodSelect: (m) => setState(() => _mood = m))
                   : _tab == 1
-                      ? _SupportTab(peers: community.peers)
-                      : _WinsTab(milestones: community.milestones),
+                      ? const _SupportTab()
+                      : const _WinsTab(),
             ),
           ],
         ),
@@ -78,16 +69,9 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen> {
 // ─── Feed tab ────────────────────────────────────────────────────────────────
 
 class _FeedTab extends StatelessWidget {
-  const _FeedTab({
-    required this.mood,
-    required this.posts,
-    required this.onMoodSelect,
-    required this.onToggleLike,
-  });
-  final int              mood;
-  final List<Post>       posts;
+  const _FeedTab({required this.mood, required this.onMoodSelect});
+  final int             mood;
   final ValueChanged<int> onMoodSelect;
-  final ValueChanged<String> onToggleLike;
 
   @override
   Widget build(BuildContext context) {
@@ -98,18 +82,41 @@ class _FeedTab extends StatelessWidget {
         const SizedBox(height: 10),
         _SOSBanner(),
         const SizedBox(height: 10),
-        const _MilestoneCard(
+        _MilestoneCard(
           emoji: '🏆',
           name: 'Jordan',
           days: 30,
           note: 'No social media for a whole month',
         ),
         const SizedBox(height: 10),
-        ...posts.expand((p) => [
-              _PostCard(post: p, onToggleLike: onToggleLike),
-              const SizedBox(height: 10),
-            ]),
+        _PostCard(
+          initials: 'MK',
+          avatarColor: ClarityColors.purpleDeep,
+          name: 'Marcus K.',
+          badgeLabel: '🔥 21 days',
+          badgeColor: ClarityColors.teal,
+          timeAgo: '2 hours ago',
+          body:
+              'Had a really hard evening. Opened TikTok three times out of habit — Clarity blocked it each time. But I didn\'t give in. That counts.',
+          likes: 24,
+          replies: 8,
+          liked: true,
+        ),
         const SizedBox(height: 10),
+        _PostCard(
+          initials: '',
+          avatarColor: ClarityColors.bgElevated,
+          name: 'Anonymous',
+          badgeLabel: 'private',
+          badgeColor: ClarityColors.border,
+          timeAgo: '5 hours ago',
+          body:
+              'Does anyone else feel like the first week is the absolute hardest? Day 4 and I keep finding reasons to open Reddit.',
+          likes: 11,
+          replies: 14,
+          liked: false,
+        ),
+        const SizedBox(height: 20),
       ],
     );
   }
@@ -309,10 +316,51 @@ class _MilestoneCard extends StatelessWidget {
   }
 }
 
-class _PostCard extends StatelessWidget {
-  const _PostCard({required this.post, required this.onToggleLike});
-  final Post post;
-  final ValueChanged<String> onToggleLike;
+class _PostCard extends StatefulWidget {
+  const _PostCard({
+    required this.initials,
+    required this.avatarColor,
+    required this.name,
+    required this.badgeLabel,
+    required this.badgeColor,
+    required this.timeAgo,
+    required this.body,
+    required this.likes,
+    required this.replies,
+    required this.liked,
+  });
+  final String initials;
+  final Color  avatarColor;
+  final String name;
+  final String badgeLabel;
+  final Color  badgeColor;
+  final String timeAgo;
+  final String body;
+  final int    likes;
+  final int    replies;
+  final bool   liked;
+
+  @override
+  State<_PostCard> createState() => _PostCardState();
+}
+
+class _PostCardState extends State<_PostCard> {
+  late bool _liked;
+  late int  _likes;
+
+  @override
+  void initState() {
+    super.initState();
+    _liked = widget.liked;
+    _likes = widget.likes;
+  }
+
+  void _toggleLike() {
+    setState(() {
+      _liked = !_liked;
+      _likes += _liked ? 1 : -1;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -327,7 +375,7 @@ class _PostCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              _Avatar(initials: post.initials, bg: post.avatarColor),
+              _Avatar(initials: widget.initials, bg: widget.avatarColor),
               const SizedBox(width: 9),
               Expanded(
                 child: Column(
@@ -335,7 +383,7 @@ class _PostCard extends StatelessWidget {
                   children: [
                     Row(
                       children: [
-                        Text(post.name,
+                        Text(widget.name,
                             style: const TextStyle(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w500,
@@ -345,18 +393,18 @@ class _PostCard extends StatelessWidget {
                           padding: const EdgeInsets.symmetric(
                               horizontal: 7, vertical: 2),
                           decoration: BoxDecoration(
-                            color: post.badgeColor.withAlpha(34),
+                            color: widget.badgeColor.withAlpha(34),
                             borderRadius: BorderRadius.circular(5),
                           ),
-                          child: Text(post.badgeLabel,
+                          child: Text(widget.badgeLabel,
                               style: TextStyle(
                                   fontSize: 10,
                                   fontWeight: FontWeight.w500,
-                                  color: post.badgeColor)),
+                                  color: widget.badgeColor)),
                         ),
                       ],
                     ),
-                    Text(post.timeAgo,
+                    Text(widget.timeAgo,
                         style: const TextStyle(
                             fontSize: 11, color: ClarityColors.textDisabled)),
                   ],
@@ -367,7 +415,7 @@ class _PostCard extends StatelessWidget {
           const SizedBox(height: 10),
           Align(
             alignment: Alignment.centerLeft,
-            child: Text(post.body,
+            child: Text(widget.body,
                 style: const TextStyle(
                     fontSize: 13,
                     color: ClarityColors.textMuted,
@@ -377,19 +425,19 @@ class _PostCard extends StatelessWidget {
           Row(
             children: [
               GestureDetector(
-                onTap: () => onToggleLike(post.id),
+                onTap: _toggleLike,
                 child: Row(
                   children: [
                     Icon(TablerIcons.heart,
                         size: 16,
-                        color: post.liked
+                        color: _liked
                             ? ClarityColors.pink
                             : ClarityColors.textDisabled),
                     const SizedBox(width: 4),
-                    Text('${post.likes}',
+                    Text('$_likes',
                         style: TextStyle(
                             fontSize: 12,
-                            color: post.liked
+                            color: _liked
                                 ? ClarityColors.pink
                                 : ClarityColors.textDisabled)),
                   ],
@@ -399,7 +447,7 @@ class _PostCard extends StatelessWidget {
               const Icon(TablerIcons.message_circle,
                   size: 16, color: ClarityColors.textDisabled),
               const SizedBox(width: 4),
-              Text('${post.replies} replies',
+              Text('${widget.replies} replies',
                   style: const TextStyle(
                       fontSize: 12, color: ClarityColors.textDisabled)),
             ],
@@ -413,8 +461,7 @@ class _PostCard extends StatelessWidget {
 // ─── Support tab ─────────────────────────────────────────────────────────────
 
 class _SupportTab extends StatelessWidget {
-  const _SupportTab({required this.peers});
-  final List<SupportPeer> peers;
+  const _SupportTab();
 
   @override
   Widget build(BuildContext context) {
@@ -427,10 +474,23 @@ class _SupportTab extends StatelessWidget {
                 color: ClarityColors.textDisabled,
                 letterSpacing: 0.8)),
         const SizedBox(height: 10),
-        ...peers.expand((p) => [
-              _SupportCard(peer: p),
-              const SizedBox(height: 10),
-            ]),
+        _SupportCard(
+          initials: 'JL',
+          avatarColor: ClarityColors.tealTint,
+          initColor: ClarityColors.tealLight,
+          name: 'Jamie L.',
+          streak: 14,
+          bio: 'Been through doomscrolling addiction. Happy to listen or just keep you company.',
+        ),
+        const SizedBox(height: 10),
+        _SupportCard(
+          initials: 'TD',
+          avatarColor: const Color(0xFF1A1520),
+          initColor: ClarityColors.purplePale,
+          name: 'Taylor D.',
+          streak: 30,
+          bio: '30 days in. The first week was the hardest for me too. DM me anytime.',
+        ),
         const SizedBox(height: 10),
         Container(
           padding: const EdgeInsets.all(14),
@@ -465,8 +525,20 @@ class _SupportTab extends StatelessWidget {
 }
 
 class _SupportCard extends StatelessWidget {
-  const _SupportCard({required this.peer});
-  final SupportPeer peer;
+  const _SupportCard({
+    required this.initials,
+    required this.avatarColor,
+    required this.initColor,
+    required this.name,
+    required this.streak,
+    required this.bio,
+  });
+  final String initials;
+  final Color  avatarColor;
+  final Color  initColor;
+  final String name;
+  final int    streak;
+  final String bio;
 
   @override
   Widget build(BuildContext context) {
@@ -481,18 +553,18 @@ class _SupportCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              _Avatar(initials: peer.initials, bg: peer.avatarColor, fg: peer.initColor),
+              _Avatar(initials: initials, bg: avatarColor, fg: initColor),
               const SizedBox(width: 9),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(peer.name,
+                    Text(name,
                         style: const TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w500,
                             color: ClarityColors.textSecondary)),
-                    Text('● Online now · ${peer.streak} day streak',
+                    Text('● Online now · $streak day streak',
                         style: const TextStyle(
                             fontSize: 11, color: ClarityColors.teal)),
                   ],
@@ -517,7 +589,7 @@ class _SupportCard extends StatelessWidget {
           const SizedBox(height: 10),
           Align(
             alignment: Alignment.centerLeft,
-            child: Text(peer.bio,
+            child: Text(bio,
                 style: const TextStyle(
                     fontSize: 13,
                     color: ClarityColors.textMuted,
@@ -532,8 +604,14 @@ class _SupportCard extends StatelessWidget {
 // ─── Wins tab ────────────────────────────────────────────────────────────────
 
 class _WinsTab extends StatelessWidget {
-  const _WinsTab({required this.milestones});
-  final List<Milestone> milestones;
+  const _WinsTab();
+
+  static const _milestones = [
+    ('🏆', 'Jordan', '30 days', 'No social media'),
+    ('⚡', 'Priya',  '14 days', 'Screen time under 1hr'),
+    ('🌱', 'Alex',   '7 days',  'Porn-free first week'),
+    ('💎', 'Sam',    '60 days', 'No doomscrolling'),
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -546,13 +624,13 @@ class _WinsTab extends StatelessWidget {
                 color: ClarityColors.textDisabled,
                 letterSpacing: 0.8)),
         const SizedBox(height: 10),
-        ...milestones.map((m) => Padding(
+        ..._milestones.map((m) => Padding(
               padding: const EdgeInsets.only(bottom: 10),
               child: _MilestoneCard(
-                emoji: m.emoji,
-                name: m.name,
-                days: m.days,
-                note: m.note,
+                emoji: m.$1,
+                name: m.$2,
+                days: int.parse(m.$3.split(' ')[0]),
+                note: m.$4,
               ),
             )),
         const SizedBox(height: 10),

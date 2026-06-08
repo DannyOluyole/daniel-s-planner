@@ -4,38 +4,42 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_tabler_icons/flutter_tabler_icons.dart';
 
 import '../../../../core/theme/app_theme.dart';
-import '../../data/dashboard_model.dart';
+import '../../application/streak_notifier.dart';
 
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final stats = ref.watch(dashboardProvider);
+    final streakAsync = ref.watch(streakNotifierProvider);
+
     return Scaffold(
       backgroundColor: ClarityColors.bgSurface,
       body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
-          children: [
-            _DashHeader(name: stats.userName, initials: stats.userInitials),
-            const SizedBox(height: 14),
-            _StreakCard(streak: stats.streakDays, best: stats.bestStreak),
-            const SizedBox(height: 10),
-            _WeekChart(data: stats.weekData),
-            const SizedBox(height: 10),
-            _StatRow(
-              screenTime: stats.screenTimeToday,
-              screenTimeDelta: stats.screenTimeDelta,
-              urges: stats.urgesBlocked,
-              urgesDelta: stats.urgesDelta,
-            ),
-            const SizedBox(height: 10),
-            _BlockedAppsCard(),
-            const SizedBox(height: 10),
-            _AINudge(message: stats.aiNudge),
-            const SizedBox(height: 20),
-          ],
+        child: streakAsync.when(
+          loading: () => const Center(
+              child: CircularProgressIndicator(color: ClarityColors.purpleLight)),
+          error: (e, _) =>
+              Center(child: Text('Error: $e', style: const TextStyle(color: ClarityColors.red))),
+          data: (streak) => ListView(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            children: [
+              _DashHeader(),
+              const SizedBox(height: 14),
+              _StreakCard(current: streak.currentStreak, best: streak.bestStreak),
+              const SizedBox(height: 10),
+              _WeekChart(data: streak.weeklyData),
+              const SizedBox(height: 10),
+              _StatRow(totalBlocks: streak.totalBlocksAllTime),
+              const SizedBox(height: 10),
+              _BlockedAppsCard(),
+              const SizedBox(height: 10),
+              _CheckInButton(checkedIn: streak.checkedInToday),
+              const SizedBox(height: 10),
+              _AINudge(streak: streak.currentStreak, blocks: streak.totalBlocksAllTime),
+              const SizedBox(height: 20),
+            ],
+          ),
         ),
       ),
     );
@@ -45,17 +49,6 @@ class DashboardScreen extends ConsumerWidget {
 // ─── Header ──────────────────────────────────────────────────────────────────
 
 class _DashHeader extends StatelessWidget {
-  const _DashHeader({required this.name, required this.initials});
-  final String name;
-  final String initials;
-
-  String get _greeting {
-    final h = DateTime.now().hour;
-    if (h < 12) return 'Good morning,';
-    if (h < 17) return 'Good afternoon,';
-    return 'Good evening,';
-  }
-
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -65,30 +58,21 @@ class _DashHeader extends StatelessWidget {
         children: [
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(_greeting,
-                  style: const TextStyle(fontSize: 13, color: ClarityColors.textFaint)),
-              const SizedBox(height: 2),
-              Text(name,
-                  style: const TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.w500,
+            children: const [
+              Text('Good morning,',
+                  style: TextStyle(fontSize: 13, color: ClarityColors.textFaint)),
+              SizedBox(height: 2),
+              Text('Danny',
+                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.w500,
                       color: ClarityColors.textPrimary)),
             ],
           ),
           Container(
-            width: 36,
-            height: 36,
-            decoration: const BoxDecoration(
-              color: ClarityColors.purpleDeep,
-              shape: BoxShape.circle,
-            ),
-            child: Center(
-              child: Text(initials,
-                  style: const TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w500,
-                      color: ClarityColors.purplePale)),
+            width: 36, height: 36,
+            decoration: const BoxDecoration(color: ClarityColors.purpleDeep, shape: BoxShape.circle),
+            child: const Center(
+              child: Text('DK', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500,
+                  color: ClarityColors.purplePale)),
             ),
           ),
         ],
@@ -100,9 +84,8 @@ class _DashHeader extends StatelessWidget {
 // ─── Streak card ─────────────────────────────────────────────────────────────
 
 class _StreakCard extends StatelessWidget {
-  const _StreakCard({required this.streak, required this.best});
-  final int streak;
-  final int best;
+  const _StreakCard({required this.current, required this.best});
+  final int current, best;
 
   @override
   Widget build(BuildContext context) {
@@ -114,15 +97,11 @@ class _StreakCard extends StatelessWidget {
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('$streak',
-                  style: const TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.w500,
+              Text('$current',
+                  style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w500,
                       color: ClarityColors.textPrimary)),
               const SizedBox(height: 1),
-              const Text('day streak',
-                  style: TextStyle(
-                      fontSize: 12, color: ClarityColors.textDisabled)),
+              const Text('day streak', style: TextStyle(fontSize: 12, color: ClarityColors.textDisabled)),
             ],
           ),
           const Spacer(),
@@ -130,14 +109,10 @@ class _StreakCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text('$best',
-                  style: const TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w500,
+                  style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500,
                       color: ClarityColors.purpleLight)),
               const SizedBox(height: 1),
-              const Text('best streak',
-                  style: TextStyle(
-                      fontSize: 11, color: ClarityColors.textDisabled)),
+              const Text('best streak', style: TextStyle(fontSize: 11, color: ClarityColors.textDisabled)),
             ],
           ),
         ],
@@ -148,27 +123,29 @@ class _StreakCard extends StatelessWidget {
 
 // ─── Week chart ──────────────────────────────────────────────────────────────
 
+const _dayLabels = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+
 class _WeekChart extends StatelessWidget {
   const _WeekChart({required this.data});
-  final List<DayUsage> data;
+  final List<double> data;
 
   @override
   Widget build(BuildContext context) {
+    final todayIndex = (DateTime.now().weekday - 1) % 7;
     return _ClarityCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text('THIS WEEK',
-              style: TextStyle(
-                  fontSize: 11,
-                  color: ClarityColors.textDisabled,
-                  letterSpacing: 0.8)),
+              style: TextStyle(fontSize: 11, color: ClarityColors.textDisabled, letterSpacing: 0.8)),
           const SizedBox(height: 10),
           SizedBox(
             height: 56,
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.end,
-              children: data.map((d) {
+              children: List.generate(7, (i) {
+                final isToday = i == todayIndex;
+                final height  = data.length > i ? data[i] : 0.0;
                 return Expanded(
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 3),
@@ -177,29 +154,26 @@ class _WeekChart extends StatelessWidget {
                       children: [
                         Flexible(
                           child: FractionallySizedBox(
-                            heightFactor: d.fraction,
+                            heightFactor: height.clamp(0.05, 1.0),
                             alignment: Alignment.bottomCenter,
-                            child: Container(
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 400),
+                              curve: Curves.easeOut,
                               decoration: BoxDecoration(
-                                color: d.isToday
-                                    ? ClarityColors.purple
-                                    : ClarityColors.tealDark,
-                                borderRadius: const BorderRadius.vertical(
-                                    top: Radius.circular(4)),
+                                color: isToday ? ClarityColors.purple : ClarityColors.tealDark,
+                                borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
                               ),
                             ),
                           ),
                         ),
                         const SizedBox(height: 4),
-                        Text(d.label,
-                            style: const TextStyle(
-                                fontSize: 9,
-                                color: ClarityColors.textDisabled)),
+                        Text(_dayLabels[i],
+                            style: const TextStyle(fontSize: 9, color: ClarityColors.textDisabled)),
                       ],
                     ),
                   ),
                 );
-              }).toList(),
+              }),
             ),
           ),
         ],
@@ -211,35 +185,25 @@ class _WeekChart extends StatelessWidget {
 // ─── Stat row ────────────────────────────────────────────────────────────────
 
 class _StatRow extends StatelessWidget {
-  const _StatRow({
-    required this.screenTime,
-    required this.screenTimeDelta,
-    required this.urges,
-    required this.urgesDelta,
-  });
-  final String screenTime;
-  final String screenTimeDelta;
-  final int    urges;
-  final String urgesDelta;
+  const _StatRow({required this.totalBlocks});
+  final int totalBlocks;
 
   @override
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Expanded(child: _StatCard(value: screenTime, label: 'Screen time', delta: screenTimeDelta)),
+        const Expanded(
+            child: _StatCard(value: '2h 14m', label: 'Screen time', delta: '↓ 45 min')),
         const SizedBox(width: 10),
-        Expanded(child: _StatCard(value: '$urges', label: 'Urges blocked', delta: urgesDelta)),
+        Expanded(child: _StatCard(value: '$totalBlocks', label: 'Urges blocked', delta: '↑ 3 today')),
       ],
     );
   }
 }
 
 class _StatCard extends StatelessWidget {
-  const _StatCard(
-      {required this.value, required this.label, required this.delta});
-  final String value;
-  final String label;
-  final String delta;
+  const _StatCard({required this.value, required this.label, required this.delta});
+  final String value, label, delta;
 
   @override
   Widget build(BuildContext context) {
@@ -247,18 +211,12 @@ class _StatCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(value,
-              style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w500,
-                  color: ClarityColors.textPrimary)),
+          Text(value, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w500,
+              color: ClarityColors.textPrimary)),
           const SizedBox(height: 2),
-          Text(label,
-              style: const TextStyle(
-                  fontSize: 11, color: ClarityColors.textDisabled)),
+          Text(label, style: const TextStyle(fontSize: 11, color: ClarityColors.textDisabled)),
           const SizedBox(height: 4),
-          Text(delta,
-              style: const TextStyle(fontSize: 11, color: ClarityColors.teal)),
+          Text(delta, style: const TextStyle(fontSize: 11, color: ClarityColors.teal)),
         ],
       ),
     );
@@ -267,18 +225,10 @@ class _StatCard extends StatelessWidget {
 
 // ─── Blocked apps ─────────────────────────────────────────────────────────────
 
-class _BlockedApp {
-  const _BlockedApp(
-      {required this.emoji, required this.name, required this.isBlocking});
-  final String emoji;
-  final String name;
-  final bool   isBlocking;
-}
-
 const _blockedApps = [
-  _BlockedApp(emoji: '📱', name: 'TikTok',    isBlocking: true),
-  _BlockedApp(emoji: '📸', name: 'Instagram', isBlocking: true),
-  _BlockedApp(emoji: '👽', name: 'Reddit',    isBlocking: false),
+  ('📱', 'TikTok',    true),
+  ('📸', 'Instagram', true),
+  ('👽', 'Reddit',    false),
 ];
 
 class _BlockedAppsCard extends StatelessWidget {
@@ -290,10 +240,7 @@ class _BlockedAppsCard extends StatelessWidget {
         const Padding(
           padding: EdgeInsets.only(bottom: 8),
           child: Text('BLOCKED APPS',
-              style: TextStyle(
-                  fontSize: 11,
-                  color: ClarityColors.textDisabled,
-                  letterSpacing: 0.8)),
+              style: TextStyle(fontSize: 11, color: ClarityColors.textDisabled, letterSpacing: 0.8)),
         ),
         Container(
           decoration: BoxDecoration(
@@ -303,10 +250,38 @@ class _BlockedAppsCard extends StatelessWidget {
           ),
           child: Column(
             children: _blockedApps.asMap().entries.map((e) {
-              final i   = e.key;
-              final app = e.value;
-              final isLast = i == _blockedApps.length - 1;
-              return _BlockedRow(app: app, isLast: isLast);
+              final app    = e.value;
+              final isLast = e.key == _blockedApps.length - 1;
+              return Container(
+                decoration: BoxDecoration(
+                  border: isLast ? null : const Border(
+                      bottom: BorderSide(color: ClarityColors.borderFaint, width: 0.5)),
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                child: Row(
+                  children: [
+                    Text(app.$1, style: const TextStyle(fontSize: 22)),
+                    const SizedBox(width: 12),
+                    Text(app.$2, style: const TextStyle(fontSize: 14,
+                        fontWeight: FontWeight.w500, color: ClarityColors.textSecondary)),
+                    const Spacer(),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: app.$3
+                            ? ClarityColors.teal.withAlpha(34)
+                            : ClarityColors.amber.withAlpha(34),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        app.$3 ? 'Blocking' : 'Paused',
+                        style: TextStyle(fontSize: 11, fontWeight: FontWeight.w500,
+                            color: app.$3 ? ClarityColors.teal : ClarityColors.amber),
+                      ),
+                    ),
+                  ],
+                ),
+              );
             }).toList(),
           ),
         ),
@@ -315,62 +290,73 @@ class _BlockedAppsCard extends StatelessWidget {
   }
 }
 
-class _BlockedRow extends StatelessWidget {
-  const _BlockedRow({required this.app, required this.isLast});
-  final _BlockedApp app;
-  final bool        isLast;
+// ─── Check-in button ─────────────────────────────────────────────────────────
+
+class _CheckInButton extends ConsumerWidget {
+  const _CheckInButton({required this.checkedIn});
+  final bool checkedIn;
 
   @override
-  Widget build(BuildContext context) {
-    return Container(
+  Widget build(BuildContext context, WidgetRef ref) {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 300),
+      width: double.infinity,
       decoration: BoxDecoration(
-        border: isLast
-            ? null
-            : const Border(
-                bottom: BorderSide(
-                    color: ClarityColors.borderFaint, width: 0.5)),
+        color: checkedIn ? ClarityColors.tealTint : ClarityColors.purpleTint,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: checkedIn ? ClarityColors.tealDark : ClarityColors.purple,
+          width: 0.5,
+        ),
       ),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      child: Row(
-        children: [
-          Text(app.emoji, style: const TextStyle(fontSize: 22)),
-          const SizedBox(width: 12),
-          Text(app.name,
-              style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                  color: ClarityColors.textSecondary)),
-          const Spacer(),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-            decoration: BoxDecoration(
-              color: app.isBlocking
-                  ? ClarityColors.teal.withAlpha(34)
-                  : ClarityColors.amber.withAlpha(34),
-              borderRadius: BorderRadius.circular(6),
-            ),
-            child: Text(
-              app.isBlocking ? 'Blocking' : 'Paused',
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w500,
-                color: app.isBlocking
-                    ? ClarityColors.teal
-                    : ClarityColors.amber,
-              ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(14),
+          onTap: checkedIn
+              ? null
+              : () => ref.read(streakNotifierProvider.notifier).checkIn(),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  checkedIn ? TablerIcons.circle_check : TablerIcons.circle_plus,
+                  size: 20,
+                  color: checkedIn ? ClarityColors.teal : ClarityColors.purpleLight,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  checkedIn ? 'Checked in today ✓' : 'Check in for today',
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w500,
+                    color: checkedIn ? ClarityColors.teal : ClarityColors.purpleLight,
+                  ),
+                ),
+              ],
             ),
           ),
-        ],
+        ),
       ),
     );
   }
 }
 
-// ─── AI nudge bubble ─────────────────────────────────────────────────────────
+// ─── AI nudge ────────────────────────────────────────────────────────────────
 
 class _AINudge extends StatelessWidget {
-  const _AINudge({required this.message});
-  final String message;
+  const _AINudge({required this.streak, required this.blocks});
+  final int streak, blocks;
+
+  String get _message {
+    if (streak == 0)    return "Every journey starts with day one. You've got this.";
+    if (streak < 3)     return "Two days in. The hardest part is already behind you.";
+    if (streak < 7)     return "$streak days strong. Your brain is already rewiring.";
+    if (streak < 14)    return "$streak days. That's real discipline. Keep the streak alive.";
+    return "$streak days. You've blocked $blocks urges — that's real progress. Keep going.";
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -379,14 +365,9 @@ class _AINudge extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            width: 32,
-            height: 32,
-            decoration: const BoxDecoration(
-              color: ClarityColors.purpleDeep,
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(TablerIcons.sparkles,
-                size: 16, color: ClarityColors.purplePale),
+            width: 32, height: 32,
+            decoration: const BoxDecoration(color: ClarityColors.purpleDeep, shape: BoxShape.circle),
+            child: const Icon(TablerIcons.sparkles, size: 16, color: ClarityColors.purplePale),
           ),
           const SizedBox(width: 10),
           Expanded(
@@ -394,18 +375,11 @@ class _AINudge extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text('Clarity',
-                    style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w500,
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500,
                         color: ClarityColors.textSecondary)),
                 const SizedBox(height: 4),
-                Text(
-                  message,
-                  style: const TextStyle(
-                      fontSize: 13,
-                      color: ClarityColors.textMuted,
-                      height: 1.5),
-                ),
+                Text(_message,
+                    style: const TextStyle(fontSize: 13, color: ClarityColors.textMuted, height: 1.5)),
               ],
             ),
           ),
@@ -415,7 +389,7 @@ class _AINudge extends StatelessWidget {
   }
 }
 
-// ─── Shared card widget ───────────────────────────────────────────────────────
+// ─── Shared card ─────────────────────────────────────────────────────────────
 
 class _ClarityCard extends StatelessWidget {
   const _ClarityCard({required this.child});
