@@ -2,6 +2,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../data/block_model.dart';
 import '../data/block_repository.dart';
+import '../platform/blocking_channel.dart';
 
 final blockRepositoryProvider = Provider<BlockRepository>((_) => BlockRepository());
 
@@ -43,6 +44,17 @@ class BlockSettingsNotifier extends AsyncNotifier<BlockSettings> {
     final next = fn(current);
     state = AsyncData(next);
     await _repo.save(next);
+    await _syncToNative(next);
+  }
+
+  Future<void> _syncToNative(BlockSettings s) async {
+    final blockedPackages = s.apps
+        .where((a) => a.blocked && a.packageName != null)
+        .map((a) => a.packageName!)
+        .toList();
+    await BlockingChannel.updateBlockedApps(blockedPackages);
+    await BlockingChannel.updateBlockedKeywords(s.keywords);
+    await BlockingChannel.setStrictness(s.strictness);
   }
 }
 

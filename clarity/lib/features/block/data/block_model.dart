@@ -6,25 +6,31 @@ class AppEntry {
     required this.name,
     required this.category,
     required this.blocked,
+    this.packageName,
   });
 
-  final String emoji;
-  final String name;
-  final String category;
-  final bool   blocked;
+  final String  emoji;
+  final String  name;
+  final String  category;
+  final bool    blocked;
+  final String? packageName; // Android package id, e.g. "com.zhiliaoapp.musically"
 
-  AppEntry copyWith({bool? blocked}) =>
-      AppEntry(emoji: emoji, name: name, category: category, blocked: blocked ?? this.blocked);
+  AppEntry copyWith({bool? blocked}) => AppEntry(
+    emoji: emoji, name: name, category: category,
+    blocked: blocked ?? this.blocked, packageName: packageName,
+  );
 
   Map<String, dynamic> toJson() => {
-    'emoji': emoji, 'name': name, 'category': category, 'blocked': blocked,
+    'emoji': emoji, 'name': name, 'category': category,
+    'blocked': blocked, 'packageName': packageName,
   };
 
   factory AppEntry.fromJson(Map<String, dynamic> j) => AppEntry(
-    emoji:    j['emoji']    as String,
-    name:     j['name']     as String,
-    category: j['category'] as String,
-    blocked:  j['blocked']  as bool,
+    emoji:       j['emoji']       as String,
+    name:        j['name']        as String,
+    category:    j['category']    as String,
+    blocked:     j['blocked']     as bool,
+    packageName: j['packageName'] as String?,
   );
 }
 
@@ -47,10 +53,10 @@ class BlockSettings {
 
   static const defaultSettings = BlockSettings(
     apps: [
-      AppEntry(emoji: '📱', name: 'TikTok',      category: 'Short video', blocked: true),
-      AppEntry(emoji: '📸', name: 'Instagram',   category: 'Social',      blocked: true),
-      AppEntry(emoji: '👽', name: 'Reddit',      category: 'Forums',      blocked: false),
-      AppEntry(emoji: '🐦', name: 'X / Twitter', category: 'Social',      blocked: false),
+      AppEntry(emoji: '📱', name: 'TikTok',      category: 'Short video', blocked: true,  packageName: 'com.zhiliaoapp.musically'),
+      AppEntry(emoji: '📸', name: 'Instagram',   category: 'Social',      blocked: true,  packageName: 'com.instagram.android'),
+      AppEntry(emoji: '👽', name: 'Reddit',      category: 'Forums',      blocked: false, packageName: 'com.reddit.frontpage'),
+      AppEntry(emoji: '🐦', name: 'X / Twitter', category: 'Social',      blocked: false, packageName: 'com.twitter.android'),
     ],
     keywords:      ['porn', 'explicit', 'nsfw'],
     scheduleStart: '10:00 PM',

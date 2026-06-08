@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Clarity</string>
+    <string name="accessibility_service_description">
+        Clarity uses accessibility to detect when a blocked app comes to the foreground
+        and show a blocking screen. No personal data is read or transmitted.
+    </string>
+</resources>

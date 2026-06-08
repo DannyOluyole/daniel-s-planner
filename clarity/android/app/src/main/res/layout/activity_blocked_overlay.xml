@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:gravity="center"
+    android:padding="32dp"
+    android:background="#0D0D14">
+
+    <TextView
+        android:text="🛡️"
+        android:textSize="64sp"
+        android:gravity="center"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="24dp" />
+
+    <TextView
+        android:id="@+id/tv_app_name"
+        android:textSize="24sp"
+        android:textColor="#FFFFFF"
+        android:fontFamily="sans-serif-medium"
+        android:gravity="center"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="8dp" />
+
+    <TextView
+        android:text="is blocked by Clarity"
+        android:textSize="16sp"
+        android:textColor="#8A8A9A"
+        android:gravity="center"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="16dp" />
+
+    <TextView
+        android:text="You set this block to help you stay focused.\nYou&#8217;ve got this."
+        android:textSize="14sp"
+        android:textColor="#8A8A9A"
+        android:gravity="center"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="48dp" />
+
+    <Button
+        android:id="@+id/btn_go_back"
+        android:text="Take me back"
+        android:textColor="#FFFFFF"
+        android:backgroundTint="#6B4EFF"
+        android:layout_width="match_parent"
+        android:layout_height="52dp"
+        android:layout_marginBottom="12dp"
+        android:cornerRadius="12dp" />
+
+    <Button
+        android:id="@+id/btn_bypass"
+        android:text="I&#8217;ll use it anyway"
+        android:textColor="#8A8A9A"
+        android:backgroundTint="#1E1E2E"
+        android:layout_width="match_parent"
+        android:layout_height="52dp"
+        android:cornerRadius="12dp" />
+
+</LinearLayout>
