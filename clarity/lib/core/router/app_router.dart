@@ -9,6 +9,7 @@ import '../../features/auth/presentation/screens/sign_up_screen.dart';
 import '../../features/auth/presentation/screens/forgot_password_screen.dart';
 import '../../features/onboarding/application/onboarding_provider.dart';
 import '../../features/onboarding/presentation/screens/onboarding_screen.dart';
+import '../../features/permissions/presentation/screens/permissions_screen.dart';
 import '../../features/dashboard/presentation/screens/dashboard_screen.dart';
 import '../../features/block/presentation/screens/block_screen.dart';
 import '../../features/community/presentation/screens/community_screen.dart';
@@ -24,6 +25,7 @@ class Routes {
   static const signUp        = '/sign-up';
   static const forgotPassword = '/forgot-password';
   static const paywall        = '/paywall';
+  static const permissions   = '/permissions';
   static const home          = '/home';
   static const block         = '/block';
   static const community     = '/community';
@@ -61,6 +63,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           builder: (_, __) => const ForgotPasswordScreen()),
       GoRoute(path: Routes.paywall,
           builder: (_, __) => const PaywallScreen(isDismissible: false)),
+      GoRoute(path: Routes.permissions,
+          builder: (_, __) => const PermissionsScreen()),
 
       // ── Protected shell ──────────────────────────────────────────────────
       StatefulShellRoute.indexedStack(

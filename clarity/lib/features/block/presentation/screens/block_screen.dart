@@ -3,8 +3,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_tabler_icons/flutter_tabler_icons.dart';
 
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:go_router/go_router.dart';
+import '../../../../core/router/app_router.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../paywall/presentation/widgets/premium_gate.dart';
+import '../../../permissions/application/permissions_provider.dart';
 import '../../application/block_settings_notifier.dart';
 import '../../data/block_model.dart';
 
@@ -28,6 +32,7 @@ class _BlockScreenState extends ConsumerState<BlockScreen> {
   @override
   Widget build(BuildContext context) {
     final async = ref.watch(blockSettingsProvider);
+    final perms = ref.watch(permissionsProvider);
 
     return Scaffold(
       backgroundColor: ClarityColors.bgSurface,
@@ -54,6 +59,14 @@ class _BlockScreenState extends ConsumerState<BlockScreen> {
                 ],
               ),
             ),
+
+            // ── Permissions setup banner (Android only, dismisses once all granted) ──
+            if (!kIsWeb && !perms.isChecking && !perms.allGranted)
+              _SetupBanner(
+                grantedCount: perms.grantedCount,
+                onTap: () => context.push(Routes.permissions),
+              ),
+
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: _SegmentControl(
@@ -549,6 +562,46 @@ class _KeywordsPanel extends StatelessWidget {
             ],
           ),
         ],
+      ),
+    );
+  }
+}
+
+// ─── Setup banner ─────────────────────────────────────────────────────────────
+
+class _SetupBanner extends StatelessWidget {
+  const _SetupBanner({required this.grantedCount, required this.onTap});
+  final int          grantedCount;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        margin: const EdgeInsets.fromLTRB(16, 0, 16, 10),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        decoration: BoxDecoration(
+          color: ClarityColors.purpleTint,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: ClarityColors.purple, width: 0.5),
+        ),
+        child: Row(
+          children: [
+            const Icon(TablerIcons.shield_exclamation,
+                size: 18, color: ClarityColors.purpleLight),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                'Blocking not active — $grantedCount/3 permissions granted. Tap to set up.',
+                style: const TextStyle(
+                    fontSize: 12, color: ClarityColors.purplePale),
+              ),
+            ),
+            const Icon(TablerIcons.chevron_right,
+                size: 16, color: ClarityColors.purpleLight),
+          ],
+        ),
       ),
     );
   }
