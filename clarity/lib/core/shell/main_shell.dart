@@ -45,10 +45,10 @@ class _ClarityTabBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: const BoxDecoration(
-        color: ClarityColors.bg,
+      decoration: BoxDecoration(
+        color: ct.bg,
         border: Border(
-          top: BorderSide(color: ClarityColors.borderFaint, width: 0.5),
+          top: BorderSide(color: ct.borderFaint, width: 0.5),
         ),
       ),
       child: SafeArea(
@@ -72,8 +72,8 @@ class _ClarityTabBar extends StatelessWidget {
                         tab.icon,
                         size: 22,
                         color: active
-                            ? ClarityColors.purpleLight
-                            : ClarityColors.textDisabled,
+                            ? ct.purpleLight
+                            : ct.textDisabled,
                       ),
                       const SizedBox(height: 4),
                       Text(
@@ -81,8 +81,8 @@ class _ClarityTabBar extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 10,
                           color: active
-                              ? ClarityColors.purpleLight
-                              : ClarityColors.textDisabled,
+                              ? ct.purpleLight
+                              : ct.textDisabled,
                         ),
                       ),
                     ],

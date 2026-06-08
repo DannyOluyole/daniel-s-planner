@@ -83,10 +83,10 @@ class CommunityNotifier extends StateNotifier<CommunityState> {
             Post(
               id: '1',
               initials: 'MK',
-              avatarColor: ClarityColors.purpleDeep,
+              avatarColor: ct.purpleDeep,
               name: 'Marcus K.',
               badgeLabel: '🔥 21 days',
-              badgeColor: ClarityColors.teal,
+              badgeColor: ct.teal,
               timeAgo: '2 hours ago',
               body:
                   "Had a really hard evening. Opened TikTok three times out of habit — Clarity blocked it each time. But I didn't give in. That counts.",
@@ -97,10 +97,10 @@ class CommunityNotifier extends StateNotifier<CommunityState> {
             Post(
               id: '2',
               initials: '',
-              avatarColor: ClarityColors.bgElevated,
+              avatarColor: ct.bgElevated,
               name: 'Anonymous',
               badgeLabel: 'private',
-              badgeColor: ClarityColors.border,
+              badgeColor: ct.border,
               timeAgo: '5 hours ago',
               body:
                   'Does anyone else feel like the first week is the absolute hardest? Day 4 and I keep finding reasons to open Reddit.',
@@ -118,8 +118,8 @@ class CommunityNotifier extends StateNotifier<CommunityState> {
           peers: const [
             SupportPeer(
               initials: 'JL',
-              avatarColor: ClarityColors.tealTint,
-              initColor: ClarityColors.tealLight,
+              avatarColor: ct.tealTint,
+              initColor: ct.tealLight,
               name: 'Jamie L.',
               streak: 14,
               bio: 'Been through doomscrolling addiction. Happy to listen or just keep you company.',
@@ -127,7 +127,7 @@ class CommunityNotifier extends StateNotifier<CommunityState> {
             SupportPeer(
               initials: 'TD',
               avatarColor: Color(0xFF1A1520),
-              initColor: ClarityColors.purplePale,
+              initColor: ct.purplePale,
               name: 'Taylor D.',
               streak: 30,
               bio: '30 days in. The first week was the hardest for me too. DM me anytime.',

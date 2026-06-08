@@ -69,7 +69,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
     final step   = _steps[_step];
     final isLast = _step == _steps.length - 1;
     return Scaffold(
-      backgroundColor: ClarityColors.bg,
+      backgroundColor: ct.bg,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -87,11 +87,11 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
                     _IconCircle(icon: step.icon),
                     const SizedBox(height: 28),
                     Text(step.title, textAlign: TextAlign.center,
-                        style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w500,
-                            color: ClarityColors.textPrimary, height: 1.3)),
+                        style: TextStyle(fontSize: 22, fontWeight: FontWeight.w500,
+                            color: ct.textPrimary, height: 1.3)),
                     const SizedBox(height: 14),
                     Text(step.description, textAlign: TextAlign.center,
-                        style: const TextStyle(fontSize: 14, color: ClarityColors.textFaint, height: 1.6)),
+                        style: TextStyle(fontSize: 14, color: ct.textFaint, height: 1.6)),
                   ],
                 ),
               ),
@@ -100,9 +100,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
               const SizedBox(height: 14),
               GestureDetector(
                 onTap: _finish,
-                child: const Padding(
+                child: Padding(
                   padding: EdgeInsets.symmetric(vertical: 8),
-                  child: Text('Skip', style: TextStyle(fontSize: 13, color: ClarityColors.textDisabled)),
+                  child: Text('Skip', style: TextStyle(fontSize: 13, color: ct.textDisabled)),
                 ),
               ),
               const SizedBox(height: 16),
@@ -118,11 +118,11 @@ class _AppLogo extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Column(children: [
     Container(width: 56, height: 56,
-        decoration: BoxDecoration(color: ClarityColors.purpleDeep, borderRadius: BorderRadius.circular(16)),
-        child: const Icon(TablerIcons.leaf, color: ClarityColors.purplePale, size: 26)),
+        decoration: BoxDecoration(color: ct.purpleDeep, borderRadius: BorderRadius.circular(16)),
+        child: Icon(TablerIcons.leaf, color: ct.purplePale, size: 26)),
     const SizedBox(height: 10),
-    const Text('CLARITY', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500,
-        color: ClarityColors.purple, letterSpacing: 0.08 * 13)),
+    Text('CLARITY', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500,
+        color: ct.purple, letterSpacing: 0.08 * 13)),
   ]);
 }
 
@@ -139,7 +139,7 @@ class _StepDots extends StatelessWidget {
         margin: const EdgeInsets.symmetric(horizontal: 3),
         width: active ? 20 : 6, height: 6,
         decoration: BoxDecoration(
-          color: active ? ClarityColors.purpleLight : ClarityColors.border,
+          color: active ? ct.purpleLight : ct.border,
           borderRadius: BorderRadius.circular(3)),
       );
     }),
@@ -152,8 +152,8 @@ class _IconCircle extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Container(
     width: 88, height: 88,
-    decoration: BoxDecoration(color: ClarityColors.bgCard, shape: BoxShape.circle,
-        border: Border.all(color: ClarityColors.border, width: 0.5)),
-    child: Icon(icon, size: 38, color: ClarityColors.purpleLight),
+    decoration: BoxDecoration(color: ct.bgCard, shape: BoxShape.circle,
+        border: Border.all(color: ct.border, width: 0.5)),
+    child: Icon(icon, size: 38, color: ct.purpleLight),
   );
 }

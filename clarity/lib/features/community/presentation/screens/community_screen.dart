@@ -20,7 +20,7 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: ClarityColors.bgSurface,
+      backgroundColor: ct.bgSurface,
       body: SafeArea(
         child: Column(
           children: [
@@ -28,16 +28,16 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen> {
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
               child: Row(
-                children: const [
+                children: [
                   Expanded(
                     child: Text('Community',
                         style: TextStyle(
                             fontSize: 22,
                             fontWeight: FontWeight.w500,
-                            color: ClarityColors.textPrimary)),
+                            color: ct.textPrimary)),
                   ),
                   Icon(TablerIcons.bell,
-                      size: 22, color: ClarityColors.textDisabled),
+                      size: 22, color: ct.textDisabled),
                 ],
               ),
             ),
@@ -97,10 +97,10 @@ class _FeedTab extends StatelessWidget {
         const SizedBox(height: 10),
         _PostCard(
           initials: 'MK',
-          avatarColor: ClarityColors.purpleDeep,
+          avatarColor: ct.purpleDeep,
           name: 'Marcus K.',
           badgeLabel: '🔥 21 days',
-          badgeColor: ClarityColors.teal,
+          badgeColor: ct.teal,
           timeAgo: '2 hours ago',
           body:
               'Had a really hard evening. Opened TikTok three times out of habit — Clarity blocked it each time. But I didn\'t give in. That counts.',
@@ -111,10 +111,10 @@ class _FeedTab extends StatelessWidget {
         const SizedBox(height: 10),
         _PostCard(
           initials: '',
-          avatarColor: ClarityColors.bgElevated,
+          avatarColor: ct.bgElevated,
           name: 'Anonymous',
           badgeLabel: 'private',
-          badgeColor: ClarityColors.border,
+          badgeColor: ct.border,
           timeAgo: '5 hours ago',
           body:
               'Does anyone else feel like the first week is the absolute hardest? Day 4 and I keep finding reasons to open Reddit.',
@@ -141,17 +141,17 @@ class _CheckInCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: ClarityColors.bgCard,
+        color: ct.bgCard,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: ClarityColors.border, width: 0.5),
+        border: Border.all(color: ct.border, width: 0.5),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('HOW ARE YOU FEELING?',
+          Text('HOW ARE YOU FEELING?',
               style: TextStyle(
                   fontSize: 11,
-                  color: ClarityColors.textDisabled,
+                  color: ct.textDisabled,
                   letterSpacing: 0.8)),
           const SizedBox(height: 10),
           Row(
@@ -166,13 +166,13 @@ class _CheckInCard extends StatelessWidget {
                     padding: const EdgeInsets.symmetric(vertical: 8),
                     decoration: BoxDecoration(
                       color: sel
-                          ? ClarityColors.purpleTint
-                          : ClarityColors.bgInput,
+                          ? ct.purpleTint
+                          : ct.bgInput,
                       borderRadius: BorderRadius.circular(10),
                       border: Border.all(
                         color: sel
-                            ? ClarityColors.purple
-                            : ClarityColors.border,
+                            ? ct.purple
+                            : ct.border,
                         width: 0.5,
                       ),
                     ),
@@ -182,9 +182,9 @@ class _CheckInCard extends StatelessWidget {
                             style: const TextStyle(fontSize: 18)),
                         const SizedBox(height: 3),
                         Text(_labels[i],
-                            style: const TextStyle(
+                            style: TextStyle(
                                 fontSize: 9,
-                                color: ClarityColors.textDisabled)),
+                                color: ct.textDisabled)),
                       ],
                     ),
                   ),
@@ -206,7 +206,7 @@ class _SOSBanner extends StatelessWidget {
       decoration: BoxDecoration(
         color: const Color(0xFF1A0A0A),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: ClarityColors.redDark, width: 0.5),
+        border: Border.all(color: ct.redDark, width: 0.5),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -215,28 +215,28 @@ class _SOSBanner extends StatelessWidget {
             width: 36,
             height: 36,
             decoration: BoxDecoration(
-              color: ClarityColors.redDark.withAlpha(34),
+              color: ct.redDark.withAlpha(34),
               borderRadius: BorderRadius.circular(10),
             ),
-            child: const Icon(TablerIcons.alert_triangle,
-                size: 18, color: ClarityColors.red),
+            child: Icon(TablerIcons.alert_triangle,
+                size: 18, color: ct.red),
           ),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Struggling right now?',
+                Text('Struggling right now?',
                     style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w500,
-                        color: ClarityColors.redLight)),
+                        color: ct.redLight)),
                 const SizedBox(height: 4),
-                const Text(
+                Text(
                     'Tap SOS to be matched with someone available to talk.',
                     style: TextStyle(
                         fontSize: 12,
-                        color: ClarityColors.textFaint,
+                        color: ct.textFaint,
                         height: 1.5)),
                 const SizedBox(height: 8),
                 GestureDetector(
@@ -245,7 +245,7 @@ class _SOSBanner extends StatelessWidget {
                     padding: const EdgeInsets.symmetric(
                         horizontal: 12, vertical: 7),
                     decoration: BoxDecoration(
-                      color: ClarityColors.redDark,
+                      color: ct.redDark,
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: const Text('Send SOS',
@@ -279,9 +279,9 @@ class _MilestoneCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: ClarityColors.tealTint,
+        color: ct.tealTint,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: ClarityColors.tealDark, width: 0.5),
+        border: Border.all(color: ct.tealDark, width: 0.5),
       ),
       child: Row(
         children: [
@@ -292,14 +292,14 @@ class _MilestoneCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text('$name hit $days days clean',
-                    style: const TextStyle(
+                    style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w500,
-                        color: ClarityColors.tealLight)),
+                        color: ct.tealLight)),
                 const SizedBox(height: 2),
                 Text(note,
-                    style: const TextStyle(
-                        fontSize: 12, color: ClarityColors.textDisabled)),
+                    style: TextStyle(
+                        fontSize: 12, color: ct.textDisabled)),
               ],
             ),
           ),
@@ -308,12 +308,12 @@ class _MilestoneCard extends StatelessWidget {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
               decoration: BoxDecoration(
-                color: ClarityColors.tealDark.withAlpha(34),
+                color: ct.tealDark.withAlpha(34),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: const Text('🎉 Cheer',
+              child: Text('🎉 Cheer',
                   style:
-                      TextStyle(fontSize: 12, color: ClarityColors.teal)),
+                      TextStyle(fontSize: 12, color: ct.teal)),
             ),
           ),
         ],
@@ -373,9 +373,9 @@ class _PostCardState extends State<_PostCard> {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: ClarityColors.bgCard,
+        color: ct.bgCard,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: ClarityColors.border, width: 0.5),
+        border: Border.all(color: ct.border, width: 0.5),
       ),
       child: Column(
         children: [
@@ -390,10 +390,10 @@ class _PostCardState extends State<_PostCard> {
                     Row(
                       children: [
                         Text(widget.name,
-                            style: const TextStyle(
+                            style: TextStyle(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w500,
-                                color: ClarityColors.textSecondary)),
+                                color: ct.textSecondary)),
                         const SizedBox(width: 6),
                         Container(
                           padding: const EdgeInsets.symmetric(
@@ -411,8 +411,8 @@ class _PostCardState extends State<_PostCard> {
                       ],
                     ),
                     Text(widget.timeAgo,
-                        style: const TextStyle(
-                            fontSize: 11, color: ClarityColors.textDisabled)),
+                        style: TextStyle(
+                            fontSize: 11, color: ct.textDisabled)),
                   ],
                 ),
               ),
@@ -422,9 +422,9 @@ class _PostCardState extends State<_PostCard> {
           Align(
             alignment: Alignment.centerLeft,
             child: Text(widget.body,
-                style: const TextStyle(
+                style: TextStyle(
                     fontSize: 13,
-                    color: ClarityColors.textMuted,
+                    color: ct.textMuted,
                     height: 1.6)),
           ),
           const SizedBox(height: 10),
@@ -437,25 +437,25 @@ class _PostCardState extends State<_PostCard> {
                     Icon(TablerIcons.heart,
                         size: 16,
                         color: _liked
-                            ? ClarityColors.pink
-                            : ClarityColors.textDisabled),
+                            ? ct.pink
+                            : ct.textDisabled),
                     const SizedBox(width: 4),
                     Text('$_likes',
                         style: TextStyle(
                             fontSize: 12,
                             color: _liked
-                                ? ClarityColors.pink
-                                : ClarityColors.textDisabled)),
+                                ? ct.pink
+                                : ct.textDisabled)),
                   ],
                 ),
               ),
               const SizedBox(width: 16),
-              const Icon(TablerIcons.message_circle,
-                  size: 16, color: ClarityColors.textDisabled),
+              Icon(TablerIcons.message_circle,
+                  size: 16, color: ct.textDisabled),
               const SizedBox(width: 4),
               Text('${widget.replies} replies',
-                  style: const TextStyle(
-                      fontSize: 12, color: ClarityColors.textDisabled)),
+                  style: TextStyle(
+                      fontSize: 12, color: ct.textDisabled)),
             ],
           ),
         ],
@@ -474,16 +474,16 @@ class _SupportTab extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       children: [
-        const Text('AVAILABLE TO TALK NOW',
+        Text('AVAILABLE TO TALK NOW',
             style: TextStyle(
                 fontSize: 11,
-                color: ClarityColors.textDisabled,
+                color: ct.textDisabled,
                 letterSpacing: 0.8)),
         const SizedBox(height: 10),
         _SupportCard(
           initials: 'JL',
-          avatarColor: ClarityColors.tealTint,
-          initColor: ClarityColors.tealLight,
+          avatarColor: ct.tealTint,
+          initColor: ct.tealLight,
           name: 'Jamie L.',
           streak: 14,
           bio: 'Been through doomscrolling addiction. Happy to listen or just keep you company.',
@@ -492,7 +492,7 @@ class _SupportTab extends StatelessWidget {
         _SupportCard(
           initials: 'TD',
           avatarColor: const Color(0xFF1A1520),
-          initColor: ClarityColors.purplePale,
+          initColor: ct.purplePale,
           name: 'Taylor D.',
           streak: 30,
           bio: '30 days in. The first week was the hardest for me too. DM me anytime.',
@@ -501,21 +501,21 @@ class _SupportTab extends StatelessWidget {
         Container(
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
-            color: ClarityColors.bgCard,
+            color: ct.bgCard,
             borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: ClarityColors.border, width: 0.5),
+            border: Border.all(color: ct.border, width: 0.5),
           ),
           child: Column(
             children: [
-              const Text('Want to support others?',
+              Text('Want to support others?',
                   style: TextStyle(
-                      fontSize: 13, color: ClarityColors.textDisabled)),
+                      fontSize: 13, color: ct.textDisabled)),
               const SizedBox(height: 10),
               OutlinedButton(
                 onPressed: () {},
                 style: OutlinedButton.styleFrom(
-                  side: const BorderSide(color: ClarityColors.purple, width: 0.5),
-                  foregroundColor: ClarityColors.purpleLight,
+                  side: BorderSide(color: ct.purple, width: 0.5),
+                  foregroundColor: ct.purpleLight,
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10)),
                 ),
@@ -551,9 +551,9 @@ class _SupportCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: ClarityColors.bgCard,
+        color: ct.bgCard,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: ClarityColors.border, width: 0.5),
+        border: Border.all(color: ct.border, width: 0.5),
       ),
       child: Column(
         children: [
@@ -566,13 +566,13 @@ class _SupportCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(name,
-                        style: const TextStyle(
+                        style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w500,
-                            color: ClarityColors.textSecondary)),
+                            color: ct.textSecondary)),
                     Text('● Online now · $streak day streak',
-                        style: const TextStyle(
-                            fontSize: 11, color: ClarityColors.teal)),
+                        style: TextStyle(
+                            fontSize: 11, color: ct.teal)),
                   ],
                 ),
               ),
@@ -582,12 +582,12 @@ class _SupportCard extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(
                       horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
-                    color: ClarityColors.purple,
+                    color: ct.purple,
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: const Text('Talk',
+                  child: Text('Talk',
                       style: TextStyle(
-                          fontSize: 12, color: ClarityColors.textPrimary)),
+                          fontSize: 12, color: ct.textPrimary)),
                 ),
               ),
             ],
@@ -596,9 +596,9 @@ class _SupportCard extends StatelessWidget {
           Align(
             alignment: Alignment.centerLeft,
             child: Text(bio,
-                style: const TextStyle(
+                style: TextStyle(
                     fontSize: 13,
-                    color: ClarityColors.textMuted,
+                    color: ct.textMuted,
                     height: 1.5)),
           ),
         ],
@@ -624,10 +624,10 @@ class _WinsTab extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       children: [
-        const Text('RECENT MILESTONES',
+        Text('RECENT MILESTONES',
             style: TextStyle(
                 fontSize: 11,
-                color: ClarityColors.textDisabled,
+                color: ct.textDisabled,
                 letterSpacing: 0.8)),
         const SizedBox(height: 10),
         ..._milestones.map((m) => Padding(
@@ -648,10 +648,12 @@ class _WinsTab extends StatelessWidget {
 // ─── Shared ───────────────────────────────────────────────────────────────────
 
 class _Avatar extends StatelessWidget {
-  const _Avatar({
+  _Avatar({
     required this.initials,
     required this.bg,
-    this.fg = ClarityColors.purplePale,
+    Color? fg,
+  }) : fg = fg ?? ct.purplePale;
+  _Avatar._fix({required this.initials, required this.bg, required this.fg
   });
   final String initials;
   final Color  bg;
@@ -664,8 +666,8 @@ class _Avatar extends StatelessWidget {
       height: 32,
       decoration: BoxDecoration(color: bg, shape: BoxShape.circle),
       child: initials.isEmpty
-          ? const Icon(TablerIcons.user_off,
-              size: 14, color: ClarityColors.textDisabled)
+          ? Icon(TablerIcons.user_off,
+              size: 14, color: ct.textDisabled)
           : Center(
               child: Text(initials,
                   style: TextStyle(
@@ -689,9 +691,9 @@ class _SegmentControl extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(3),
       decoration: BoxDecoration(
-        color: ClarityColors.bgCard,
+        color: ct.bgCard,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: ClarityColors.border, width: 0.5),
+        border: Border.all(color: ct.border, width: 0.5),
       ),
       child: Row(
         children: labels.asMap().entries.map((e) {
@@ -704,7 +706,7 @@ class _SegmentControl extends StatelessWidget {
                 duration: const Duration(milliseconds: 200),
                 padding: const EdgeInsets.symmetric(vertical: 8),
                 decoration: BoxDecoration(
-                  color: sel ? ClarityColors.purple : Colors.transparent,
+                  color: sel ? ct.purple : Colors.transparent,
                   borderRadius: BorderRadius.circular(9),
                 ),
                 child: Text(
@@ -714,8 +716,8 @@ class _SegmentControl extends StatelessWidget {
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
                     color: sel
-                        ? ClarityColors.textPrimary
-                        : ClarityColors.textDisabled,
+                        ? ct.textPrimary
+                        : ct.textDisabled,
                   ),
                 ),
               ),

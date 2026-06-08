@@ -14,13 +14,13 @@ class DashboardScreen extends ConsumerWidget {
     final streakAsync = ref.watch(streakNotifierProvider);
 
     return Scaffold(
-      backgroundColor: ClarityColors.bgSurface,
+      backgroundColor: ct.bgSurface,
       body: SafeArea(
         child: streakAsync.when(
-          loading: () => const Center(
-              child: CircularProgressIndicator(color: ClarityColors.purpleLight)),
+          loading: () => Center(
+              child: CircularProgressIndicator(color: ct.purpleLight)),
           error: (e, _) =>
-              Center(child: Text('Error: $e', style: const TextStyle(color: ClarityColors.red))),
+              Center(child: Text('Error: $e', style: TextStyle(color: ct.red))),
           data: (streak) => ListView(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             children: [
@@ -58,21 +58,21 @@ class _DashHeader extends StatelessWidget {
         children: [
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
-            children: const [
+            children: [
               Text('Good morning,',
-                  style: TextStyle(fontSize: 13, color: ClarityColors.textFaint)),
+                  style: TextStyle(fontSize: 13, color: ct.textFaint)),
               SizedBox(height: 2),
               Text('Danny',
                   style: TextStyle(fontSize: 22, fontWeight: FontWeight.w500,
-                      color: ClarityColors.textPrimary)),
+                      color: ct.textPrimary)),
             ],
           ),
           Container(
             width: 36, height: 36,
-            decoration: const BoxDecoration(color: ClarityColors.purpleDeep, shape: BoxShape.circle),
-            child: const Center(
+            decoration: BoxDecoration(color: ct.purpleDeep, shape: BoxShape.circle),
+            child: Center(
               child: Text('DK', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500,
-                  color: ClarityColors.purplePale)),
+                  color: ct.purplePale)),
             ),
           ),
         ],
@@ -98,10 +98,10 @@ class _StreakCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text('$current',
-                  style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w500,
-                      color: ClarityColors.textPrimary)),
+                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.w500,
+                      color: ct.textPrimary)),
               const SizedBox(height: 1),
-              const Text('day streak', style: TextStyle(fontSize: 12, color: ClarityColors.textDisabled)),
+              Text('day streak', style: TextStyle(fontSize: 12, color: ct.textDisabled)),
             ],
           ),
           const Spacer(),
@@ -109,10 +109,10 @@ class _StreakCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text('$best',
-                  style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500,
-                      color: ClarityColors.purpleLight)),
+                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500,
+                      color: ct.purpleLight)),
               const SizedBox(height: 1),
-              const Text('best streak', style: TextStyle(fontSize: 11, color: ClarityColors.textDisabled)),
+              Text('best streak', style: TextStyle(fontSize: 11, color: ct.textDisabled)),
             ],
           ),
         ],
@@ -136,8 +136,8 @@ class _WeekChart extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('THIS WEEK',
-              style: TextStyle(fontSize: 11, color: ClarityColors.textDisabled, letterSpacing: 0.8)),
+          Text('THIS WEEK',
+              style: TextStyle(fontSize: 11, color: ct.textDisabled, letterSpacing: 0.8)),
           const SizedBox(height: 10),
           SizedBox(
             height: 56,
@@ -160,7 +160,7 @@ class _WeekChart extends StatelessWidget {
                               duration: const Duration(milliseconds: 400),
                               curve: Curves.easeOut,
                               decoration: BoxDecoration(
-                                color: isToday ? ClarityColors.purple : ClarityColors.tealDark,
+                                color: isToday ? ct.purple : ct.tealDark,
                                 borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
                               ),
                             ),
@@ -168,7 +168,7 @@ class _WeekChart extends StatelessWidget {
                         ),
                         const SizedBox(height: 4),
                         Text(_dayLabels[i],
-                            style: const TextStyle(fontSize: 9, color: ClarityColors.textDisabled)),
+                            style: TextStyle(fontSize: 9, color: ct.textDisabled)),
                       ],
                     ),
                   ),
@@ -211,12 +211,12 @@ class _StatCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(value, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w500,
-              color: ClarityColors.textPrimary)),
+          Text(value, style: TextStyle(fontSize: 20, fontWeight: FontWeight.w500,
+              color: ct.textPrimary)),
           const SizedBox(height: 2),
-          Text(label, style: const TextStyle(fontSize: 11, color: ClarityColors.textDisabled)),
+          Text(label, style: TextStyle(fontSize: 11, color: ct.textDisabled)),
           const SizedBox(height: 4),
-          Text(delta, style: const TextStyle(fontSize: 11, color: ClarityColors.teal)),
+          Text(delta, style: TextStyle(fontSize: 11, color: ct.teal)),
         ],
       ),
     );
@@ -237,16 +237,16 @@ class _BlockedAppsCard extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Padding(
+        Padding(
           padding: EdgeInsets.only(bottom: 8),
           child: Text('BLOCKED APPS',
-              style: TextStyle(fontSize: 11, color: ClarityColors.textDisabled, letterSpacing: 0.8)),
+              style: TextStyle(fontSize: 11, color: ct.textDisabled, letterSpacing: 0.8)),
         ),
         Container(
           decoration: BoxDecoration(
-            color: ClarityColors.bgCard,
+            color: ct.bgCard,
             borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: ClarityColors.border, width: 0.5),
+            border: Border.all(color: ct.border, width: 0.5),
           ),
           child: Column(
             children: _blockedApps.asMap().entries.map((e) {
@@ -254,29 +254,29 @@ class _BlockedAppsCard extends StatelessWidget {
               final isLast = e.key == _blockedApps.length - 1;
               return Container(
                 decoration: BoxDecoration(
-                  border: isLast ? null : const Border(
-                      bottom: BorderSide(color: ClarityColors.borderFaint, width: 0.5)),
+                  border: isLast ? null : Border(
+                      bottom: BorderSide(color: ct.borderFaint, width: 0.5)),
                 ),
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 child: Row(
                   children: [
                     Text(app.$1, style: const TextStyle(fontSize: 22)),
                     const SizedBox(width: 12),
-                    Text(app.$2, style: const TextStyle(fontSize: 14,
-                        fontWeight: FontWeight.w500, color: ClarityColors.textSecondary)),
+                    Text(app.$2, style: TextStyle(fontSize: 14,
+                        fontWeight: FontWeight.w500, color: ct.textSecondary)),
                     const Spacer(),
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                       decoration: BoxDecoration(
                         color: app.$3
-                            ? ClarityColors.teal.withAlpha(34)
-                            : ClarityColors.amber.withAlpha(34),
+                            ? ct.teal.withAlpha(34)
+                            : ct.amber.withAlpha(34),
                         borderRadius: BorderRadius.circular(6),
                       ),
                       child: Text(
                         app.$3 ? 'Blocking' : 'Paused',
                         style: TextStyle(fontSize: 11, fontWeight: FontWeight.w500,
-                            color: app.$3 ? ClarityColors.teal : ClarityColors.amber),
+                            color: app.$3 ? ct.teal : ct.amber),
                       ),
                     ),
                   ],
@@ -302,10 +302,10 @@ class _CheckInButton extends ConsumerWidget {
       duration: const Duration(milliseconds: 300),
       width: double.infinity,
       decoration: BoxDecoration(
-        color: checkedIn ? ClarityColors.tealTint : ClarityColors.purpleTint,
+        color: checkedIn ? ct.tealTint : ct.purpleTint,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
-          color: checkedIn ? ClarityColors.tealDark : ClarityColors.purple,
+          color: checkedIn ? ct.tealDark : ct.purple,
           width: 0.5,
         ),
       ),
@@ -324,7 +324,7 @@ class _CheckInButton extends ConsumerWidget {
                 Icon(
                   checkedIn ? TablerIcons.circle_check : TablerIcons.circle_plus,
                   size: 20,
-                  color: checkedIn ? ClarityColors.teal : ClarityColors.purpleLight,
+                  color: checkedIn ? ct.teal : ct.purpleLight,
                 ),
                 const SizedBox(width: 8),
                 Text(
@@ -332,7 +332,7 @@ class _CheckInButton extends ConsumerWidget {
                   style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w500,
-                    color: checkedIn ? ClarityColors.teal : ClarityColors.purpleLight,
+                    color: checkedIn ? ct.teal : ct.purpleLight,
                   ),
                 ),
               ],
@@ -366,20 +366,20 @@ class _AINudge extends StatelessWidget {
         children: [
           Container(
             width: 32, height: 32,
-            decoration: const BoxDecoration(color: ClarityColors.purpleDeep, shape: BoxShape.circle),
-            child: const Icon(TablerIcons.sparkles, size: 16, color: ClarityColors.purplePale),
+            decoration: BoxDecoration(color: ct.purpleDeep, shape: BoxShape.circle),
+            child: Icon(TablerIcons.sparkles, size: 16, color: ct.purplePale),
           ),
           const SizedBox(width: 10),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Clarity',
+                Text('Clarity',
                     style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500,
-                        color: ClarityColors.textSecondary)),
+                        color: ct.textSecondary)),
                 const SizedBox(height: 4),
                 Text(_message,
-                    style: const TextStyle(fontSize: 13, color: ClarityColors.textMuted, height: 1.5)),
+                    style: TextStyle(fontSize: 13, color: ct.textMuted, height: 1.5)),
               ],
             ),
           ),
@@ -401,9 +401,9 @@ class _ClarityCard extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: ClarityColors.bgCard,
+        color: ct.bgCard,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: ClarityColors.border, width: 0.5),
+        border: Border.all(color: ct.border, width: 0.5),
       ),
       child: child,
     );

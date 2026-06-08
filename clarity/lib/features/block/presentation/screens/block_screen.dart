@@ -35,7 +35,7 @@ class _BlockScreenState extends ConsumerState<BlockScreen> {
     final perms = ref.watch(permissionsProvider);
 
     return Scaffold(
-      backgroundColor: ClarityColors.bgSurface,
+      backgroundColor: ct.bgSurface,
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -44,16 +44,16 @@ class _BlockScreenState extends ConsumerState<BlockScreen> {
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
               child: Row(
                 children: [
-                  const Expanded(
+                  Expanded(
                     child: Text('Block Setup',
                         style: TextStyle(
                             fontSize: 22,
                             fontWeight: FontWeight.w500,
-                            color: ClarityColors.textPrimary)),
+                            color: ct.textPrimary)),
                   ),
                   IconButton(
-                    icon: const Icon(TablerIcons.plus,
-                        color: ClarityColors.purpleLight),
+                    icon: Icon(TablerIcons.plus,
+                        color: ct.purpleLight),
                     onPressed: () {},
                   ),
                 ],
@@ -78,13 +78,13 @@ class _BlockScreenState extends ConsumerState<BlockScreen> {
             const SizedBox(height: 12),
             Expanded(
               child: async.when(
-                loading: () => const Center(
+                loading: () => Center(
                     child: CircularProgressIndicator(
-                        color: ClarityColors.purpleLight)),
+                        color: ct.purpleLight)),
                 error: (e, _) => Center(
                     child: Text('Error: $e',
-                        style: const TextStyle(
-                            color: ClarityColors.textDisabled))),
+                        style: TextStyle(
+                            color: ct.textDisabled))),
                 data: (settings) => ListView(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   children: _tab == 0
@@ -158,9 +158,9 @@ class _AppsList extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: ClarityColors.bgCard,
+        color: ct.bgCard,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: ClarityColors.border, width: 0.5),
+        border: Border.all(color: ct.border, width: 0.5),
       ),
       child: Column(
         children: apps.asMap().entries.map((e) {
@@ -191,9 +191,9 @@ class _AppRow extends StatelessWidget {
         decoration: BoxDecoration(
           border: isLast
               ? null
-              : const Border(
+              : Border(
                   bottom: BorderSide(
-                      color: ClarityColors.borderFaint, width: 0.5)),
+                      color: ct.borderFaint, width: 0.5)),
         ),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         child: Row(
@@ -205,13 +205,13 @@ class _AppRow extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(app.name,
-                      style: const TextStyle(
+                      style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w500,
-                          color: ClarityColors.textSecondary)),
+                          color: ct.textSecondary)),
                   Text(app.category,
-                      style: const TextStyle(
-                          fontSize: 11, color: ClarityColors.textDisabled)),
+                      style: TextStyle(
+                          fontSize: 11, color: ct.textDisabled)),
                 ],
               ),
             ),
@@ -245,27 +245,27 @@ class _ScheduleCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: ClarityColors.bgCard,
+        color: ct.bgCard,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: ClarityColors.border, width: 0.5),
+        border: Border.all(color: ct.border, width: 0.5),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('SCHEDULE',
+          Text('SCHEDULE',
               style: TextStyle(
                   fontSize: 11,
-                  color: ClarityColors.textDisabled,
+                  color: ct.textDisabled,
                   letterSpacing: 0.8)),
           const SizedBox(height: 10),
           Row(
             children: [
               _TimePill(label: scheduleStart),
-              const Padding(
+              Padding(
                 padding: EdgeInsets.symmetric(horizontal: 8),
                 child: Text('to',
                     style: TextStyle(
-                        fontSize: 12, color: ClarityColors.textDisabled)),
+                        fontSize: 12, color: ct.textDisabled)),
               ),
               _TimePill(label: scheduleEnd),
             ],
@@ -284,8 +284,8 @@ class _ScheduleCard extends StatelessWidget {
                     padding: const EdgeInsets.symmetric(vertical: 7),
                     decoration: BoxDecoration(
                       color: on
-                          ? ClarityColors.purple
-                          : ClarityColors.bgElevated,
+                          ? ct.purple
+                          : ct.bgElevated,
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
@@ -295,8 +295,8 @@ class _ScheduleCard extends StatelessWidget {
                         fontSize: 11,
                         fontWeight: FontWeight.w500,
                         color: on
-                            ? ClarityColors.textPrimary
-                            : ClarityColors.textDisabled,
+                            ? ct.textPrimary
+                            : ct.textDisabled,
                       ),
                     ),
                   ),
@@ -319,15 +319,15 @@ class _TimePill extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
-        color: ClarityColors.bgElevated,
+        color: ct.bgElevated,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: ClarityColors.border, width: 0.5),
+        border: Border.all(color: ct.border, width: 0.5),
       ),
       child: Text(label,
-          style: const TextStyle(
+          style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w500,
-              color: ClarityColors.purpleLight)),
+              color: ct.purpleLight)),
     );
   }
 }
@@ -350,17 +350,17 @@ class _StrictnessCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: ClarityColors.bgCard,
+        color: ct.bgCard,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: ClarityColors.border, width: 0.5),
+        border: Border.all(color: ct.border, width: 0.5),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('STRICTNESS',
+          Text('STRICTNESS',
               style: TextStyle(
                   fontSize: 11,
-                  color: ClarityColors.textDisabled,
+                  color: ct.textDisabled,
                   letterSpacing: 0.8)),
           const SizedBox(height: 10),
           Row(
@@ -378,12 +378,12 @@ class _StrictnessCard extends StatelessWidget {
                         vertical: 10, horizontal: 6),
                     decoration: BoxDecoration(
                       color: sel
-                          ? ClarityColors.purpleTint
-                          : ClarityColors.bgElevated,
+                          ? ct.purpleTint
+                          : ct.bgElevated,
                       borderRadius: BorderRadius.circular(10),
                       border: Border.all(
                         color:
-                            sel ? ClarityColors.purple : ClarityColors.border,
+                            sel ? ct.purple : ct.border,
                         width: 0.5,
                       ),
                     ),
@@ -392,8 +392,8 @@ class _StrictnessCard extends StatelessWidget {
                         Icon(opt.icon,
                             size: 20,
                             color: sel
-                                ? ClarityColors.purpleLight
-                                : ClarityColors.textDisabled),
+                                ? ct.purpleLight
+                                : ct.textDisabled),
                         const SizedBox(height: 5),
                         Text(
                           opt.label,
@@ -401,8 +401,8 @@ class _StrictnessCard extends StatelessWidget {
                           style: TextStyle(
                             fontSize: 10,
                             color: sel
-                                ? ClarityColors.purplePale
-                                : ClarityColors.textDisabled,
+                                ? ct.purplePale
+                                : ct.textDisabled,
                           ),
                         ),
                       ],
@@ -424,13 +424,13 @@ class _StrictnessCard extends StatelessWidget {
                             vertical: 10, horizontal: 6),
                         decoration: BoxDecoration(
                           color: sel
-                              ? ClarityColors.purpleTint
-                              : ClarityColors.bgElevated,
+                              ? ct.purpleTint
+                              : ct.bgElevated,
                           borderRadius: BorderRadius.circular(10),
                           border: Border.all(
                             color: sel
-                                ? ClarityColors.purple
-                                : ClarityColors.border,
+                                ? ct.purple
+                                : ct.border,
                             width: 0.5,
                           ),
                         ),
@@ -439,8 +439,8 @@ class _StrictnessCard extends StatelessWidget {
                             Icon(opt.icon,
                                 size: 20,
                                 color: sel
-                                    ? ClarityColors.purpleLight
-                                    : ClarityColors.textDisabled),
+                                    ? ct.purpleLight
+                                    : ct.textDisabled),
                             const SizedBox(height: 5),
                             Text(
                               opt.label,
@@ -448,8 +448,8 @@ class _StrictnessCard extends StatelessWidget {
                               style: TextStyle(
                                 fontSize: 10,
                                 color: sel
-                                    ? ClarityColors.purplePale
-                                    : ClarityColors.textDisabled,
+                                    ? ct.purplePale
+                                    : ct.textDisabled,
                               ),
                             ),
                           ],
@@ -493,9 +493,9 @@ class _KeywordsPanel extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: ClarityColors.bgCard,
+        color: ct.bgCard,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: ClarityColors.border, width: 0.5),
+        border: Border.all(color: ct.border, width: 0.5),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -518,12 +518,12 @@ class _KeywordsPanel extends StatelessWidget {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(TablerIcons.x,
-                          size: 12, color: ClarityColors.pink),
+                      Icon(TablerIcons.x,
+                          size: 12, color: ct.pink),
                       const SizedBox(width: 5),
                       Text(e.value,
-                          style: const TextStyle(
-                              fontSize: 12, color: ClarityColors.pink)),
+                          style: TextStyle(
+                              fontSize: 12, color: ct.pink)),
                     ],
                   ),
                 ),
@@ -536,8 +536,8 @@ class _KeywordsPanel extends StatelessWidget {
               Expanded(
                 child: TextField(
                   controller: controller,
-                  style: const TextStyle(
-                      color: ClarityColors.textSecondary, fontSize: 13),
+                  style: TextStyle(
+                      color: ct.textSecondary, fontSize: 13),
                   decoration:
                       const InputDecoration(hintText: 'Add keyword…'),
                   onSubmitted: (_) => onAdd(),
@@ -550,13 +550,13 @@ class _KeywordsPanel extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(
                       horizontal: 14, vertical: 10),
                   decoration: BoxDecoration(
-                    color: ClarityColors.purple,
+                    color: ct.purple,
                     borderRadius: BorderRadius.circular(9),
                   ),
-                  child: const Text('Add',
+                  child: Text('Add',
                       style: TextStyle(
                           fontSize: 13,
-                          color: ClarityColors.textPrimary)),
+                          color: ct.textPrimary)),
                 ),
               ),
             ],
@@ -582,24 +582,24 @@ class _SetupBanner extends StatelessWidget {
         margin: const EdgeInsets.fromLTRB(16, 0, 16, 10),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         decoration: BoxDecoration(
-          color: ClarityColors.purpleTint,
+          color: ct.purpleTint,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: ClarityColors.purple, width: 0.5),
+          border: Border.all(color: ct.purple, width: 0.5),
         ),
         child: Row(
           children: [
-            const Icon(TablerIcons.shield_exclamation,
-                size: 18, color: ClarityColors.purpleLight),
+            Icon(TablerIcons.shield_exclamation,
+                size: 18, color: ct.purpleLight),
             const SizedBox(width: 10),
             Expanded(
               child: Text(
                 'Blocking not active — $grantedCount/3 permissions granted. Tap to set up.',
-                style: const TextStyle(
-                    fontSize: 12, color: ClarityColors.purplePale),
+                style: TextStyle(
+                    fontSize: 12, color: ct.purplePale),
               ),
             ),
-            const Icon(TablerIcons.chevron_right,
-                size: 16, color: ClarityColors.purpleLight),
+            Icon(TablerIcons.chevron_right,
+                size: 16, color: ct.purpleLight),
           ],
         ),
       ),
@@ -616,13 +616,13 @@ class _SavedIndicator extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
-      children: const [
+      children: [
         Icon(TablerIcons.circle_check,
-            size: 14, color: ClarityColors.teal),
+            size: 14, color: ct.teal),
         SizedBox(width: 6),
         Text('Changes saved automatically',
             style:
-                TextStyle(fontSize: 12, color: ClarityColors.textDisabled)),
+                TextStyle(fontSize: 12, color: ct.textDisabled)),
       ],
     );
   }
@@ -642,9 +642,9 @@ class _SegmentControl extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(3),
       decoration: BoxDecoration(
-        color: ClarityColors.bgCard,
+        color: ct.bgCard,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: ClarityColors.border, width: 0.5),
+        border: Border.all(color: ct.border, width: 0.5),
       ),
       child: Row(
         children: labels.asMap().entries.map((e) {
@@ -657,7 +657,7 @@ class _SegmentControl extends StatelessWidget {
                 duration: const Duration(milliseconds: 200),
                 padding: const EdgeInsets.symmetric(vertical: 8),
                 decoration: BoxDecoration(
-                  color: sel ? ClarityColors.purple : Colors.transparent,
+                  color: sel ? ct.purple : Colors.transparent,
                   borderRadius: BorderRadius.circular(9),
                 ),
                 child: Text(
@@ -667,8 +667,8 @@ class _SegmentControl extends StatelessWidget {
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
                     color: sel
-                        ? ClarityColors.textPrimary
-                        : ClarityColors.textDisabled,
+                        ? ct.textPrimary
+                        : ct.textDisabled,
                   ),
                 ),
               ),
@@ -694,7 +694,7 @@ class _ClaritySwitch extends StatelessWidget {
         width: 44,
         height: 26,
         decoration: BoxDecoration(
-          color: value ? ClarityColors.purple : ClarityColors.border,
+          color: value ? ct.purple : ct.border,
           borderRadius: BorderRadius.circular(13),
         ),
         child: AnimatedAlign(
@@ -705,8 +705,8 @@ class _ClaritySwitch extends StatelessWidget {
             child: Container(
               width: 20,
               height: 20,
-              decoration: const BoxDecoration(
-                color: ClarityColors.textPrimary,
+              decoration: BoxDecoration(
+                color: ct.textPrimary,
                 shape: BoxShape.circle,
               ),
             ),

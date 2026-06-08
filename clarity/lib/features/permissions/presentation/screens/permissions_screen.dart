@@ -21,7 +21,6 @@ class _PermissionsScreenState extends ConsumerState<PermissionsScreen>
   @override
   void initState() {
     super.initState();
-    // Re-check permissions when user returns from the Settings app
     WidgetsBinding.instance.addObserver(this);
   }
 
@@ -43,84 +42,75 @@ class _PermissionsScreenState extends ConsumerState<PermissionsScreen>
     final perms = ref.watch(permissionsProvider);
 
     return Scaffold(
-      backgroundColor: ClarityColors.bgSurface,
+      backgroundColor: ct.bgSurface,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // ── Header ──
-              const Text('Set Up Blocking',
+              Text('Set Up Blocking',
                   style: TextStyle(
                       fontSize: 26,
                       fontWeight: FontWeight.w600,
-                      color: ClarityColors.textPrimary)),
+                      color: ct.textPrimary)),
               const SizedBox(height: 6),
-              const Text(
-                  'Clarity needs 3 permissions to monitor and block apps on your device.',
-                  style: TextStyle(fontSize: 14, color: ClarityColors.textDisabled)),
-
+              Text(
+                'Clarity needs 3 permissions to monitor and block apps on your device.',
+                style: TextStyle(fontSize: 14, color: ct.textDisabled),
+              ),
               const SizedBox(height: 12),
 
-              // ── Progress bar ──
               _ProgressBar(granted: perms.grantedCount, total: 3),
-
               const SizedBox(height: 28),
 
-              // ── Permission cards ──
               _PermissionCard(
                 icon: TablerIcons.chart_bar,
-                iconColor: ClarityColors.teal,
+                iconColor: ct.teal,
                 title: 'Usage Access',
                 subtitle: 'Lets Clarity read how long each app is open — powers your screen time stats.',
                 granted: perms.hasUsage,
-                onTap: perms.hasUsage
-                    ? null
+                onTap: perms.hasUsage ? null
                     : () => ref.read(permissionsProvider.notifier).requestUsage(),
               ),
               const SizedBox(height: 12),
               _PermissionCard(
                 icon: TablerIcons.shield_lock,
-                iconColor: ClarityColors.purple,
+                iconColor: ct.primary,
                 title: 'Accessibility',
                 subtitle: 'Detects when a blocked app opens and shows the blocking screen immediately.',
                 granted: perms.hasAccessibility,
-                onTap: perms.hasAccessibility
-                    ? null
+                onTap: perms.hasAccessibility ? null
                     : () => ref.read(permissionsProvider.notifier).requestAccessibility(),
               ),
               const SizedBox(height: 12),
               _PermissionCard(
                 icon: TablerIcons.network,
-                iconColor: ClarityColors.pink,
+                iconColor: ct.pink,
                 title: 'VPN (Website Blocking)',
                 subtitle: 'Runs a local VPN to block websites and keywords across all apps and browsers.',
                 granted: perms.hasVpn,
-                onTap: perms.hasVpn
-                    ? null
+                onTap: perms.hasVpn ? null
                     : () => ref.read(permissionsProvider.notifier).requestVpn(),
               ),
 
               const SizedBox(height: 12),
-
-              // ── Privacy note ──
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: ClarityColors.bgCard,
+                  color: ct.bgCard,
                   borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: ClarityColors.border, width: 0.5),
+                  border: Border.all(color: ct.border, width: 0.5),
                 ),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  children: const [
-                    Icon(TablerIcons.lock, size: 16, color: ClarityColors.textDisabled),
-                    SizedBox(width: 8),
+                  children: [
+                    Icon(TablerIcons.lock, size: 16, color: ct.textDisabled),
+                    const SizedBox(width: 8),
                     Expanded(
                       child: Text(
                         'All data stays on your device. Clarity never reads message content, passwords, or personal files.',
-                        style: TextStyle(fontSize: 12, color: ClarityColors.textDisabled),
+                        style: TextStyle(fontSize: 12, color: ct.textDisabled),
                       ),
                     ),
                   ],
@@ -129,7 +119,6 @@ class _PermissionsScreenState extends ConsumerState<PermissionsScreen>
 
               const Spacer(),
 
-              // ── CTA ──
               if (perms.allGranted) ...[
                 _ClarityButton(
                   label: 'All set — start blocking',
@@ -145,7 +134,7 @@ class _PermissionsScreenState extends ConsumerState<PermissionsScreen>
                 Center(
                   child: Text(
                     '${perms.grantedCount} of 3 granted — blocking won\'t work until all 3 are on',
-                    style: const TextStyle(fontSize: 11, color: ClarityColors.textDisabled),
+                    style: TextStyle(fontSize: 11, color: ct.textDisabled),
                     textAlign: TextAlign.center,
                   ),
                 ),
@@ -174,11 +163,9 @@ class _ProgressBar extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text('$granted of $total permissions granted',
-                style: const TextStyle(
-                    fontSize: 12, color: ClarityColors.textDisabled)),
+                style: TextStyle(fontSize: 12, color: ct.textDisabled)),
             Text('${(granted / total * 100).round()}%',
-                style: const TextStyle(
-                    fontSize: 12, color: ClarityColors.purpleLight)),
+                style: TextStyle(fontSize: 12, color: ct.primaryLight)),
           ],
         ),
         const SizedBox(height: 6),
@@ -187,8 +174,8 @@ class _ProgressBar extends StatelessWidget {
           child: LinearProgressIndicator(
             value: granted / total,
             minHeight: 6,
-            backgroundColor: ClarityColors.bgElevated,
-            valueColor: const AlwaysStoppedAnimation<Color>(ClarityColors.purple),
+            backgroundColor: ct.bgElevated,
+            valueColor: AlwaysStoppedAnimation<Color>(ct.primary),
           ),
         ),
       ],
@@ -220,10 +207,12 @@ class _PermissionCard extends StatelessWidget {
     return AnimatedContainer(
       duration: const Duration(milliseconds: 300),
       decoration: BoxDecoration(
-        color: granted ? const Color(0xFF0D1F14) : ClarityColors.bgCard,
+        color: granted ? (ct.isDark ? const Color(0xFF0D1F14) : const Color(0xFFECFDF5))
+                       : ct.bgCard,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
-          color: granted ? const Color(0xFF1A4D2E) : ClarityColors.border,
+          color: granted ? (ct.isDark ? const Color(0xFF1A4D2E) : const Color(0xFF6EE7B7))
+                         : ct.border,
           width: 0.5,
         ),
       ),
@@ -236,10 +225,8 @@ class _PermissionCard extends StatelessWidget {
             padding: const EdgeInsets.all(14),
             child: Row(
               children: [
-                // Icon bubble
                 Container(
-                  width: 42,
-                  height: 42,
+                  width: 42, height: 42,
                   decoration: BoxDecoration(
                     color: iconColor.withOpacity(0.12),
                     borderRadius: BorderRadius.circular(10),
@@ -247,42 +234,36 @@ class _PermissionCard extends StatelessWidget {
                   child: Icon(icon, color: iconColor, size: 20),
                 ),
                 const SizedBox(width: 12),
-
-                // Text
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(title,
-                          style: const TextStyle(
+                          style: TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w500,
-                              color: ClarityColors.textPrimary)),
+                              color: ct.textPrimary)),
                       const SizedBox(height: 3),
                       Text(subtitle,
-                          style: const TextStyle(
-                              fontSize: 12, color: ClarityColors.textDisabled)),
+                          style: TextStyle(
+                              fontSize: 12, color: ct.textDisabled)),
                     ],
                   ),
                 ),
                 const SizedBox(width: 10),
-
-                // Status badge
                 if (granted)
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF1A4D2E),
+                      color: ct.tealTint,
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
-                      children: const [
-                        Icon(TablerIcons.check, size: 12, color: ClarityColors.teal),
-                        SizedBox(width: 4),
-                        Text('On',
-                            style: TextStyle(
-                                fontSize: 11, color: ClarityColors.teal)),
+                      children: [
+                        Icon(TablerIcons.check, size: 12, color: ct.teal),
+                        const SizedBox(width: 4),
+                        Text('On', style: TextStyle(fontSize: 11, color: ct.teal)),
                       ],
                     ),
                   )
@@ -290,18 +271,16 @@ class _PermissionCard extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
-                      color: ClarityColors.bgElevated,
+                      color: ct.bgElevated,
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
-                      children: const [
-                        Icon(TablerIcons.arrow_right, size: 12,
-                            color: ClarityColors.purpleLight),
-                        SizedBox(width: 4),
+                      children: [
+                        Icon(TablerIcons.arrow_right, size: 12, color: ct.primaryLight),
+                        const SizedBox(width: 4),
                         Text('Enable',
-                            style: TextStyle(
-                                fontSize: 11, color: ClarityColors.purpleLight)),
+                            style: TextStyle(fontSize: 11, color: ct.primaryLight)),
                       ],
                     ),
                   ),
@@ -334,11 +313,9 @@ class _ClarityButton extends StatelessWidget {
         width: double.infinity,
         padding: const EdgeInsets.symmetric(vertical: 15),
         decoration: BoxDecoration(
-          color: secondary ? ClarityColors.bgCard : ClarityColors.purple,
+          color: secondary ? ct.bgCard : ct.primary,
           borderRadius: BorderRadius.circular(14),
-          border: secondary
-              ? Border.all(color: ClarityColors.border, width: 0.5)
-              : null,
+          border: secondary ? Border.all(color: ct.border, width: 0.5) : null,
         ),
         child: Text(
           label,
@@ -346,9 +323,7 @@ class _ClarityButton extends StatelessWidget {
           style: TextStyle(
             fontSize: 15,
             fontWeight: FontWeight.w500,
-            color: secondary
-                ? ClarityColors.textDisabled
-                : ClarityColors.textPrimary,
+            color: secondary ? ct.textDisabled : Colors.white,
           ),
         ),
       ),

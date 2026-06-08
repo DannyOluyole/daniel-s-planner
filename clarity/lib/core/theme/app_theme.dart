@@ -2,118 +2,294 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-// ─── Colour tokens (mirrored from prototype CSS) ────────────────────────────
+// ─── Global colour accessor — updated by ClarityApp on every build ───────────
+// All widgets use `ct.bgSurface` etc. directly without needing BuildContext.
+// ignore: library_private_types_in_public_api
+ClarityColors ct = ClarityColors.light;
 
-class ClarityColors {
-  ClarityColors._();
+// ─── ClarityColors — ThemeExtension with light + dark instances ──────────────
 
-  // Backgrounds
-  static const bg          = Color(0xFF0A0A0F); // deepest background
-  static const bgSurface   = Color(0xFF0E0E14); // body bg
-  static const bgCard      = Color(0xFF13131F); // card / input bg
-  static const bgElevated  = Color(0xFF1E1E2E); // hover / elevated
-  static const bgInput     = Color(0xFF1A1A26); // text field bg
+class ClarityColors extends ThemeExtension<ClarityColors> {
+  const ClarityColors({
+    required this.bg,
+    required this.bgSurface,
+    required this.bgCard,
+    required this.bgElevated,
+    required this.bgInput,
+    required this.borderFaint,
+    required this.border,
+    required this.primary,
+    required this.primaryLight,
+    required this.primaryPale,
+    required this.primaryDeep,
+    required this.primaryTint,
+    required this.teal,
+    required this.tealDark,
+    required this.tealLight,
+    required this.tealTint,
+    required this.amber,
+    required this.amberTint,
+    required this.red,
+    required this.redDark,
+    required this.redLight,
+    required this.redTint,
+    required this.pink,
+    required this.textPrimary,
+    required this.textSecondary,
+    required this.textMuted,
+    required this.textFaint,
+    required this.textDisabled,
+    required this.navBg,
+    required this.isDark,
+  });
 
-  // Borders
-  static const borderFaint = Color(0xFF1E1E28);
-  static const border      = Color(0xFF2A2A3A);
+  final Color bg;
+  final Color bgSurface;
+  final Color bgCard;
+  final Color bgElevated;
+  final Color bgInput;
+  final Color borderFaint;
+  final Color border;
+  final Color primary;
+  final Color primaryLight;
+  final Color primaryPale;
+  final Color primaryDeep;
+  final Color primaryTint;
+  final Color teal;
+  final Color tealDark;
+  final Color tealLight;
+  final Color tealTint;
+  final Color amber;
+  final Color amberTint;
+  final Color red;
+  final Color redDark;
+  final Color redLight;
+  final Color redTint;
+  final Color pink;
+  final Color textPrimary;
+  final Color textSecondary;
+  final Color textMuted;
+  final Color textFaint;
+  final Color textDisabled;
+  final Color navBg;
+  final bool  isDark;
 
-  // Purple brand
-  static const purple      = Color(0xFF534AB7); // primary action
-  static const purpleLight = Color(0xFF7F77DD); // icons / active tab
-  static const purplePale  = Color(0xFFAFA9EC); // label text
-  static const purpleDeep  = Color(0xFF2D2875); // avatar bg
-  static const purpleTint  = Color(0xFF1A1528); // card tint
+  // ── Convenience aliases kept for drop-in compatibility ────────────────────
+  Color get purple      => primary;
+  Color get purpleLight => primaryLight;
+  Color get purplePale  => primaryPale;
+  Color get purpleDeep  => primaryDeep;
+  Color get purpleTint  => primaryTint;
 
-  // Teal / green accent
-  static const teal        = Color(0xFF1D9E75);
-  static const tealDark    = Color(0xFF0F6E56);
-  static const tealLight   = Color(0xFF5DCAA5);
-  static const tealTint    = Color(0xFF0F1A13);
+  // ── Dark palette (original) ───────────────────────────────────────────────
+  static const dark = ClarityColors(
+    bg:            Color(0xFF0A0A0F),
+    bgSurface:     Color(0xFF0E0E14),
+    bgCard:        Color(0xFF13131F),
+    bgElevated:    Color(0xFF1E1E2E),
+    bgInput:       Color(0xFF1A1A26),
+    borderFaint:   Color(0xFF1E1E28),
+    border:        Color(0xFF2A2A3A),
+    primary:       Color(0xFF534AB7),
+    primaryLight:  Color(0xFF7F77DD),
+    primaryPale:   Color(0xFFAFA9EC),
+    primaryDeep:   Color(0xFF2D2875),
+    primaryTint:   Color(0xFF1A1528),
+    teal:          Color(0xFF1D9E75),
+    tealDark:      Color(0xFF0F6E56),
+    tealLight:     Color(0xFF5DCAA5),
+    tealTint:      Color(0xFF0F1A13),
+    amber:         Color(0xFFEF9F27),
+    amberTint:     Color(0xFF1A1408),
+    red:           Color(0xFFE24B4A),
+    redDark:       Color(0xFFA32D2D),
+    redLight:      Color(0xFFF09595),
+    redTint:       Color(0xFF1A1010),
+    pink:          Color(0xFFED93B1),
+    textPrimary:   Color(0xFFE8E8F2),
+    textSecondary: Color(0xFFC8C8D8),
+    textMuted:     Color(0xFF888899),
+    textFaint:     Color(0xFF666677),
+    textDisabled:  Color(0xFF444455),
+    navBg:         Color(0xFF0A0A0F),
+    isDark:        true,
+  );
 
-  // Amber accent
-  static const amber       = Color(0xFFEF9F27);
-  static const amberTint   = Color(0xFF1A1408);
+  // ── Light palette (white + blue) ──────────────────────────────────────────
+  static const light = ClarityColors(
+    bg:            Color(0xFFF0F2FF),
+    bgSurface:     Color(0xFFFFFFFF),
+    bgCard:        Color(0xFFF5F6FF),
+    bgElevated:    Color(0xFFEAECFF),
+    bgInput:       Color(0xFFF0F2FF),
+    borderFaint:   Color(0xFFE8EAFF),
+    border:        Color(0xFFD4D6F0),
+    primary:       Color(0xFF2563EB),
+    primaryLight:  Color(0xFF3B82F6),
+    primaryPale:   Color(0xFF93C5FD),
+    primaryDeep:   Color(0xFF1E40AF),
+    primaryTint:   Color(0xFFEFF6FF),
+    teal:          Color(0xFF059669),
+    tealDark:      Color(0xFF047857),
+    tealLight:     Color(0xFF34D399),
+    tealTint:      Color(0xFFECFDF5),
+    amber:         Color(0xFFD97706),
+    amberTint:     Color(0xFFFFFBEB),
+    red:           Color(0xFFDC2626),
+    redDark:       Color(0xFFB91C1C),
+    redLight:      Color(0xFFFCA5A5),
+    redTint:       Color(0xFFFEF2F2),
+    pink:          Color(0xFFDB2777),
+    textPrimary:   Color(0xFF111827),
+    textSecondary: Color(0xFF374151),
+    textMuted:     Color(0xFF6B7280),
+    textFaint:     Color(0xFF9CA3AF),
+    textDisabled:  Color(0xFFD1D5DB),
+    navBg:         Color(0xFFFFFFFF),
+    isDark:        false,
+  );
 
-  // Red / danger
-  static const red         = Color(0xFFE24B4A);
-  static const redDark     = Color(0xFFA32D2D);
-  static const redLight    = Color(0xFFF09595);
-  static const redTint     = Color(0xFF1A1010);
+  @override
+  ClarityColors copyWith({
+    Color? bg, Color? bgSurface, Color? bgCard, Color? bgElevated, Color? bgInput,
+    Color? borderFaint, Color? border, Color? primary, Color? primaryLight,
+    Color? primaryPale, Color? primaryDeep, Color? primaryTint,
+    Color? teal, Color? tealDark, Color? tealLight, Color? tealTint,
+    Color? amber, Color? amberTint, Color? red, Color? redDark,
+    Color? redLight, Color? redTint, Color? pink,
+    Color? textPrimary, Color? textSecondary, Color? textMuted,
+    Color? textFaint, Color? textDisabled, Color? navBg, bool? isDark,
+  }) => ClarityColors(
+    bg: bg ?? this.bg, bgSurface: bgSurface ?? this.bgSurface,
+    bgCard: bgCard ?? this.bgCard, bgElevated: bgElevated ?? this.bgElevated,
+    bgInput: bgInput ?? this.bgInput, borderFaint: borderFaint ?? this.borderFaint,
+    border: border ?? this.border, primary: primary ?? this.primary,
+    primaryLight: primaryLight ?? this.primaryLight, primaryPale: primaryPale ?? this.primaryPale,
+    primaryDeep: primaryDeep ?? this.primaryDeep, primaryTint: primaryTint ?? this.primaryTint,
+    teal: teal ?? this.teal, tealDark: tealDark ?? this.tealDark,
+    tealLight: tealLight ?? this.tealLight, tealTint: tealTint ?? this.tealTint,
+    amber: amber ?? this.amber, amberTint: amberTint ?? this.amberTint,
+    red: red ?? this.red, redDark: redDark ?? this.redDark,
+    redLight: redLight ?? this.redLight, redTint: redTint ?? this.redTint,
+    pink: pink ?? this.pink, textPrimary: textPrimary ?? this.textPrimary,
+    textSecondary: textSecondary ?? this.textSecondary, textMuted: textMuted ?? this.textMuted,
+    textFaint: textFaint ?? this.textFaint, textDisabled: textDisabled ?? this.textDisabled,
+    navBg: navBg ?? this.navBg, isDark: isDark ?? this.isDark,
+  );
 
-  // Pink (like / heart)
-  static const pink        = Color(0xFFED93B1);
-
-  // Text
-  static const textPrimary   = Color(0xFFE8E8F2);
-  static const textSecondary = Color(0xFFC8C8D8);
-  static const textMuted     = Color(0xFF888899);
-  static const textFaint     = Color(0xFF666677);
-  static const textDisabled  = Color(0xFF444455);
+  @override
+  ClarityColors lerp(ThemeExtension<ClarityColors>? other, double t) {
+    if (other is! ClarityColors) return this;
+    return ClarityColors(
+      bg:            Color.lerp(bg, other.bg, t)!,
+      bgSurface:     Color.lerp(bgSurface, other.bgSurface, t)!,
+      bgCard:        Color.lerp(bgCard, other.bgCard, t)!,
+      bgElevated:    Color.lerp(bgElevated, other.bgElevated, t)!,
+      bgInput:       Color.lerp(bgInput, other.bgInput, t)!,
+      borderFaint:   Color.lerp(borderFaint, other.borderFaint, t)!,
+      border:        Color.lerp(border, other.border, t)!,
+      primary:       Color.lerp(primary, other.primary, t)!,
+      primaryLight:  Color.lerp(primaryLight, other.primaryLight, t)!,
+      primaryPale:   Color.lerp(primaryPale, other.primaryPale, t)!,
+      primaryDeep:   Color.lerp(primaryDeep, other.primaryDeep, t)!,
+      primaryTint:   Color.lerp(primaryTint, other.primaryTint, t)!,
+      teal:          Color.lerp(teal, other.teal, t)!,
+      tealDark:      Color.lerp(tealDark, other.tealDark, t)!,
+      tealLight:     Color.lerp(tealLight, other.tealLight, t)!,
+      tealTint:      Color.lerp(tealTint, other.tealTint, t)!,
+      amber:         Color.lerp(amber, other.amber, t)!,
+      amberTint:     Color.lerp(amberTint, other.amberTint, t)!,
+      red:           Color.lerp(red, other.red, t)!,
+      redDark:       Color.lerp(redDark, other.redDark, t)!,
+      redLight:      Color.lerp(redLight, other.redLight, t)!,
+      redTint:       Color.lerp(redTint, other.redTint, t)!,
+      pink:          Color.lerp(pink, other.pink, t)!,
+      textPrimary:   Color.lerp(textPrimary, other.textPrimary, t)!,
+      textSecondary: Color.lerp(textSecondary, other.textSecondary, t)!,
+      textMuted:     Color.lerp(textMuted, other.textMuted, t)!,
+      textFaint:     Color.lerp(textFaint, other.textFaint, t)!,
+      textDisabled:  Color.lerp(textDisabled, other.textDisabled, t)!,
+      navBg:         Color.lerp(navBg, other.navBg, t)!,
+      isDark:        t < 0.5 ? isDark : other.isDark,
+    );
+  }
 }
 
-// ─── ThemeData ───────────────────────────────────────────────────────────────
+// ─── BuildContext shorthand ───────────────────────────────────────────────────
+
+extension ClarityThemeX on BuildContext {
+  ClarityColors get ct => Theme.of(this).extension<ClarityColors>()!;
+}
+
+// ─── ThemeData factory ────────────────────────────────────────────────────────
 
 class AppTheme {
   AppTheme._();
 
-  static ThemeData get dark {
-    final base = ThemeData.dark(useMaterial3: true);
+  static ThemeData get light => _build(ClarityColors.light);
+  static ThemeData get dark  => _build(ClarityColors.dark);
+
+  static ThemeData _build(ClarityColors c) {
+    final base     = c.isDark ? ThemeData.dark(useMaterial3: true)
+                              : ThemeData.light(useMaterial3: true);
+    final textBase = GoogleFonts.interTextTheme(base.textTheme);
 
     return base.copyWith(
-      scaffoldBackgroundColor: ClarityColors.bgSurface,
-      colorScheme: const ColorScheme.dark(
-        primary:   ClarityColors.purple,
-        secondary: ClarityColors.teal,
-        surface:   ClarityColors.bgCard,
-        error:     ClarityColors.red,
-        onPrimary: ClarityColors.textPrimary,
-        onSurface: ClarityColors.textPrimary,
+      extensions: [c],
+      scaffoldBackgroundColor: c.bgSurface,
+      colorScheme: ColorScheme(
+        brightness:  c.isDark ? Brightness.dark : Brightness.light,
+        primary:     c.primary,
+        onPrimary:   c.textPrimary,
+        secondary:   c.teal,
+        onSecondary: c.textPrimary,
+        error:       c.red,
+        onError:     Colors.white,
+        surface:     c.bgCard,
+        onSurface:   c.textPrimary,
       ),
-      textTheme: GoogleFonts.interTextTheme(base.textTheme).copyWith(
-        bodyLarge:    const TextStyle(color: ClarityColors.textPrimary,   fontSize: 15),
-        bodyMedium:   const TextStyle(color: ClarityColors.textSecondary, fontSize: 13),
-        bodySmall:    const TextStyle(color: ClarityColors.textMuted,     fontSize: 12),
-        labelSmall:   const TextStyle(color: ClarityColors.textDisabled,  fontSize: 11, letterSpacing: 0.06),
-        titleMedium:  const TextStyle(color: ClarityColors.textPrimary,   fontSize: 18, fontWeight: FontWeight.w500),
-        titleLarge:   const TextStyle(color: ClarityColors.textPrimary,   fontSize: 22, fontWeight: FontWeight.w500),
+      textTheme: textBase.copyWith(
+        bodyLarge:   TextStyle(color: c.textPrimary,   fontSize: 15),
+        bodyMedium:  TextStyle(color: c.textSecondary, fontSize: 13),
+        bodySmall:   TextStyle(color: c.textMuted,     fontSize: 12),
+        labelSmall:  TextStyle(color: c.textDisabled,  fontSize: 11, letterSpacing: 0.06),
+        titleMedium: TextStyle(color: c.textPrimary,   fontSize: 18, fontWeight: FontWeight.w500),
+        titleLarge:  TextStyle(color: c.textPrimary,   fontSize: 22, fontWeight: FontWeight.w500),
       ),
       cardTheme: CardTheme(
-        color: ClarityColors.bgCard,
+        color: c.bgCard,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(14),
-          side: const BorderSide(color: ClarityColors.border, width: 0.5),
+          side: BorderSide(color: c.border, width: 0.5),
         ),
         elevation: 0,
         margin: EdgeInsets.zero,
       ),
-      dividerTheme: const DividerThemeData(
-        color: ClarityColors.borderFaint,
-        thickness: 0.5,
-        space: 0,
+      dividerTheme: DividerThemeData(
+        color: c.borderFaint, thickness: 0.5, space: 0,
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: ClarityColors.bgInput,
-        hintStyle: const TextStyle(color: ClarityColors.textDisabled, fontSize: 13),
+        fillColor: c.bgInput,
+        hintStyle: TextStyle(color: c.textDisabled, fontSize: 13),
         contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: ClarityColors.border, width: 0.5),
+          borderSide: BorderSide(color: c.border, width: 0.5),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: ClarityColors.border, width: 0.5),
+          borderSide: BorderSide(color: c.border, width: 0.5),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: ClarityColors.purple, width: 1),
+          borderSide: BorderSide(color: c.primary, width: 1),
         ),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          backgroundColor: ClarityColors.purple,
-          foregroundColor: ClarityColors.textPrimary,
+          backgroundColor: c.primary,
+          foregroundColor: Colors.white,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           padding: const EdgeInsets.symmetric(vertical: 16),
           textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
@@ -122,36 +298,36 @@ class AppTheme {
         ),
       ),
       navigationBarTheme: NavigationBarThemeData(
-        backgroundColor: ClarityColors.bg,
+        backgroundColor: c.navBg,
         indicatorColor: Colors.transparent,
         labelTextStyle: WidgetStateProperty.resolveWith((states) {
           final active = states.contains(WidgetState.selected);
           return TextStyle(
             fontSize: 10,
-            color: active ? ClarityColors.purpleLight : ClarityColors.textDisabled,
+            color: active ? c.primaryLight : c.textDisabled,
           );
         }),
         iconTheme: WidgetStateProperty.resolveWith((states) {
           final active = states.contains(WidgetState.selected);
           return IconThemeData(
             size: 22,
-            color: active ? ClarityColors.purpleLight : ClarityColors.textDisabled,
+            color: active ? c.primaryLight : c.textDisabled,
           );
         }),
         surfaceTintColor: Colors.transparent,
         shadowColor: Colors.transparent,
       ),
-      appBarTheme: const AppBarTheme(
+      appBarTheme: AppBarTheme(
         backgroundColor: Colors.transparent,
         elevation: 0,
         scrolledUnderElevation: 0,
         centerTitle: false,
         titleTextStyle: TextStyle(
-          color: ClarityColors.textPrimary,
+          color: c.textPrimary,
           fontSize: 17,
           fontWeight: FontWeight.w500,
         ),
-        iconTheme: IconThemeData(color: ClarityColors.textPrimary),
+        iconTheme: IconThemeData(color: c.textPrimary),
       ),
     );
   }

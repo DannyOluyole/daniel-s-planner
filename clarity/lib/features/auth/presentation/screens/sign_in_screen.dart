@@ -54,7 +54,7 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
     final loading = auth.isLoading;
 
     return Scaffold(
-      backgroundColor: ClarityColors.bg,
+      backgroundColor: ct.bg,
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -67,12 +67,12 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
               const ClarityAuthLogo(),
               const SizedBox(height: 32),
 
-              const Text('Welcome back',
+              Text('Welcome back',
                   style: TextStyle(fontSize: 24, fontWeight: FontWeight.w500,
-                      color: ClarityColors.textPrimary)),
+                      color: ct.textPrimary)),
               const SizedBox(height: 6),
-              const Text('Sign in to continue your progress.',
-                  style: TextStyle(fontSize: 14, color: ClarityColors.textFaint)),
+              Text('Sign in to continue your progress.',
+                  style: TextStyle(fontSize: 14, color: ct.textFaint)),
               const SizedBox(height: 28),
 
               // ── Email / password ──
@@ -92,7 +92,7 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
                   onTap: () => setState(() => _obscure = !_obscure),
                   child: Icon(
                     _obscure ? TablerIcons.eye : TablerIcons.eye_off,
-                    size: 18, color: ClarityColors.textDisabled,
+                    size: 18, color: ct.textDisabled,
                   ),
                 ),
               ),
@@ -103,8 +103,8 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
                 alignment: Alignment.centerRight,
                 child: GestureDetector(
                   onTap: () => context.push(Routes.forgotPassword),
-                  child: const Text('Forgot password?',
-                      style: TextStyle(fontSize: 12, color: ClarityColors.purpleLight)),
+                  child: Text('Forgot password?',
+                      style: TextStyle(fontSize: 12, color: ct.purpleLight)),
                 ),
               ),
               const SizedBox(height: 20),
@@ -117,9 +117,9 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
               ElevatedButton(
                 onPressed: loading ? null : _signIn,
                 child: loading
-                    ? const SizedBox(width: 20, height: 20,
+                    ? SizedBox(width: 20, height: 20,
                         child: CircularProgressIndicator(strokeWidth: 2,
-                            color: ClarityColors.textPrimary))
+                            color: ct.textPrimary))
                     : const Text('Sign in'),
               ),
               const SizedBox(height: 20),
@@ -146,13 +146,13 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Text("Don't have an account?",
-                      style: TextStyle(fontSize: 13, color: ClarityColors.textDisabled)),
+                  Text("Don't have an account?",
+                      style: TextStyle(fontSize: 13, color: ct.textDisabled)),
                   const SizedBox(width: 4),
                   GestureDetector(
                     onTap: () => context.push(Routes.signUp),
-                    child: const Text('Sign up',
-                        style: TextStyle(fontSize: 13, color: ClarityColors.purpleLight,
+                    child: Text('Sign up',
+                        style: TextStyle(fontSize: 13, color: ct.purpleLight,
                             fontWeight: FontWeight.w500)),
                   ),
                 ],

@@ -5,6 +5,7 @@ import 'package:flutter_tabler_icons/flutter_tabler_icons.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/theme/theme_provider.dart';
 import '../../../auth/application/auth_provider.dart';
 import '../../../dashboard/application/streak_notifier.dart';
 import '../../application/profile_notifier.dart';
@@ -24,7 +25,7 @@ class ProfileScreen extends ConsumerWidget {
     final totalBlocks   = streak.valueOrNull?.totalBlocksAllTime ?? 0;
 
     return Scaffold(
-      backgroundColor: ClarityColors.bgSurface,
+      backgroundColor: ct.bgSurface,
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -102,16 +103,16 @@ class _ProfileHero extends StatelessWidget {
             Container(
               width: 72,
               height: 72,
-              decoration: const BoxDecoration(
-                color: ClarityColors.purpleDeep,
+              decoration: BoxDecoration(
+                color: ct.purpleDeep,
                 shape: BoxShape.circle,
               ),
               child: Center(
                 child: Text(_initials,
-                    style: const TextStyle(
+                    style: TextStyle(
                         fontSize: 26,
                         fontWeight: FontWeight.w500,
-                        color: ClarityColors.textPrimary)),
+                        color: ct.textPrimary)),
               ),
             ),
             Positioned(
@@ -120,8 +121,8 @@ class _ProfileHero extends StatelessWidget {
               child: Container(
                 width: 22,
                 height: 22,
-                decoration: const BoxDecoration(
-                  color: ClarityColors.bg,
+                decoration: BoxDecoration(
+                  color: ct.bg,
                   shape: BoxShape.circle,
                 ),
                 child: const Center(
@@ -132,15 +133,15 @@ class _ProfileHero extends StatelessWidget {
         ),
         const SizedBox(height: 10),
         Text(profile.displayName,
-            style: const TextStyle(
+            style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w500,
-                color: ClarityColors.textPrimary)),
+                color: ct.textPrimary)),
         const SizedBox(height: 2),
         Text(
             '@${profile.username} · joined ${DateFormat('MMMM yyyy').format(profile.joinDate)}',
-            style: const TextStyle(
-                fontSize: 13, color: ClarityColors.textDisabled)),
+            style: TextStyle(
+                fontSize: 13, color: ct.textDisabled)),
       ],
     );
   }
@@ -161,16 +162,16 @@ class _AuthHero extends StatelessWidget {
             Container(
               width: 72,
               height: 72,
-              decoration: const BoxDecoration(
-                color: ClarityColors.purpleDeep,
+              decoration: BoxDecoration(
+                color: ct.purpleDeep,
                 shape: BoxShape.circle,
               ),
               child: Center(
                 child: Text(user.initials as String,
-                    style: const TextStyle(
+                    style: TextStyle(
                         fontSize: 26,
                         fontWeight: FontWeight.w500,
-                        color: ClarityColors.textPrimary)),
+                        color: ct.textPrimary)),
               ),
             ),
             Positioned(
@@ -179,8 +180,8 @@ class _AuthHero extends StatelessWidget {
               child: Container(
                 width: 22,
                 height: 22,
-                decoration: const BoxDecoration(
-                    color: ClarityColors.bg, shape: BoxShape.circle),
+                decoration: BoxDecoration(
+                    color: ct.bg, shape: BoxShape.circle),
                 child: const Center(
                     child: Text('🔥', style: TextStyle(fontSize: 12))),
               ),
@@ -189,14 +190,14 @@ class _AuthHero extends StatelessWidget {
         ),
         const SizedBox(height: 10),
         Text(user.displayName as String? ?? user.email as String,
-            style: const TextStyle(
+            style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w500,
-                color: ClarityColors.textPrimary)),
+                color: ct.textPrimary)),
         const SizedBox(height: 2),
         Text(user.email as String,
-            style: const TextStyle(
-                fontSize: 13, color: ClarityColors.textDisabled)),
+            style: TextStyle(
+                fontSize: 13, color: ct.textDisabled)),
       ],
     );
   }
@@ -212,15 +213,15 @@ class _HeroSkeleton extends StatelessWidget {
         Container(
           width: 72,
           height: 72,
-          decoration: const BoxDecoration(
-            color: ClarityColors.bgCard,
+          decoration: BoxDecoration(
+            color: ct.bgCard,
             shape: BoxShape.circle,
           ),
         ),
         const SizedBox(height: 10),
-        Container(width: 100, height: 14, color: ClarityColors.bgCard),
+        Container(width: 100, height: 14, color: ct.bgCard),
         const SizedBox(height: 6),
-        Container(width: 160, height: 10, color: ClarityColors.bgCard),
+        Container(width: 160, height: 10, color: ct.bgCard),
       ],
     );
   }
@@ -243,9 +244,9 @@ class _StreakBanner extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: BoxDecoration(
-        color: ClarityColors.purpleTint,
+        color: ct.purpleTint,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: ClarityColors.purple, width: 0.5),
+        border: Border.all(color: ct.purple, width: 0.5),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -277,10 +278,10 @@ class _BannerStat extends StatelessWidget {
             style: TextStyle(
                 fontSize: large ? 32 : 18,
                 fontWeight: FontWeight.w500,
-                color: ClarityColors.textPrimary)),
+                color: ct.textPrimary)),
         Text(label,
-            style: const TextStyle(
-                fontSize: 10, color: ClarityColors.purpleLight)),
+            style: TextStyle(
+                fontSize: 10, color: ct.purpleLight)),
       ],
     );
   }
@@ -291,7 +292,7 @@ class _BannerDivider extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(width: 0.5, height: 40, color: ClarityColors.border);
+    return Container(width: 0.5, height: 40, color: ct.border);
   }
 }
 
@@ -358,27 +359,27 @@ class _StatCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: ClarityColors.bgCard,
+        color: ct.bgCard,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: ClarityColors.border, width: 0.5),
+        border: Border.all(color: ct.border, width: 0.5),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Text(value,
-              style: const TextStyle(
+              style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.w500,
-                  color: ClarityColors.textPrimary)),
+                  color: ct.textPrimary)),
           const SizedBox(height: 2),
           Text(label,
-              style: const TextStyle(
-                  fontSize: 11, color: ClarityColors.textDisabled)),
+              style: TextStyle(
+                  fontSize: 11, color: ct.textDisabled)),
           const SizedBox(height: 4),
           Text(delta,
               style:
-                  const TextStyle(fontSize: 11, color: ClarityColors.teal)),
+                  TextStyle(fontSize: 11, color: ct.teal)),
         ],
       ),
     );
@@ -404,13 +405,13 @@ class _BadgesRow extends StatelessWidget {
                 const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             decoration: BoxDecoration(
               color: b.earned
-                  ? ClarityColors.purpleTint
-                  : ClarityColors.bgCard,
+                  ? ct.purpleTint
+                  : ct.bgCard,
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
                 color: b.earned
-                    ? ClarityColors.purple
-                    : ClarityColors.border,
+                    ? ct.purple
+                    : ct.border,
                 width: 0.5,
               ),
             ),
@@ -419,8 +420,8 @@ class _BadgesRow extends StatelessWidget {
                 Text(b.emoji, style: const TextStyle(fontSize: 22)),
                 const SizedBox(height: 4),
                 Text(b.label,
-                    style: const TextStyle(
-                        fontSize: 9, color: ClarityColors.purplePale)),
+                    style: TextStyle(
+                        fontSize: 9, color: ct.purplePale)),
               ],
             ),
           ),
@@ -438,57 +439,66 @@ class _SettingsCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final notifier = ref.read(profileSettingsProvider.notifier);
+    final notifier  = ref.read(profileSettingsProvider.notifier);
+    final isDark    = ref.watch(themeProvider) == ThemeMode.dark;
     return Container(
       decoration: BoxDecoration(
-        color: ClarityColors.bgCard,
+        color: ct.bgCard,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: ClarityColors.border, width: 0.5),
+        border: Border.all(color: ct.border, width: 0.5),
       ),
       child: Column(
         children: [
           _ToggleRow(
-            iconBg:    ClarityColors.purpleTint,
+            iconBg:    ct.primaryTint,
+            icon:      TablerIcons.moon_stars,
+            iconColor: ct.primaryLight,
+            label:     'Dark mode',
+            value:     isDark,
+            onChanged: (_) => ref.read(themeProvider.notifier).toggle(),
+          ),
+          _ToggleRow(
+            iconBg:    ct.purpleTint,
             icon:      TablerIcons.bell,
-            iconColor: ClarityColors.purpleLight,
+            iconColor: ct.purpleLight,
             label:     'Notifications',
             value:     settings.notifications,
             onChanged: notifier.setNotifications,
           ),
           _ToggleRow(
-            iconBg:    ClarityColors.tealTint,
+            iconBg:    ct.tealTint,
             icon:      TablerIcons.moon,
-            iconColor: ClarityColors.teal,
+            iconColor: ct.teal,
             label:     'Bedtime mode',
             value:     settings.bedtimeMode,
             onChanged: notifier.setBedtimeMode,
           ),
           _ToggleRow(
-            iconBg:    ClarityColors.amberTint,
+            iconBg:    ct.amberTint,
             icon:      TablerIcons.user_circle,
-            iconColor: ClarityColors.amber,
+            iconColor: ct.amber,
             label:     'Anonymous mode',
             value:     settings.anonymousMode,
             onChanged: notifier.setAnonymousMode,
           ),
           _ArrowRow(
-            iconBg:    ClarityColors.bgCard,
+            iconBg:    ct.bgCard,
             icon:      TablerIcons.target,
-            iconColor: ClarityColors.purplePale,
+            iconColor: ct.purplePale,
             label:     'Daily screen limit',
             value:     '${settings.dailyLimitHours} hr',
           ),
           _ArrowRow(
-            iconBg:    ClarityColors.bgCard,
+            iconBg:    ct.bgCard,
             icon:      TablerIcons.lock,
-            iconColor: ClarityColors.purplePale,
+            iconColor: ct.purplePale,
             label:     'PIN lock',
             value:     settings.pinEnabled ? 'On' : 'Off',
           ),
           _ArrowRow(
-            iconBg:    ClarityColors.bgCard,
+            iconBg:    ct.bgCard,
             icon:      TablerIcons.heart_handshake,
-            iconColor: ClarityColors.pink,
+            iconColor: ct.pink,
             label:     'Accountability partner',
             value:     'Add',
             isLast:    true,
@@ -558,11 +568,11 @@ class _ArrowRow extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(value,
-              style: const TextStyle(
-                  fontSize: 12, color: ClarityColors.textDisabled)),
+              style: TextStyle(
+                  fontSize: 12, color: ct.textDisabled)),
           const SizedBox(width: 4),
-          const Icon(TablerIcons.chevron_right,
-              size: 16, color: ClarityColors.border),
+          Icon(TablerIcons.chevron_right,
+              size: 16, color: ct.border),
         ],
       ),
     );
@@ -591,9 +601,9 @@ class _SettingsRow extends StatelessWidget {
       decoration: BoxDecoration(
         border: isLast
             ? null
-            : const Border(
+            : Border(
                 bottom: BorderSide(
-                    color: ClarityColors.borderFaint, width: 0.5)),
+                    color: ct.borderFaint, width: 0.5)),
       ),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
       child: Row(
@@ -610,8 +620,8 @@ class _SettingsRow extends StatelessWidget {
           const SizedBox(width: 12),
           Expanded(
             child: Text(label,
-                style: const TextStyle(
-                    fontSize: 13, color: ClarityColors.textSecondary)),
+                style: TextStyle(
+                    fontSize: 13, color: ct.textSecondary)),
           ),
           trailing,
         ],
@@ -634,7 +644,7 @@ class _MiniSwitch extends StatelessWidget {
         width: 40,
         height: 24,
         decoration: BoxDecoration(
-          color: value ? ClarityColors.purple : ClarityColors.border,
+          color: value ? ct.purple : ct.border,
           borderRadius: BorderRadius.circular(12),
         ),
         child: AnimatedAlign(
@@ -645,8 +655,8 @@ class _MiniSwitch extends StatelessWidget {
             child: Container(
               width: 18,
               height: 18,
-              decoration: const BoxDecoration(
-                color: ClarityColors.textPrimary,
+              decoration: BoxDecoration(
+                color: ct.textPrimary,
                 shape: BoxShape.circle,
               ),
             ),
@@ -667,8 +677,8 @@ class _SignOutButton extends ConsumerWidget {
     return OutlinedButton(
       onPressed: () => ref.read(authNotifierProvider.notifier).signOut(),
       style: OutlinedButton.styleFrom(
-        foregroundColor: ClarityColors.red,
-        side: const BorderSide(color: ClarityColors.redDark, width: 0.5),
+        foregroundColor: ct.red,
+        side: BorderSide(color: ct.redDark, width: 0.5),
         shape:
             RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
         padding: const EdgeInsets.symmetric(vertical: 14),
@@ -688,9 +698,9 @@ class _SectionLabel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Text(label,
-        style: const TextStyle(
+        style: TextStyle(
             fontSize: 11,
-            color: ClarityColors.textDisabled,
+            color: ct.textDisabled,
             letterSpacing: 0.8));
   }
 }

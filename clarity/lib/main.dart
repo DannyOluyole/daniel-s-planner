@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'core/theme/app_theme.dart';
+import 'core/theme/theme_provider.dart';
 import 'core/router/app_router.dart';
 import 'firebase_options.dart';
 import 'features/paywall/data/purchase_repository.dart';
@@ -16,27 +17,16 @@ void main() async {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
-  } catch (_) {
-    // Firebase not yet configured — app runs in local-only mode.
-    // Run `flutterfire configure --project=<your-project>` to enable cloud sync.
-  }
+  } catch (_) {}
 
   try {
-    // RevenueCat — configure with a placeholder UID until auth resolves.
-    // Auth provider will call PurchaseRepository.logIn(uid) on sign-in.
     await PurchaseRepository.configure(appUserId: 'anonymous');
-  } catch (_) {
-    // Placeholder SDK key — no-op until real key is added.
-  }
+  } catch (_) {}
 
   SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,
   ]);
-  SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
-    statusBarColor: Colors.transparent,
-    statusBarIconBrightness: Brightness.light,
-  ));
 
   runApp(const ProviderScope(child: ClarityApp()));
 }
@@ -46,12 +36,25 @@ class ClarityApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final router = ref.watch(appRouterProvider);
+    final router    = ref.watch(appRouterProvider);
+    final themeMode = ref.watch(themeProvider);
+    final isDark    = themeMode == ThemeMode.dark;
+
+    // Update global colour accessor so all widgets see the right palette
+    ct = isDark ? ClarityColors.dark : ClarityColors.light;
+
+    SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      statusBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
+    ));
+
     return MaterialApp.router(
-      title: 'Clarity',
+      title:                  'Clarity',
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.dark,
-      routerConfig: router,
+      theme:                  AppTheme.light,
+      darkTheme:              AppTheme.dark,
+      themeMode:              themeMode,
+      routerConfig:           router,
     );
   }
 }

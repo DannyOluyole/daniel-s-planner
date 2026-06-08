@@ -14,17 +14,17 @@ class ClarityAuthLogo extends StatelessWidget {
           width: 40,
           height: 40,
           decoration: BoxDecoration(
-              color: ClarityColors.purpleDeep,
+              color: ct.purpleDeep,
               borderRadius: BorderRadius.circular(12)),
-          child: const Icon(TablerIcons.leaf,
-              color: ClarityColors.purplePale, size: 20),
+          child: Icon(TablerIcons.leaf,
+              color: ct.purplePale, size: 20),
         ),
         const SizedBox(width: 10),
-        const Text('CLARITY',
+        Text('CLARITY',
             style: TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w500,
-                color: ClarityColors.purple,
+                color: ct.purple,
                 letterSpacing: 0.08 * 15)),
       ],
     );
@@ -36,15 +36,15 @@ class AuthOrDivider extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Row(
+    return Row(
       children: [
-        Expanded(child: Divider(color: ClarityColors.border, thickness: 0.5)),
+        Expanded(child: Divider(color: ct.border, thickness: 0.5)),
         Padding(
           padding: EdgeInsets.symmetric(horizontal: 12),
           child: Text('or',
-              style: TextStyle(fontSize: 12, color: ClarityColors.textDisabled)),
+              style: TextStyle(fontSize: 12, color: ct.textDisabled)),
         ),
-        Expanded(child: Divider(color: ClarityColors.border, thickness: 0.5)),
+        Expanded(child: Divider(color: ct.border, thickness: 0.5)),
       ],
     );
   }
@@ -60,19 +60,19 @@ class AuthErrorBanner extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
-        color: ClarityColors.redTint,
+        color: ct.redTint,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: ClarityColors.redDark, width: 0.5),
+        border: Border.all(color: ct.redDark, width: 0.5),
       ),
       child: Row(
         children: [
-          const Icon(TablerIcons.alert_circle,
-              size: 16, color: ClarityColors.red),
+          Icon(TablerIcons.alert_circle,
+              size: 16, color: ct.red),
           const SizedBox(width: 8),
           Expanded(
               child: Text(message,
-                  style: const TextStyle(
-                      fontSize: 13, color: ClarityColors.redLight))),
+                  style: TextStyle(
+                      fontSize: 13, color: ct.redLight))),
         ],
       ),
     );

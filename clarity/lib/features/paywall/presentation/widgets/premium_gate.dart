@@ -53,20 +53,20 @@ class _LockedOverlay extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: ClarityColors.bgCard,
+          color: ct.bgCard,
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: ClarityColors.border, width: 0.5),
+          border: Border.all(color: ct.border, width: 0.5),
         ),
         child: Row(
           children: [
             Container(
               width: 36, height: 36,
               decoration: BoxDecoration(
-                color: ClarityColors.purpleTint,
+                color: ct.purpleTint,
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: const Icon(TablerIcons.lock,
-                  size: 18, color: ClarityColors.purpleLight),
+              child: Icon(TablerIcons.lock,
+                  size: 18, color: ct.purpleLight),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -74,14 +74,14 @@ class _LockedOverlay extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(feature,
-                      style: const TextStyle(fontSize: 14,
+                      style: TextStyle(fontSize: 14,
                           fontWeight: FontWeight.w500,
-                          color: ClarityColors.textSecondary)),
+                          color: ct.textSecondary)),
                   if (description != null) ...[
                     const SizedBox(height: 2),
                     Text(description!,
-                        style: const TextStyle(fontSize: 11,
-                            color: ClarityColors.textDisabled)),
+                        style: TextStyle(fontSize: 11,
+                            color: ct.textDisabled)),
                   ],
                 ],
               ),
@@ -89,13 +89,13 @@ class _LockedOverlay extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
               decoration: BoxDecoration(
-                color: ClarityColors.purple,
+                color: ct.purple,
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: const Text('Unlock',
+              child: Text('Unlock',
                   style: TextStyle(fontSize: 12,
                       fontWeight: FontWeight.w500,
-                      color: ClarityColors.textPrimary)),
+                      color: ct.textPrimary)),
             ),
           ],
         ),

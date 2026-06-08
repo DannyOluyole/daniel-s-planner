@@ -33,11 +33,11 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: ClarityColors.bg,
+      backgroundColor: ct.bg,
       appBar: AppBar(
         leading: GestureDetector(
           onTap: () => context.pop(),
-          child: const Icon(TablerIcons.arrow_left, color: ClarityColors.textPrimary),
+          child: Icon(TablerIcons.arrow_left, color: ct.textPrimary),
         ),
       ),
       body: Padding(
@@ -64,11 +64,11 @@ class _FormState extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const SizedBox(height: 16),
-        const Text('Reset password', style: TextStyle(fontSize: 24,
-            fontWeight: FontWeight.w500, color: ClarityColors.textPrimary)),
+        Text('Reset password', style: TextStyle(fontSize: 24,
+            fontWeight: FontWeight.w500, color: ct.textPrimary)),
         const SizedBox(height: 6),
-        const Text("Enter your email and we'll send a reset link.",
-            style: TextStyle(fontSize: 14, color: ClarityColors.textFaint)),
+        Text("Enter your email and we'll send a reset link.",
+            style: TextStyle(fontSize: 14, color: ct.textFaint)),
         const SizedBox(height: 28),
         AuthTextField(controller: controller, label: 'Email',
             hint: 'you@example.com', keyboardType: TextInputType.emailAddress),
@@ -76,8 +76,8 @@ class _FormState extends StatelessWidget {
         ElevatedButton(
           onPressed: loading ? null : onSend,
           child: loading
-              ? const SizedBox(width: 20, height: 20,
-                  child: CircularProgressIndicator(strokeWidth: 2, color: ClarityColors.textPrimary))
+              ? SizedBox(width: 20, height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2, color: ct.textPrimary))
               : const Text('Send reset link'),
         ),
       ],
@@ -93,16 +93,16 @@ class _SuccessState extends StatelessWidget {
       children: [
         Container(
           width: 72, height: 72,
-          decoration: const BoxDecoration(color: ClarityColors.tealTint, shape: BoxShape.circle),
-          child: const Icon(TablerIcons.mail_check, size: 32, color: ClarityColors.teal),
+          decoration: BoxDecoration(color: ct.tealTint, shape: BoxShape.circle),
+          child: Icon(TablerIcons.mail_check, size: 32, color: ct.teal),
         ),
         const SizedBox(height: 20),
-        const Text('Check your inbox', style: TextStyle(fontSize: 20,
-            fontWeight: FontWeight.w500, color: ClarityColors.textPrimary)),
+        Text('Check your inbox', style: TextStyle(fontSize: 20,
+            fontWeight: FontWeight.w500, color: ct.textPrimary)),
         const SizedBox(height: 8),
-        const Text("We've sent a password reset link to your email.",
+        Text("We've sent a password reset link to your email.",
             textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 14, color: ClarityColors.textFaint, height: 1.6)),
+            style: TextStyle(fontSize: 14, color: ct.textFaint, height: 1.6)),
         const SizedBox(height: 28),
         ElevatedButton(
           onPressed: () => context.pop(),

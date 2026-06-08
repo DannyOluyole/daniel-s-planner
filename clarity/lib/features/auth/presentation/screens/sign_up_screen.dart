@@ -57,7 +57,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
     final loading = auth.isLoading;
 
     return Scaffold(
-      backgroundColor: ClarityColors.bg,
+      backgroundColor: ct.bg,
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -68,12 +68,12 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
               const ClarityAuthLogo(),
               const SizedBox(height: 32),
 
-              const Text('Create your account',
+              Text('Create your account',
                   style: TextStyle(fontSize: 24, fontWeight: FontWeight.w500,
-                      color: ClarityColors.textPrimary)),
+                      color: ct.textPrimary)),
               const SizedBox(height: 6),
-              const Text('Start your journey to a clearer mind.',
-                  style: TextStyle(fontSize: 14, color: ClarityColors.textFaint)),
+              Text('Start your journey to a clearer mind.',
+                  style: TextStyle(fontSize: 14, color: ct.textFaint)),
               const SizedBox(height: 28),
 
               AuthTextField(
@@ -99,7 +99,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                   onTap: () => setState(() => _obscure = !_obscure),
                   child: Icon(
                     _obscure ? TablerIcons.eye : TablerIcons.eye_off,
-                    size: 18, color: ClarityColors.textDisabled,
+                    size: 18, color: ct.textDisabled,
                   ),
                 ),
               ),
@@ -111,9 +111,9 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
               ElevatedButton(
                 onPressed: loading ? null : _signUp,
                 child: loading
-                    ? const SizedBox(width: 20, height: 20,
+                    ? SizedBox(width: 20, height: 20,
                         child: CircularProgressIndicator(strokeWidth: 2,
-                            color: ClarityColors.textPrimary))
+                            color: ct.textPrimary))
                     : const Text('Create account'),
               ),
               const SizedBox(height: 20),
@@ -136,13 +136,13 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Text('Already have an account?',
-                      style: TextStyle(fontSize: 13, color: ClarityColors.textDisabled)),
+                  Text('Already have an account?',
+                      style: TextStyle(fontSize: 13, color: ct.textDisabled)),
                   const SizedBox(width: 4),
                   GestureDetector(
                     onTap: () => context.pop(),
-                    child: const Text('Sign in',
-                        style: TextStyle(fontSize: 13, color: ClarityColors.purpleLight,
+                    child: Text('Sign in',
+                        style: TextStyle(fontSize: 13, color: ct.purpleLight,
                             fontWeight: FontWeight.w500)),
                   ),
                 ],

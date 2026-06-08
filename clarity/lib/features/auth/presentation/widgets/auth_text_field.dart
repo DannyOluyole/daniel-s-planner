@@ -26,14 +26,14 @@ class AuthTextField extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(label,
-            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500,
-                color: ClarityColors.textSecondary)),
+            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500,
+                color: ct.textSecondary)),
         const SizedBox(height: 6),
         TextField(
           controller:      controller,
           keyboardType:    keyboardType,
           obscureText:     obscure,
-          style: const TextStyle(color: ClarityColors.textPrimary, fontSize: 14),
+          style: TextStyle(color: ct.textPrimary, fontSize: 14),
           decoration: InputDecoration(
             hintText:    hint,
             suffixIcon:  suffix != null

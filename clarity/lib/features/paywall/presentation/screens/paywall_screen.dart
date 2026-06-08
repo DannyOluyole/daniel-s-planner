@@ -29,7 +29,7 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
     final loading      = purchaseState.isLoading;
 
     return Scaffold(
-      backgroundColor: ClarityColors.bg,
+      backgroundColor: ct.bg,
       body: SafeArea(
         child: Column(
           children: [
@@ -39,10 +39,10 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
                 alignment: Alignment.topRight,
                 child: GestureDetector(
                   onTap: () => context.pop(),
-                  child: const Padding(
+                  child: Padding(
                     padding: EdgeInsets.all(16),
                     child: Icon(TablerIcons.x,
-                        size: 20, color: ClarityColors.textDisabled),
+                        size: 20, color: ct.textDisabled),
                   ),
                 ),
               )
@@ -88,8 +88,8 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
                         padding: const EdgeInsets.only(bottom: 12),
                         child: Text(purchaseState.errorMsg!,
                             textAlign: TextAlign.center,
-                            style: const TextStyle(
-                                fontSize: 13, color: ClarityColors.red)),
+                            style: TextStyle(
+                                fontSize: 13, color: ct.red)),
                       ),
 
                     // ── CTA ──
@@ -138,21 +138,21 @@ class _PaywallHero extends StatelessWidget {
         Container(
           width: 72, height: 72,
           decoration: BoxDecoration(
-            color: ClarityColors.purpleDeep,
+            color: ct.purpleDeep,
             borderRadius: BorderRadius.circular(20),
           ),
-          child: const Icon(TablerIcons.leaf,
-              size: 34, color: ClarityColors.purplePale),
+          child: Icon(TablerIcons.leaf,
+              size: 34, color: ct.purplePale),
         ),
         const SizedBox(height: 16),
-        const Text('Unlock Clarity Premium',
+        Text('Unlock Clarity Premium',
             textAlign: TextAlign.center,
             style: TextStyle(fontSize: 24, fontWeight: FontWeight.w500,
-                color: ClarityColors.textPrimary)),
+                color: ct.textPrimary)),
         const SizedBox(height: 8),
-        const Text('Everything you need to take back your time.',
+        Text('Everything you need to take back your time.',
             textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 14, color: ClarityColors.textFaint, height: 1.5)),
+            style: TextStyle(fontSize: 14, color: ct.textFaint, height: 1.5)),
       ],
     );
   }
@@ -164,36 +164,36 @@ class _TrialBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       decoration: BoxDecoration(
-        color: ClarityColors.tealTint,
+        color: ct.tealTint,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: ClarityColors.tealDark, width: 0.5),
+        border: Border.all(color: ct.tealDark, width: 0.5),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
-        children: const [
-          Icon(TablerIcons.clock, size: 16, color: ClarityColors.teal),
+        children: [
+          Icon(TablerIcons.clock, size: 16, color: ct.teal),
           SizedBox(width: 8),
           Text('7-day free trial — cancel anytime',
               style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500,
-                  color: ClarityColors.tealLight)),
+                  color: ct.tealLight)),
         ],
       ),
     );
   }
 }
 
-const _features = [
-  (TablerIcons.shield_lock,  ClarityColors.purpleLight, 'Strict mode',
+final _features = [
+  (TablerIcons.shield_lock,  ct.purpleLight, 'Strict mode',
       'Block with no override — for when willpower isn\'t enough'),
-  (TablerIcons.filter,       ClarityColors.teal,        'Keyword blocking',
+  (TablerIcons.filter,       ct.teal,        'Keyword blocking',
       'Block any site or app containing specific words'),
-  (TablerIcons.heart_handshake, ClarityColors.pink,     'Community SOS',
+  (TablerIcons.heart_handshake, ct.pink,     'Community SOS',
       'Reach out to a real person when you\'re struggling'),
-  (TablerIcons.clock,        ClarityColors.amber,       'Unlimited schedules',
+  (TablerIcons.clock,        ct.amber,       'Unlimited schedules',
       'Set different block rules for mornings, evenings, weekends'),
-  (TablerIcons.chart_bar,    ClarityColors.purpleLight, 'Detailed analytics',
+  (TablerIcons.chart_bar,    ct.purpleLight, 'Detailed analytics',
       'See exactly how your habits are changing over time'),
-  (TablerIcons.sparkles,     ClarityColors.teal,        'AI companion',
+  (TablerIcons.sparkles,     ct.teal,        'AI companion',
       'Personalised nudges based on your patterns'),
 ];
 
@@ -203,9 +203,9 @@ class _FeatureList extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: ClarityColors.bgCard,
+        color: ct.bgCard,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: ClarityColors.border, width: 0.5),
+        border: Border.all(color: ct.border, width: 0.5),
       ),
       child: Column(
         children: _features.asMap().entries.map((e) {
@@ -234,25 +234,25 @@ class _FeatureList extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(f.$3 as String,
-                              style: const TextStyle(fontSize: 13,
+                              style: TextStyle(fontSize: 13,
                                   fontWeight: FontWeight.w500,
-                                  color: ClarityColors.textSecondary)),
+                                  color: ct.textSecondary)),
                           const SizedBox(height: 2),
                           Text(f.$4 as String,
-                              style: const TextStyle(fontSize: 11,
-                                  color: ClarityColors.textDisabled,
+                              style: TextStyle(fontSize: 11,
+                                  color: ct.textDisabled,
                                   height: 1.4)),
                         ],
                       ),
                     ),
-                    const Icon(TablerIcons.check,
-                        size: 16, color: ClarityColors.teal),
+                    Icon(TablerIcons.check,
+                        size: 16, color: ct.teal),
                   ],
                 ),
               ),
               if (!last)
-                const Divider(
-                    color: ClarityColors.borderFaint,
+                Divider(
+                    color: ct.borderFaint,
                     thickness: 0.5,
                     height: 0),
             ],
@@ -285,10 +285,10 @@ class _PlanSelector extends StatelessWidget {
             margin: const EdgeInsets.only(bottom: 10),
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              color: isSel ? ClarityColors.purpleTint : ClarityColors.bgCard,
+              color: isSel ? ct.purpleTint : ct.bgCard,
               borderRadius: BorderRadius.circular(14),
               border: Border.all(
-                color: isSel ? ClarityColors.purple : ClarityColors.border,
+                color: isSel ? ct.purple : ct.border,
                 width: isSel ? 1 : 0.5,
               ),
             ),
@@ -300,16 +300,16 @@ class _PlanSelector extends StatelessWidget {
                   width: 18, height: 18,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: isSel ? ClarityColors.purple : Colors.transparent,
+                    color: isSel ? ct.purple : Colors.transparent,
                     border: Border.all(
-                      color: isSel ? ClarityColors.purple : ClarityColors.border,
+                      color: isSel ? ct.purple : ct.border,
                       width: 1.5,
                     ),
                   ),
                   child: isSel
-                      ? const Center(
+                      ? Center(
                           child: Icon(TablerIcons.check,
-                              size: 10, color: ClarityColors.textPrimary))
+                              size: 10, color: ct.textPrimary))
                       : null,
                 ),
                 const SizedBox(width: 12),
@@ -324,8 +324,8 @@ class _PlanSelector extends StatelessWidget {
                                 fontSize: 14,
                                 fontWeight: FontWeight.w500,
                                 color: isSel
-                                    ? ClarityColors.textPrimary
-                                    : ClarityColors.textSecondary,
+                                    ? ct.textPrimary
+                                    : ct.textSecondary,
                               )),
                           if (plan.badge != null) ...[
                             const SizedBox(width: 8),
@@ -333,21 +333,21 @@ class _PlanSelector extends StatelessWidget {
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 7, vertical: 2),
                               decoration: BoxDecoration(
-                                color: ClarityColors.teal.withAlpha(34),
+                                color: ct.teal.withAlpha(34),
                                 borderRadius: BorderRadius.circular(5),
                               ),
                               child: Text(plan.badge!,
-                                  style: const TextStyle(fontSize: 10,
+                                  style: TextStyle(fontSize: 10,
                                       fontWeight: FontWeight.w500,
-                                      color: ClarityColors.teal)),
+                                      color: ct.teal)),
                             ),
                           ],
                         ],
                       ),
                       const SizedBox(height: 2),
                       Text(plan.pricePerMonth,
-                          style: const TextStyle(fontSize: 11,
-                              color: ClarityColors.textDisabled)),
+                          style: TextStyle(fontSize: 11,
+                              color: ct.textDisabled)),
                     ],
                   ),
                 ),
@@ -356,8 +356,8 @@ class _PlanSelector extends StatelessWidget {
                       fontSize: 16,
                       fontWeight: FontWeight.w500,
                       color: isSel
-                          ? ClarityColors.purpleLight
-                          : ClarityColors.textSecondary,
+                          ? ct.purpleLight
+                          : ct.textSecondary,
                     )),
               ],
             ),
@@ -378,9 +378,9 @@ class _PlanSkeleton extends StatelessWidget {
         margin: const EdgeInsets.only(bottom: 10),
         height: 64,
         decoration: BoxDecoration(
-          color: ClarityColors.bgCard,
+          color: ct.bgCard,
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: ClarityColors.border, width: 0.5),
+          border: Border.all(color: ct.border, width: 0.5),
         ),
       )),
     );
@@ -397,9 +397,9 @@ class _CTAButton extends StatelessWidget {
     return ElevatedButton(
       onPressed: loading ? null : onPressed,
       child: loading
-          ? const SizedBox(width: 20, height: 20,
+          ? SizedBox(width: 20, height: 20,
               child: CircularProgressIndicator(strokeWidth: 2,
-                  color: ClarityColors.textPrimary))
+                  color: ct.textPrimary))
           : const Text('Start free trial'),
     );
   }
@@ -415,15 +415,15 @@ class _FooterLinks extends ConsumerWidget {
           onTap: loading
               ? null
               : () => ref.read(purchaseNotifierProvider.notifier).restore(),
-          child: const Text('Restore purchases',
-              style: TextStyle(fontSize: 12, color: ClarityColors.textDisabled,
+          child: Text('Restore purchases',
+              style: TextStyle(fontSize: 12, color: ct.textDisabled,
                   decoration: TextDecoration.underline)),
         ),
         const SizedBox(height: 8),
-        const Text(
+        Text(
           'Subscription auto-renews. Cancel anytime in App Store or Google Play settings.',
           textAlign: TextAlign.center,
-          style: TextStyle(fontSize: 10, color: ClarityColors.textDisabled, height: 1.5),
+          style: TextStyle(fontSize: 10, color: ct.textDisabled, height: 1.5),
         ),
       ],
     );
