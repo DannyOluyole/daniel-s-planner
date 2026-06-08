@@ -10,6 +10,7 @@ import '../../features/block/presentation/screens/block_screen.dart';
 import '../../features/community/presentation/screens/community_screen.dart';
 import '../../features/profile/presentation/screens/profile_screen.dart';
 import '../shell/main_shell.dart';
+import '../providers/onboarding_provider.dart';
 
 part 'app_router.g.dart';
 
@@ -28,14 +29,19 @@ class Routes {
 
 @riverpod
 GoRouter appRouter(Ref ref) {
-  // In Phase 4 (auth) you'll watch an authState provider here and redirect
-  // unauthenticated users to onboarding/login.
-  //
-  // final authState = ref.watch(authStateProvider);
+  final onboardingSeen = ref.watch(onboardingSeenProvider);
 
   return GoRouter(
-    initialLocation: Routes.onboarding,
+    initialLocation: onboardingSeen ? Routes.home : Routes.onboarding,
     debugLogDiagnostics: true,
+    redirect: (context, state) {
+      final onShell = state.matchedLocation != Routes.onboarding;
+      if (!onboardingSeen && onShell) return Routes.onboarding;
+      if (onboardingSeen && state.matchedLocation == Routes.onboarding) {
+        return Routes.home;
+      }
+      return null;
+    },
     routes: [
       // ── Onboarding (outside shell, no tab bar) ──────────────────────────
       GoRoute(

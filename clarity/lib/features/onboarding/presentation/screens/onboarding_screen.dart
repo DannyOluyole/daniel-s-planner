@@ -1,10 +1,12 @@
 // lib/features/onboarding/presentation/screens/onboarding_screen.dart
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_tabler_icons/flutter_tabler_icons.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/router/app_router.dart';
+import '../../../../core/providers/onboarding_provider.dart';
 
 // ─── Step data ───────────────────────────────────────────────────────────────
 
@@ -48,14 +50,14 @@ const _steps = [
 
 // ─── Screen ──────────────────────────────────────────────────────────────────
 
-class OnboardingScreen extends StatefulWidget {
+class OnboardingScreen extends ConsumerStatefulWidget {
   const OnboardingScreen({super.key});
 
   @override
-  State<OnboardingScreen> createState() => _OnboardingScreenState();
+  ConsumerState<OnboardingScreen> createState() => _OnboardingScreenState();
 }
 
-class _OnboardingScreenState extends State<OnboardingScreen>
+class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
     with SingleTickerProviderStateMixin {
   int _step = 0;
   late final AnimationController _animController;
@@ -88,7 +90,10 @@ class _OnboardingScreenState extends State<OnboardingScreen>
     }
   }
 
-  void _goHome() => context.go(Routes.home);
+  void _goHome() {
+    ref.read(onboardingSeenProvider.notifier).markSeen();
+    context.go(Routes.home);
+  }
 
   @override
   Widget build(BuildContext context) {
