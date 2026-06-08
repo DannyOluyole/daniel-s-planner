@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../data/auth_repository.dart';
 import '../domain/clarity_user.dart';
 import '../../dashboard/data/firestore_repository.dart';
+import '../../paywall/data/purchase_repository.dart';
 
 // ─── Repository ───────────────────────────────────────────────────────────────
 
@@ -62,8 +63,8 @@ class AuthNotifier extends Notifier<AuthState> {
       final user = await _repo.signUpWithEmail(
         email: email, password: password, displayName: displayName,
       );
-      // Write user doc to Firestore
       await ref.read(firestoreUserRepositoryProvider).createUserDoc(user);
+      await _rcLogin(user.uid);
       state = const AuthState(status: AuthStatus.success);
       return true;
     } on Exception catch (e) {
@@ -80,7 +81,8 @@ class AuthNotifier extends Notifier<AuthState> {
   }) async {
     state = const AuthState(status: AuthStatus.loading);
     try {
-      await _repo.signInWithEmail(email: email, password: password);
+      final user = await _repo.signInWithEmail(email: email, password: password);
+      await _rcLogin(user.uid);
       state = const AuthState(status: AuthStatus.success);
       return true;
     } on Exception catch (e) {
@@ -96,6 +98,7 @@ class AuthNotifier extends Notifier<AuthState> {
     try {
       final user = await _repo.signInWithGoogle();
       await ref.read(firestoreUserRepositoryProvider).upsertUserDoc(user);
+      await _rcLogin(user.uid);
       state = const AuthState(status: AuthStatus.success);
       return true;
     } on Exception catch (e) {
@@ -111,6 +114,7 @@ class AuthNotifier extends Notifier<AuthState> {
     try {
       final user = await _repo.signInWithApple();
       await ref.read(firestoreUserRepositoryProvider).upsertUserDoc(user);
+      await _rcLogin(user.uid);
       state = const AuthState(status: AuthStatus.success);
       return true;
     } on Exception catch (e) {
@@ -129,7 +133,12 @@ class AuthNotifier extends Notifier<AuthState> {
 
   Future<void> signOut() async {
     await _repo.signOut();
+    try { await PurchaseRepository.logOut(); } catch (_) {}
     state = const AuthState();
+  }
+
+  Future<void> _rcLogin(String uid) async {
+    try { await PurchaseRepository.configure(appUserId: uid); } catch (_) {}
   }
 
   // ── Error message mapper ──────────────────────────────────────────────────

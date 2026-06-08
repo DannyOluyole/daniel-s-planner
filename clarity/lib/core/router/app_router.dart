@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../features/auth/application/auth_provider.dart';
 import '../../features/auth/presentation/screens/sign_in_screen.dart';
+import '../../features/paywall/presentation/screens/paywall_screen.dart';
 import '../../features/auth/presentation/screens/sign_up_screen.dart';
 import '../../features/auth/presentation/screens/forgot_password_screen.dart';
 import '../../features/onboarding/application/onboarding_provider.dart';
@@ -22,6 +23,7 @@ class Routes {
   static const signIn        = '/sign-in';
   static const signUp        = '/sign-up';
   static const forgotPassword = '/forgot-password';
+  static const paywall        = '/paywall';
   static const home          = '/home';
   static const block         = '/block';
   static const community     = '/community';
@@ -34,6 +36,7 @@ const _publicRoutes = {
   Routes.signIn,
   Routes.signUp,
   Routes.forgotPassword,
+  Routes.paywall,
 };
 
 final appRouterProvider = Provider<GoRouter>((ref) {
@@ -73,6 +76,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           builder: (_, __) => const SignUpScreen()),
       GoRoute(path: Routes.forgotPassword,
           builder: (_, __) => const ForgotPasswordScreen()),
+      GoRoute(path: Routes.paywall,
+          builder: (_, __) => const PaywallScreen(isDismissible: false)),
 
       // ── Protected shell ──────────────────────────────────────────────────
       StatefulShellRoute.indexedStack(

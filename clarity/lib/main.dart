@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'core/theme/app_theme.dart';
 import 'core/router/app_router.dart';
 import 'firebase_options.dart';
+import 'features/paywall/data/purchase_repository.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -18,6 +19,14 @@ void main() async {
   } catch (_) {
     // Firebase not yet configured — app runs in local-only mode.
     // Run `flutterfire configure --project=<your-project>` to enable cloud sync.
+  }
+
+  try {
+    // RevenueCat — configure with a placeholder UID until auth resolves.
+    // Auth provider will call PurchaseRepository.logIn(uid) on sign-in.
+    await PurchaseRepository.configure(appUserId: 'anonymous');
+  } catch (_) {
+    // Placeholder SDK key — no-op until real key is added.
   }
 
   SystemChrome.setPreferredOrientations([
