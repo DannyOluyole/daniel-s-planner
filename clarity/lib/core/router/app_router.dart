@@ -44,27 +44,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
   final onboardingAsync  = ref.watch(onboardingNotifierProvider);
 
   return GoRouter(
-    initialLocation: Routes.onboarding,
+    initialLocation: Routes.home,
     debugLogDiagnostics: true,
     redirect: (context, state) {
-      final isPublic        = _publicRoutes.contains(state.matchedLocation);
-      final onboardingDone  = onboardingAsync.valueOrNull ?? false;
-      final isSignedIn      = authAsync.valueOrNull != null;
-      // Still loading — don't redirect yet
-      if (authAsync.isLoading || onboardingAsync.isLoading) return null;
-
-      // Not seen onboarding yet
-      if (!onboardingDone) {
-        return isPublic ? null : Routes.onboarding;
-      }
-
-      // Onboarding done but not signed in → send to sign-in
-      if (!isSignedIn && !isPublic) return Routes.signIn;
-
-      // Signed in but still on auth screens → send home
-      if (isSignedIn && isPublic) return Routes.home;
-
-      return null;
+      return null; // DEMO MODE: all routes open freely
     },
     routes: [
       // ── Public ──────────────────────────────────────────────────────────
