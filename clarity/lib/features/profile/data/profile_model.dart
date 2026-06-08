@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class Badge {
-  const Badge({required this.emoji, required this.label, required this.earned});
+class ClarityBadge {
+  const ClarityBadge({required this.emoji, required this.label, required this.earned});
   final String emoji;
   final String label;
   final bool   earned;
@@ -55,7 +55,7 @@ class UserProfile {
   final String           screenTimeSaved;
   final int              checkInsLogged;
   final int              peopleSupported;
-  final List<Badge>      badges;
+  final List<ClarityBadge>      badges;
   final ProfileSettings  settings;
   final String           dailyScreenLimit;
   final bool             pinEnabled;
@@ -79,11 +79,11 @@ class ProfileNotifier extends StateNotifier<UserProfile> {
           pinEnabled:           false,
           accountabilityPartner: null,
           badges: [
-            Badge(emoji: '🌱', label: 'First week', earned: true),
-            Badge(emoji: '🔥', label: '14 days',    earned: true),
-            Badge(emoji: '🛡️', label: '100 blocks', earned: true),
-            Badge(emoji: '💎', label: '30 days',    earned: false),
-            Badge(emoji: '🏆', label: '60 days',    earned: false),
+            ClarityBadge(emoji: '🌱', label: 'First week', earned: true),
+            ClarityBadge(emoji: '🔥', label: '14 days',    earned: true),
+            ClarityBadge(emoji: '🛡️', label: '100 blocks', earned: true),
+            ClarityBadge(emoji: '💎', label: '30 days',    earned: false),
+            ClarityBadge(emoji: '🏆', label: '60 days',    earned: false),
           ],
           settings: ProfileSettings(
             notifications: true,

@@ -488,6 +488,8 @@ class _KeywordsPanel extends StatelessWidget {
 // ─── Save button ─────────────────────────────────────────────────────────────
 
 class _SaveButton extends StatelessWidget {
+  const _SaveButton();
+
   @override
   Widget build(BuildContext context) {
     return ElevatedButton(

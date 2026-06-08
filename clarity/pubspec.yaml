@@ -21,7 +21,7 @@ dependencies:
   google_fonts: ^6.2.1
 
   # Icons  (tabler icon set used in prototype)
-  flutter_tabler_icons: ^0.9.0
+  flutter_tabler_icons: ^1.43.0
 
   # Utilities
   shared_preferences: ^2.2.3

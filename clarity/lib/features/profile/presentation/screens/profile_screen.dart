@@ -276,7 +276,7 @@ class _StatCard extends StatelessWidget {
 
 class _BadgesRow extends StatelessWidget {
   const _BadgesRow({required this.badges});
-  final List<Badge> badges;
+  final List<ClarityBadge> badges;
 
   @override
   Widget build(BuildContext context) {
