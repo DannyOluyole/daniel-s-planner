@@ -1,28 +1,21 @@
 // lib/features/block/presentation/screens/block_screen.dart
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_tabler_icons/flutter_tabler_icons.dart';
 
 import '../../../../core/theme/app_theme.dart';
+import '../../application/block_settings_notifier.dart';
+import '../../data/block_model.dart';
 
-class BlockScreen extends StatefulWidget {
+class BlockScreen extends ConsumerStatefulWidget {
   const BlockScreen({super.key});
 
   @override
-  State<BlockScreen> createState() => _BlockScreenState();
+  ConsumerState<BlockScreen> createState() => _BlockScreenState();
 }
 
-class _BlockScreenState extends State<BlockScreen> {
-  int _tab          = 0; // 0 = Apps, 1 = Keywords
-  int _strictness   = 1; // 0 = Soft, 1 = Standard, 2 = Strict
-
-  final List<_AppEntry> _apps = [
-    _AppEntry(emoji: '📱', name: 'TikTok',    category: 'Short video', blocked: true),
-    _AppEntry(emoji: '📸', name: 'Instagram', category: 'Social',      blocked: true),
-    _AppEntry(emoji: '👽', name: 'Reddit',    category: 'Forums',      blocked: false),
-    _AppEntry(emoji: '🐦', name: 'X / Twitter',category: 'Social',     blocked: false),
-  ];
-
-  final List<String> _keywords = ['porn', 'explicit', 'nsfw'];
+class _BlockScreenState extends ConsumerState<BlockScreen> {
+  int _tab = 0;
   final TextEditingController _kwController = TextEditingController();
 
   @override
@@ -33,13 +26,14 @@ class _BlockScreenState extends State<BlockScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final async = ref.watch(blockSettingsProvider);
+
     return Scaffold(
       backgroundColor: ClarityColors.bgSurface,
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // ── Header ──
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
               child: Row(
@@ -59,8 +53,6 @@ class _BlockScreenState extends State<BlockScreen> {
                 ],
               ),
             ),
-
-            // ── Segment control ──
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: _SegmentControl(
@@ -70,36 +62,64 @@ class _BlockScreenState extends State<BlockScreen> {
               ),
             ),
             const SizedBox(height: 12),
-
-            // ── Body ──
             Expanded(
-              child: ListView(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                children: _tab == 0
-                    ? [
-                        _AppsList(apps: _apps, onToggle: _toggleApp),
-                        const SizedBox(height: 10),
-                        _ScheduleCard(),
-                        const SizedBox(height: 10),
-                        _StrictnessCard(
-                            current: _strictness,
-                            onSelect: (i) =>
-                                setState(() => _strictness = i)),
-                        const SizedBox(height: 10),
-                        _SaveButton(),
-                        const SizedBox(height: 20),
-                      ]
-                    : [
-                        _KeywordsPanel(
-                          keywords: _keywords,
-                          controller: _kwController,
-                          onAdd: _addKeyword,
-                          onRemove: _removeKeyword,
-                        ),
-                        const SizedBox(height: 10),
-                        _SaveButton(),
-                        const SizedBox(height: 20),
-                      ],
+              child: async.when(
+                loading: () => const Center(
+                    child: CircularProgressIndicator(
+                        color: ClarityColors.purpleLight)),
+                error: (e, _) => Center(
+                    child: Text('Error: $e',
+                        style: const TextStyle(
+                            color: ClarityColors.textDisabled))),
+                data: (settings) => ListView(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  children: _tab == 0
+                      ? [
+                          _AppsList(
+                            apps: settings.apps,
+                            onToggle: (i) => ref
+                                .read(blockSettingsProvider.notifier)
+                                .toggleApp(i),
+                          ),
+                          const SizedBox(height: 10),
+                          _ScheduleCard(
+                            activeDays: settings.activeDays,
+                            onToggleDay: (i) => ref
+                                .read(blockSettingsProvider.notifier)
+                                .toggleDay(i),
+                            scheduleStart: settings.scheduleStart,
+                            scheduleEnd: settings.scheduleEnd,
+                          ),
+                          const SizedBox(height: 10),
+                          _StrictnessCard(
+                            current: settings.strictness,
+                            onSelect: (i) => ref
+                                .read(blockSettingsProvider.notifier)
+                                .setStrictness(i),
+                          ),
+                          const SizedBox(height: 10),
+                          const _SavedIndicator(),
+                          const SizedBox(height: 20),
+                        ]
+                      : [
+                          _KeywordsPanel(
+                            keywords: settings.keywords,
+                            controller: _kwController,
+                            onAdd: () {
+                              ref
+                                  .read(blockSettingsProvider.notifier)
+                                  .addKeyword(_kwController.text);
+                              _kwController.clear();
+                            },
+                            onRemove: (i) => ref
+                                .read(blockSettingsProvider.notifier)
+                                .removeKeyword(i),
+                          ),
+                          const SizedBox(height: 10),
+                          const _SavedIndicator(),
+                          const SizedBox(height: 20),
+                        ],
+                ),
               ),
             ),
           ],
@@ -107,41 +127,14 @@ class _BlockScreenState extends State<BlockScreen> {
       ),
     );
   }
-
-  void _toggleApp(int index) =>
-      setState(() => _apps[index].blocked = !_apps[index].blocked);
-
-  void _addKeyword() {
-    final v = _kwController.text.trim();
-    if (v.isEmpty) return;
-    setState(() {
-      _keywords.add(v);
-      _kwController.clear();
-    });
-  }
-
-  void _removeKeyword(int index) =>
-      setState(() => _keywords.removeAt(index));
 }
 
 // ─── Apps list ───────────────────────────────────────────────────────────────
 
-class _AppEntry {
-  _AppEntry(
-      {required this.emoji,
-      required this.name,
-      required this.category,
-      required this.blocked});
-  final String emoji;
-  final String name;
-  final String category;
-  bool         blocked;
-}
-
 class _AppsList extends StatelessWidget {
   const _AppsList({required this.apps, required this.onToggle});
-  final List<_AppEntry>     apps;
-  final ValueChanged<int>   onToggle;
+  final List<AppEntry>    apps;
+  final ValueChanged<int> onToggle;
 
   @override
   Widget build(BuildContext context) {
@@ -153,10 +146,12 @@ class _AppsList extends StatelessWidget {
       ),
       child: Column(
         children: apps.asMap().entries.map((e) {
-          final i    = e.key;
-          final app  = e.value;
-          final last = i == apps.length - 1;
-          return _AppRow(app: app, isLast: last, onToggle: () => onToggle(i));
+          final i   = e.key;
+          final app = e.value;
+          return _AppRow(
+              app: app,
+              isLast: i == apps.length - 1,
+              onToggle: () => onToggle(i));
         }).toList(),
       ),
     );
@@ -166,8 +161,8 @@ class _AppsList extends StatelessWidget {
 class _AppRow extends StatelessWidget {
   const _AppRow(
       {required this.app, required this.isLast, required this.onToggle});
-  final _AppEntry app;
-  final bool      isLast;
+  final AppEntry     app;
+  final bool         isLast;
   final VoidCallback onToggle;
 
   @override
@@ -212,13 +207,19 @@ class _AppRow extends StatelessWidget {
 
 // ─── Schedule card ───────────────────────────────────────────────────────────
 
-class _ScheduleCard extends StatefulWidget {
-  @override
-  State<_ScheduleCard> createState() => _ScheduleCardState();
-}
+class _ScheduleCard extends StatelessWidget {
+  const _ScheduleCard({
+    required this.activeDays,
+    required this.onToggleDay,
+    required this.scheduleStart,
+    required this.scheduleEnd,
+  });
 
-class _ScheduleCardState extends State<_ScheduleCard> {
-  final List<bool> _days = [true, true, true, true, true, false, false];
+  final List<bool>     activeDays;
+  final ValueChanged<int> onToggleDay;
+  final String         scheduleStart;
+  final String         scheduleEnd;
+
   static const _dayLabels = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
 
   @override
@@ -241,25 +242,24 @@ class _ScheduleCardState extends State<_ScheduleCard> {
           const SizedBox(height: 10),
           Row(
             children: [
-              _TimePill(label: '10:00 PM'),
+              _TimePill(label: scheduleStart),
               const Padding(
                 padding: EdgeInsets.symmetric(horizontal: 8),
                 child: Text('to',
                     style: TextStyle(
                         fontSize: 12, color: ClarityColors.textDisabled)),
               ),
-              _TimePill(label: '7:00 AM'),
+              _TimePill(label: scheduleEnd),
             ],
           ),
           const SizedBox(height: 10),
           Row(
             children: _dayLabels.asMap().entries.map((e) {
-              final i   = e.key;
-              final lbl = e.value;
-              final on  = _days[i];
+              final i  = e.key;
+              final on = activeDays[i];
               return Expanded(
                 child: GestureDetector(
-                  onTap: () => setState(() => _days[i] = !_days[i]),
+                  onTap: () => onToggleDay(i),
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 200),
                     margin: const EdgeInsets.symmetric(horizontal: 2),
@@ -271,7 +271,7 @@ class _ScheduleCardState extends State<_ScheduleCard> {
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
-                      lbl,
+                      e.value,
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 11,
@@ -347,9 +347,9 @@ class _StrictnessCard extends StatelessWidget {
           const SizedBox(height: 10),
           Row(
             children: _opts.asMap().entries.map((e) {
-              final i    = e.key;
-              final opt  = e.value;
-              final sel  = i == current;
+              final i   = e.key;
+              final opt = e.value;
+              final sel = i == current;
               return Expanded(
                 child: GestureDetector(
                   onTap: () => onSelect(i),
@@ -364,9 +364,8 @@ class _StrictnessCard extends StatelessWidget {
                           : ClarityColors.bgElevated,
                       borderRadius: BorderRadius.circular(10),
                       border: Border.all(
-                        color: sel
-                            ? ClarityColors.purple
-                            : ClarityColors.border,
+                        color:
+                            sel ? ClarityColors.purple : ClarityColors.border,
                         width: 0.5,
                       ),
                     ),
@@ -456,8 +455,7 @@ class _KeywordsPanel extends StatelessWidget {
                       const SizedBox(width: 5),
                       Text(e.value,
                           style: const TextStyle(
-                              fontSize: 12,
-                              color: ClarityColors.pink)),
+                              fontSize: 12, color: ClarityColors.pink)),
                     ],
                   ),
                 ),
@@ -472,9 +470,8 @@ class _KeywordsPanel extends StatelessWidget {
                   controller: controller,
                   style: const TextStyle(
                       color: ClarityColors.textSecondary, fontSize: 13),
-                  decoration: const InputDecoration(
-                    hintText: 'Add keyword…',
-                  ),
+                  decoration:
+                      const InputDecoration(hintText: 'Add keyword…'),
                   onSubmitted: (_) => onAdd(),
                 ),
               ),
@@ -490,7 +487,8 @@ class _KeywordsPanel extends StatelessWidget {
                   ),
                   child: const Text('Add',
                       style: TextStyle(
-                          fontSize: 13, color: ClarityColors.textPrimary)),
+                          fontSize: 13,
+                          color: ClarityColors.textPrimary)),
                 ),
               ),
             ],
@@ -501,14 +499,23 @@ class _KeywordsPanel extends StatelessWidget {
   }
 }
 
-// ─── Save button ─────────────────────────────────────────────────────────────
+// ─── Saved indicator (replaces old Save button — changes auto-persist) ────────
 
-class _SaveButton extends StatelessWidget {
+class _SavedIndicator extends StatelessWidget {
+  const _SavedIndicator();
+
   @override
   Widget build(BuildContext context) {
-    return ElevatedButton(
-      onPressed: () {},
-      child: const Text('Save settings'),
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: const [
+        Icon(TablerIcons.circle_check,
+            size: 14, color: ClarityColors.teal),
+        SizedBox(width: 6),
+        Text('Changes saved automatically',
+            style:
+                TextStyle(fontSize: 12, color: ClarityColors.textDisabled)),
+      ],
     );
   }
 }
@@ -567,8 +574,8 @@ class _SegmentControl extends StatelessWidget {
 
 class _ClaritySwitch extends StatelessWidget {
   const _ClaritySwitch({required this.value, required this.onChanged});
-  final bool                    value;
-  final ValueChanged<bool>      onChanged;
+  final bool               value;
+  final ValueChanged<bool> onChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -584,8 +591,7 @@ class _ClaritySwitch extends StatelessWidget {
         ),
         child: AnimatedAlign(
           duration: const Duration(milliseconds: 250),
-          alignment:
-              value ? Alignment.centerRight : Alignment.centerLeft,
+          alignment: value ? Alignment.centerRight : Alignment.centerLeft,
           child: Padding(
             padding: const EdgeInsets.all(3),
             child: Container(
