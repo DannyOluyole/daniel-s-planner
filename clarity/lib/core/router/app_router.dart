@@ -50,8 +50,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       final isPublic        = _publicRoutes.contains(state.matchedLocation);
       final onboardingDone  = onboardingAsync.valueOrNull ?? false;
       final isSignedIn      = authAsync.valueOrNull != null;
-      // Still loading auth — don't redirect yet
-      if (authAsync.isLoading) return null;
+      // Still loading — don't redirect yet
+      if (authAsync.isLoading || onboardingAsync.isLoading) return null;
 
       // Not seen onboarding yet
       if (!onboardingDone) {
