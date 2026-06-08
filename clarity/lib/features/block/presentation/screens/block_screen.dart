@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_tabler_icons/flutter_tabler_icons.dart';
 
 import '../../../../core/theme/app_theme.dart';
+import '../../../paywall/presentation/widgets/premium_gate.dart';
 import '../../application/block_settings_notifier.dart';
 import '../../data/block_model.dart';
 
@@ -102,18 +103,22 @@ class _BlockScreenState extends ConsumerState<BlockScreen> {
                           const SizedBox(height: 20),
                         ]
                       : [
-                          _KeywordsPanel(
-                            keywords: settings.keywords,
-                            controller: _kwController,
-                            onAdd: () {
-                              ref
+                          PremiumGate(
+                            feature: 'Keyword Blocking',
+                            description: 'Block content by keyword across all apps and browsers.',
+                            child: _KeywordsPanel(
+                              keywords: settings.keywords,
+                              controller: _kwController,
+                              onAdd: () {
+                                ref
+                                    .read(blockSettingsProvider.notifier)
+                                    .addKeyword(_kwController.text);
+                                _kwController.clear();
+                              },
+                              onRemove: (i) => ref
                                   .read(blockSettingsProvider.notifier)
-                                  .addKeyword(_kwController.text);
-                              _kwController.clear();
-                            },
-                            onRemove: (i) => ref
-                                .read(blockSettingsProvider.notifier)
-                                .removeKeyword(i),
+                                  .removeKeyword(i),
+                            ),
                           ),
                           const SizedBox(height: 10),
                           const _SavedIndicator(),
@@ -350,7 +355,7 @@ class _StrictnessCard extends StatelessWidget {
               final i   = e.key;
               final opt = e.value;
               final sel = i == current;
-              return Expanded(
+              final tile = Expanded(
                 child: GestureDetector(
                   onTap: () => onSelect(i),
                   child: AnimatedContainer(
@@ -392,6 +397,56 @@ class _StrictnessCard extends StatelessWidget {
                   ),
                 ),
               );
+              if (i == 2) {
+                return Expanded(
+                  child: PremiumGate(
+                    feature: 'Strict Mode',
+                    description: 'No override — prevents bypassing blocks entirely.',
+                    child: GestureDetector(
+                      onTap: () => onSelect(i),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 200),
+                        margin: const EdgeInsets.only(left: 6),
+                        padding: const EdgeInsets.symmetric(
+                            vertical: 10, horizontal: 6),
+                        decoration: BoxDecoration(
+                          color: sel
+                              ? ClarityColors.purpleTint
+                              : ClarityColors.bgElevated,
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(
+                            color: sel
+                                ? ClarityColors.purple
+                                : ClarityColors.border,
+                            width: 0.5,
+                          ),
+                        ),
+                        child: Column(
+                          children: [
+                            Icon(opt.icon,
+                                size: 20,
+                                color: sel
+                                    ? ClarityColors.purpleLight
+                                    : ClarityColors.textDisabled),
+                            const SizedBox(height: 5),
+                            Text(
+                              opt.label,
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: 10,
+                                color: sel
+                                    ? ClarityColors.purplePale
+                                    : ClarityColors.textDisabled,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              }
+              return tile;
             }).toList(),
           ),
         ],

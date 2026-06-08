@@ -1,17 +1,19 @@
 // lib/features/community/presentation/screens/community_screen.dart
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_tabler_icons/flutter_tabler_icons.dart';
 
 import '../../../../core/theme/app_theme.dart';
+import '../../../paywall/presentation/widgets/premium_gate.dart';
 
-class CommunityScreen extends StatefulWidget {
+class CommunityScreen extends ConsumerStatefulWidget {
   const CommunityScreen({super.key});
 
   @override
-  State<CommunityScreen> createState() => _CommunityScreenState();
+  ConsumerState<CommunityScreen> createState() => _CommunityScreenState();
 }
 
-class _CommunityScreenState extends State<CommunityScreen> {
+class _CommunityScreenState extends ConsumerState<CommunityScreen> {
   int _tab = 0;
   int _mood = -1;
 
@@ -53,11 +55,15 @@ class _CommunityScreenState extends State<CommunityScreen> {
 
             // ── Body ──
             Expanded(
-              child: _tab == 0
-                  ? _FeedTab(mood: _mood, onMoodSelect: (m) => setState(() => _mood = m))
-                  : _tab == 1
-                      ? const _SupportTab()
-                      : const _WinsTab(),
+              child: PremiumGate(
+                feature: 'Community',
+                description: 'Connect with others, share wins, and get support.',
+                child: _tab == 0
+                    ? _FeedTab(mood: _mood, onMoodSelect: (m) => setState(() => _mood = m))
+                    : _tab == 1
+                        ? const _SupportTab()
+                        : const _WinsTab(),
+              ),
             ),
           ],
         ),
