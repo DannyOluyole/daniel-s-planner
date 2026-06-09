@@ -1,0 +1,981 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vocal Separator — Daniel's Studio</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&family=IBM+Plex+Sans:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --teal-dark: #005F5F;
+      --teal: #007A7A;
+      --teal-med: #009999;
+      --teal-light: #20B2AA;
+      --teal-xlight: #E0F5F5;
+      --gold: #B8860B;
+      --gold-med: #C49A2B;
+      --gold-light: #E5C568;
+      --gold-xlight: #FFF8E7;
+      --navy: #1C2E4A;
+      --cream: #FFFEF5;
+      --beige: #F5F1E6;
+      --beige-dark: #EDE8D8;
+      --red: #C62828;
+      --gray-dark: #2C2C2C;
+      --gray-med: #5A5A5A;
+      --gray-light: #9A9A9A;
+    }
+
+    body {
+      font-family: 'IBM Plex Sans', sans-serif;
+      background: var(--cream);
+      color: var(--gray-dark);
+      min-height: 100vh;
+    }
+
+    /* ── Header ── */
+    .header {
+      background: var(--navy);
+      padding: 18px 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .header-title {
+      font-family: 'Playfair Display', serif;
+      color: #fff;
+      font-size: 1.4rem;
+      letter-spacing: 0.02em;
+    }
+    .header-title span { color: var(--gold-light); }
+    .header-back {
+      color: var(--teal-light);
+      text-decoration: none;
+      font-size: 0.85rem;
+      font-weight: 500;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      transition: color 0.2s;
+    }
+    .header-back:hover { color: #fff; }
+
+    /* ── Layout ── */
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 40px 24px 80px;
+    }
+
+    .page-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 2rem;
+      color: var(--navy);
+      margin-bottom: 6px;
+    }
+    .page-subtitle {
+      color: var(--gray-med);
+      font-size: 0.95rem;
+      margin-bottom: 36px;
+    }
+
+    /* ── Card ── */
+    .card {
+      background: #fff;
+      border: 1px solid var(--beige-dark);
+      border-radius: 12px;
+      padding: 28px 32px;
+      margin-bottom: 24px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    }
+    .card-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.1rem;
+      color: var(--navy);
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .card-title .step-badge {
+      background: var(--teal);
+      color: #fff;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.75rem;
+      flex-shrink: 0;
+    }
+
+    /* ── API Key Input ── */
+    .api-key-row {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+    .api-key-row input {
+      flex: 1;
+      padding: 10px 14px;
+      border: 1.5px solid var(--beige-dark);
+      border-radius: 8px;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.85rem;
+      color: var(--gray-dark);
+      background: var(--beige);
+      transition: border-color 0.2s;
+      outline: none;
+    }
+    .api-key-row input:focus { border-color: var(--teal); background: #fff; }
+    .api-key-hint {
+      font-size: 0.8rem;
+      color: var(--gray-light);
+      margin-top: 8px;
+    }
+    .api-key-hint a { color: var(--teal); }
+
+    .mode-pill {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+    .mode-pill.demo { background: var(--gold-xlight); color: var(--gold); border: 1px solid var(--gold-light); }
+    .mode-pill.live { background: var(--teal-xlight); color: var(--teal-dark); border: 1px solid var(--teal-light); }
+
+    /* ── Drop Zone ── */
+    .drop-zone {
+      border: 2px dashed var(--beige-dark);
+      border-radius: 10px;
+      padding: 40px 24px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      position: relative;
+    }
+    .drop-zone:hover, .drop-zone.drag-over {
+      border-color: var(--teal);
+      background: var(--teal-xlight);
+    }
+    .drop-zone input[type=file] {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      cursor: pointer;
+      width: 100%;
+      height: 100%;
+    }
+    .drop-icon {
+      font-size: 2.5rem;
+      margin-bottom: 10px;
+    }
+    .drop-label {
+      font-weight: 600;
+      color: var(--navy);
+      font-size: 1rem;
+    }
+    .drop-sublabel {
+      font-size: 0.82rem;
+      color: var(--gray-light);
+      margin-top: 4px;
+    }
+    .file-chosen {
+      margin-top: 14px;
+      padding: 10px 16px;
+      background: var(--teal-xlight);
+      border-radius: 8px;
+      font-size: 0.85rem;
+      color: var(--teal-dark);
+      font-weight: 500;
+      display: none;
+    }
+
+    /* ── Stems Mode Toggle ── */
+    .toggle-group {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .toggle-btn {
+      padding: 8px 18px;
+      border: 1.5px solid var(--beige-dark);
+      border-radius: 20px;
+      background: var(--beige);
+      font-size: 0.83rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.18s;
+      color: var(--gray-med);
+    }
+    .toggle-btn.active {
+      background: var(--navy);
+      color: #fff;
+      border-color: var(--navy);
+    }
+
+    /* ── Separate Button ── */
+    .btn-primary {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 13px 32px;
+      background: var(--teal-dark);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-family: 'IBM Plex Sans', sans-serif;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+      letter-spacing: 0.02em;
+    }
+    .btn-primary:hover { background: var(--teal); }
+    .btn-primary:disabled { background: var(--gray-light); cursor: not-allowed; }
+
+    /* ── Progress ── */
+    .progress-area {
+      display: none;
+      margin-top: 20px;
+    }
+    .progress-label {
+      font-size: 0.85rem;
+      color: var(--gray-med);
+      margin-bottom: 8px;
+      font-style: italic;
+    }
+    .progress-bar-track {
+      height: 6px;
+      background: var(--beige-dark);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+    .progress-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--teal-dark), var(--teal-light));
+      border-radius: 3px;
+      width: 0%;
+      transition: width 0.4s ease;
+    }
+
+    /* ── Stem Players ── */
+    .stems-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    @media (max-width: 600px) { .stems-grid { grid-template-columns: 1fr; } }
+
+    .stem-card {
+      border: 1.5px solid var(--beige-dark);
+      border-radius: 10px;
+      padding: 18px 20px;
+      background: var(--beige);
+    }
+    .stem-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+    .stem-name {
+      font-weight: 700;
+      font-size: 0.9rem;
+      color: var(--navy);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .stem-icon { font-size: 1.1rem; }
+
+    .stem-controls {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .play-btn {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      border: none;
+      background: var(--teal-dark);
+      color: #fff;
+      cursor: pointer;
+      font-size: 0.85rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.2s;
+      flex-shrink: 0;
+    }
+    .play-btn:hover { background: var(--teal); }
+    .play-btn:disabled { background: var(--gray-light); cursor: not-allowed; }
+
+    .volume-slider {
+      flex: 1;
+      min-width: 80px;
+      accent-color: var(--teal);
+      cursor: pointer;
+    }
+
+    .mute-btn {
+      padding: 5px 10px;
+      border-radius: 5px;
+      border: 1px solid var(--beige-dark);
+      background: #fff;
+      font-size: 0.72rem;
+      font-weight: 600;
+      cursor: pointer;
+      color: var(--gray-med);
+      transition: all 0.15s;
+    }
+    .mute-btn.muted {
+      background: var(--red);
+      color: #fff;
+      border-color: var(--red);
+    }
+
+    .download-btn {
+      padding: 5px 10px;
+      border-radius: 5px;
+      border: 1px solid var(--teal);
+      background: #fff;
+      font-size: 0.72rem;
+      font-weight: 600;
+      cursor: pointer;
+      color: var(--teal-dark);
+      transition: all 0.15s;
+      text-decoration: none;
+    }
+    .download-btn:hover { background: var(--teal-xlight); }
+
+    /* ── Key Change ── */
+    .key-row {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    .semitone-display {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: var(--navy);
+      min-width: 60px;
+      text-align: center;
+    }
+    .semitone-btn {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      border: 1.5px solid var(--teal);
+      background: #fff;
+      color: var(--teal-dark);
+      font-size: 1.1rem;
+      cursor: pointer;
+      transition: all 0.15s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .semitone-btn:hover { background: var(--teal-xlight); }
+    .key-slider {
+      flex: 1;
+      min-width: 140px;
+      accent-color: var(--gold);
+    }
+    .key-note-display {
+      font-size: 0.82rem;
+      color: var(--gray-med);
+    }
+    .key-note-display strong { color: var(--gold); }
+    .apply-key-btn {
+      padding: 9px 22px;
+      background: var(--gold);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-family: 'IBM Plex Sans', sans-serif;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .apply-key-btn:hover { background: var(--gold-med); }
+    .apply-key-btn:disabled { background: var(--gray-light); cursor: not-allowed; }
+
+    /* ── Status messages ── */
+    .status-msg {
+      padding: 12px 16px;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      margin-top: 14px;
+      display: none;
+    }
+    .status-msg.error { background: #FFEBEE; color: var(--red); border: 1px solid #FFCDD2; }
+    .status-msg.success { background: var(--teal-xlight); color: var(--teal-dark); border: 1px solid var(--teal-light); }
+    .status-msg.info { background: var(--gold-xlight); color: var(--gold); border: 1px solid var(--gold-light); }
+
+    /* ── Demo notice ── */
+    .demo-notice {
+      background: var(--gold-xlight);
+      border: 1px solid var(--gold-light);
+      border-radius: 8px;
+      padding: 12px 16px;
+      font-size: 0.83rem;
+      color: var(--gold);
+      margin-bottom: 16px;
+      display: none;
+    }
+
+    .waveform-mini {
+      height: 32px;
+      background: linear-gradient(to right, var(--teal-xlight), var(--teal-light), var(--teal-xlight));
+      border-radius: 4px;
+      margin-bottom: 10px;
+      position: relative;
+      overflow: hidden;
+    }
+    .waveform-mini::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 32' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 16 Q5 8 10 16 Q15 24 20 16 Q25 8 30 16 Q35 24 40 16 Q45 8 50 16 Q55 24 60 16 Q65 8 70 16 Q75 24 80 16 Q85 8 90 16 Q95 24 100 16 Q105 8 110 16 Q115 24 120 16 Q125 8 130 16 Q135 24 140 16 Q145 8 150 16 Q155 24 160 16 Q165 8 170 16 Q175 24 180 16 Q185 8 190 16 Q195 24 200 16' fill='none' stroke='%23009999' stroke-width='1.5' opacity='0.5'/%3E%3C/svg%3E") center/cover;
+    }
+    .playhead {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      width: 2px;
+      background: var(--gold);
+      left: 0%;
+      transition: left 0.1s linear;
+    }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <span class="header-title">Daniel's <span>Studio</span></span>
+  <a href="index.html" class="header-back">← Back to Planner</a>
+</div>
+
+<div class="container">
+  <h1 class="page-title">Vocal Separator</h1>
+  <p class="page-subtitle">Split any song into stems — vocals, instrumentals, drums, bass — then shift the key in real time.</p>
+
+  <!-- Step 1: API Key -->
+  <div class="card">
+    <div class="card-title">
+      <span class="step-badge">1</span>
+      Replicate API Key
+      <span id="modePill" class="mode-pill demo">Demo Mode</span>
+    </div>
+    <div class="api-key-row">
+      <input type="password" id="apiKeyInput" placeholder="r8_••••••••••••••••••••••••••••••••••••••••••" autocomplete="off">
+    </div>
+    <p class="api-key-hint">
+      Get a free key at <a href="https://replicate.com" target="_blank" rel="noopener">replicate.com</a>.
+      Without a key the app runs in <strong>Demo Mode</strong>: upload works, key transposition works, but stems are not separated by AI.
+    </p>
+    <div id="apiKeyStatus" class="status-msg"></div>
+  </div>
+
+  <!-- Step 2: Upload -->
+  <div class="card">
+    <div class="card-title"><span class="step-badge">2</span> Upload Audio</div>
+    <div class="drop-zone" id="dropZone">
+      <input type="file" id="fileInput" accept="audio/*">
+      <div class="drop-icon">🎵</div>
+      <div class="drop-label">Drop your audio file here</div>
+      <div class="drop-sublabel">MP3, WAV, FLAC, M4A — up to 50 MB</div>
+    </div>
+    <div class="file-chosen" id="fileChosen"></div>
+  </div>
+
+  <!-- Step 3: Settings -->
+  <div class="card">
+    <div class="card-title"><span class="step-badge">3</span> Separation Mode</div>
+    <div class="toggle-group" id="stemsMode">
+      <button class="toggle-btn active" data-value="2stems">2 Stems (Vocals + Instrumental)</button>
+      <button class="toggle-btn" data-value="4stems">4 Stems (Vocals / Drums / Bass / Other)</button>
+      <button class="toggle-btn" data-value="5stems">5 Stems (+ Piano)</button>
+    </div>
+  </div>
+
+  <!-- Step 4: Separate -->
+  <div class="card">
+    <div class="card-title"><span class="step-badge">4</span> Run Separation</div>
+    <button class="btn-primary" id="separateBtn" disabled>
+      <span>✦</span> Separate Stems
+    </button>
+    <div class="progress-area" id="progressArea">
+      <div class="progress-label" id="progressLabel">Processing… this usually takes 30–90 seconds.</div>
+      <div class="progress-bar-track"><div class="progress-bar-fill" id="progressFill"></div></div>
+    </div>
+    <div id="separateStatus" class="status-msg"></div>
+  </div>
+
+  <!-- Step 5: Players -->
+  <div class="card" id="playersCard" style="display:none">
+    <div class="card-title"><span class="step-badge">5</span> Stems</div>
+    <div class="demo-notice" id="demoNotice">
+      <strong>Demo Mode:</strong> AI separation was not run. The original audio is loaded into each stem player so you can explore the key-change feature. Add a Replicate API key for real stem separation.
+    </div>
+    <div class="stems-grid" id="stemsGrid"></div>
+  </div>
+
+  <!-- Step 6: Key Change -->
+  <div class="card" id="keyCard" style="display:none">
+    <div class="card-title"><span class="step-badge">6</span> Key / Pitch Shift</div>
+    <p style="font-size:0.85rem;color:var(--gray-med);margin-bottom:16px;">
+      Shift the pitch of all playing stems up or down. The tempo stays the same.
+    </p>
+    <div class="key-row">
+      <button class="semitone-btn" id="semitoneDown">−</button>
+      <div class="semitone-display" id="semitoneDisplay">0</div>
+      <button class="semitone-btn" id="semitoneUp">+</button>
+      <input type="range" class="key-slider" id="keySlider" min="-12" max="12" value="0" step="1">
+      <div class="key-note-display" id="keyNoteDisplay">Original key</div>
+    </div>
+    <div style="margin-top:14px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+      <button class="apply-key-btn" id="applyKeyBtn">Apply Pitch Shift</button>
+      <button class="apply-key-btn" id="resetKeyBtn" style="background:var(--gray-light)">Reset to 0</button>
+    </div>
+    <div id="keyStatus" class="status-msg"></div>
+  </div>
+
+</div>
+
+<script>
+// ── State ──────────────────────────────────────────────────────────────────
+const state = {
+  apiKey: '',
+  file: null,
+  fileUrl: null,
+  stemsMode: '2stems',
+  stems: {},        // { name: { url, buffer, player, pitchShift, gainNode, muted, volume } }
+  semitones: 0,
+  audioCtx: null,
+  isDemo: true,
+};
+
+// ── Tone.js setup ──────────────────────────────────────────────────────────
+let toneStarted = false;
+async function ensureTone() {
+  if (!toneStarted) { await Tone.start(); toneStarted = true; }
+}
+
+// ── UI helpers ─────────────────────────────────────────────────────────────
+const $ = id => document.getElementById(id);
+function showMsg(el, type, text) {
+  el.className = `status-msg ${type}`;
+  el.textContent = text;
+  el.style.display = 'block';
+}
+function hideMsg(el) { el.style.display = 'none'; }
+
+// ── API Key ────────────────────────────────────────────────────────────────
+$('apiKeyInput').addEventListener('input', e => {
+  const v = e.target.value.trim();
+  state.apiKey = v;
+  state.isDemo = !v.startsWith('r8_');
+  const pill = $('modePill');
+  if (state.isDemo) {
+    pill.textContent = 'Demo Mode';
+    pill.className = 'mode-pill demo';
+    hideMsg($('apiKeyStatus'));
+  } else {
+    pill.textContent = 'Live Mode';
+    pill.className = 'mode-pill live';
+    showMsg($('apiKeyStatus'), 'success', '✓ API key detected — AI separation enabled.');
+  }
+});
+
+// ── File Upload ────────────────────────────────────────────────────────────
+const dropZone = $('dropZone');
+const fileInput = $('fileInput');
+
+function handleFile(file) {
+  if (!file || !file.type.startsWith('audio/')) {
+    showMsg($('separateStatus'), 'error', 'Please upload an audio file (MP3, WAV, FLAC, M4A).');
+    return;
+  }
+  if (file.size > 52_428_800) {
+    showMsg($('separateStatus'), 'error', 'File is too large. Please use a file under 50 MB.');
+    return;
+  }
+  state.file = file;
+  if (state.fileUrl) URL.revokeObjectURL(state.fileUrl);
+  state.fileUrl = URL.createObjectURL(file);
+
+  const fc = $('fileChosen');
+  fc.textContent = `✓ ${file.name}  (${(file.size / 1024 / 1024).toFixed(1)} MB)`;
+  fc.style.display = 'block';
+  $('separateBtn').disabled = false;
+  hideMsg($('separateStatus'));
+}
+
+fileInput.addEventListener('change', e => handleFile(e.target.files[0]));
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+dropZone.addEventListener('drop', e => {
+  e.preventDefault();
+  dropZone.classList.remove('drag-over');
+  handleFile(e.dataTransfer.files[0]);
+});
+
+// ── Stems mode toggle ──────────────────────────────────────────────────────
+document.querySelectorAll('#stemsMode .toggle-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('#stemsMode .toggle-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    state.stemsMode = btn.dataset.value;
+  });
+});
+
+// ── Replicate API integration ──────────────────────────────────────────────
+const DEMUCS_VERSION = 'b4fd33fbc04392ef0b4d1f24db0bc9d84a6b7f68'; // facebook/demucs latest
+
+async function fileToDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+async function pollPrediction(predictionId, onProgress) {
+  const maxPolls = 120;
+  let polls = 0;
+  while (polls < maxPolls) {
+    await new Promise(r => setTimeout(r, 3000));
+    polls++;
+    const resp = await fetch(`https://api.replicate.com/v1/predictions/${predictionId}`, {
+      headers: { Authorization: `Token ${state.apiKey}` }
+    });
+    if (!resp.ok) throw new Error(`Poll failed: ${resp.status}`);
+    const data = await resp.json();
+    if (data.status === 'succeeded') return data.output;
+    if (data.status === 'failed') throw new Error(data.error || 'Prediction failed');
+    onProgress(Math.min(10 + polls * 0.7, 85));
+  }
+  throw new Error('Timed out waiting for Replicate prediction.');
+}
+
+async function runReplicate() {
+  const dataUrl = await fileToDataUrl(state.file);
+  const stemsMap = { '2stems': 2, '4stems': 4, '5stems': 5 };
+  const body = {
+    version: DEMUCS_VERSION,
+    input: {
+      audio: dataUrl,
+      stem: 'none',
+      jobs: 0,
+      segment: 22,
+      mp3: true,
+      mp3_bitrate: 320,
+      float32: false,
+      clip_mode: 'rescale',
+      shifts: 1,
+    }
+  };
+
+  const resp = await fetch('https://api.replicate.com/v1/predictions', {
+    method: 'POST',
+    headers: {
+      Authorization: `Token ${state.apiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(body),
+  });
+
+  if (!resp.ok) {
+    const err = await resp.json().catch(() => ({}));
+    throw new Error(err.detail || `Replicate error: ${resp.status}`);
+  }
+  const prediction = await resp.json();
+  return prediction.id;
+}
+
+// ── Demo mode ─────────────────────────────────────────────────────────────
+function getDemoStems() {
+  const url = state.fileUrl;
+  const map = {
+    '2stems': [
+      { key: 'vocals', label: 'Vocals', icon: '🎤', url },
+      { key: 'instrumental', label: 'Instrumental', icon: '🎸', url },
+    ],
+    '4stems': [
+      { key: 'vocals', label: 'Vocals', icon: '🎤', url },
+      { key: 'drums', label: 'Drums', icon: '🥁', url },
+      { key: 'bass', label: 'Bass', icon: '🎸', url },
+      { key: 'other', label: 'Other', icon: '🎹', url },
+    ],
+    '5stems': [
+      { key: 'vocals', label: 'Vocals', icon: '🎤', url },
+      { key: 'drums', label: 'Drums', icon: '🥁', url },
+      { key: 'bass', label: 'Bass', icon: '🎸', url },
+      { key: 'piano', label: 'Piano', icon: '🎹', url },
+      { key: 'other', label: 'Other', icon: '🎵', url },
+    ],
+  };
+  return map[state.stemsMode] || map['2stems'];
+}
+
+function parseReplicateOutput(output) {
+  // Replicate Demucs returns an array of URLs or an object
+  if (Array.isArray(output)) {
+    return output.map(url => {
+      const filename = url.split('/').pop().split('?')[0].replace('.mp3','').replace('.wav','');
+      const icons = { vocals: '🎤', drums: '🥁', bass: '🎸', piano: '🎹', other: '🎵', guitar: '🎸' };
+      return { key: filename, label: filename.charAt(0).toUpperCase() + filename.slice(1), icon: icons[filename] || '🎵', url };
+    });
+  }
+  // object form
+  return Object.entries(output).map(([key, url]) => {
+    const icons = { vocals: '🎤', drums: '🥁', bass: '🎸', piano: '🎹', other: '🎵' };
+    return { key, label: key.charAt(0).toUpperCase() + key.slice(1), icon: icons[key] || '🎵', url };
+  });
+}
+
+// ── Stem Player ──────────────────────────────────────────────────────────
+function stopAllStems() {
+  Object.values(state.stems).forEach(s => {
+    if (s.player) { try { s.player.stop(); } catch (_) {} s.player.dispose(); s.player = null; }
+    if (s.pitchShift) { s.pitchShift.dispose(); s.pitchShift = null; }
+  });
+}
+
+async function buildStemPlayers(stemsData) {
+  await ensureTone();
+  stopAllStems();
+  state.stems = {};
+
+  const grid = $('stemsGrid');
+  grid.innerHTML = '';
+
+  for (const s of stemsData) {
+    // Build Tone.js player with pitch shift
+    const pitchShift = new Tone.PitchShift(state.semitones).toDestination();
+    const player = new Tone.Player({ url: s.url, loop: false }).connect(pitchShift);
+
+    state.stems[s.key] = { url: s.url, player, pitchShift, muted: false, volume: 1 };
+
+    // Build card HTML
+    const card = document.createElement('div');
+    card.className = 'stem-card';
+    card.id = `stem-${s.key}`;
+    card.innerHTML = `
+      <div class="stem-header">
+        <div class="stem-name"><span class="stem-icon">${s.icon}</span>${s.label}</div>
+        <a class="download-btn" href="${s.url}" download="${s.key}.mp3">⬇ Download</a>
+      </div>
+      <div class="waveform-mini"><div class="playhead" id="ph-${s.key}"></div></div>
+      <div class="stem-controls">
+        <button class="play-btn" id="play-${s.key}" title="Play / Pause">▶</button>
+        <input type="range" class="volume-slider" id="vol-${s.key}" min="0" max="1" step="0.01" value="1" title="Volume">
+        <button class="mute-btn" id="mute-${s.key}">Mute</button>
+      </div>
+    `;
+    grid.appendChild(card);
+
+    // Wait for buffer then wire up controls
+    player.load(s.url).then(() => {
+      const playBtn = $(`play-${s.key}`);
+      const volSlider = $(`vol-${s.key}`);
+      const muteBtn = $(`mute-${s.key}`);
+      const ph = $(`ph-${s.key}`);
+
+      playBtn.disabled = false;
+
+      let isPlaying = false;
+      let rafId = null;
+
+      function updatePlayhead() {
+        if (!isPlaying) return;
+        const dur = player.buffer.duration;
+        const pos = Tone.Transport.seconds % dur;
+        ph.style.left = `${(pos / dur) * 100}%`;
+        rafId = requestAnimationFrame(updatePlayhead);
+      }
+
+      playBtn.addEventListener('click', async () => {
+        await ensureTone();
+        if (isPlaying) {
+          player.stop();
+          Tone.Transport.stop();
+          isPlaying = false;
+          playBtn.textContent = '▶';
+          cancelAnimationFrame(rafId);
+        } else {
+          // Stop other players visually
+          document.querySelectorAll('.play-btn').forEach(b => { if (b !== playBtn) { b.textContent = '▶'; } });
+          Object.entries(state.stems).forEach(([k, st]) => {
+            if (k !== s.key && st.player) { try { st.player.stop(); } catch (_) {} }
+          });
+
+          Tone.Transport.stop();
+          Tone.Transport.seconds = 0;
+          player.start(Tone.now());
+          Tone.Transport.start();
+          isPlaying = true;
+          playBtn.textContent = '⏸';
+          rafId = requestAnimationFrame(updatePlayhead);
+
+          player.onstop = () => {
+            isPlaying = false;
+            playBtn.textContent = '▶';
+            cancelAnimationFrame(rafId);
+            ph.style.left = '0%';
+          };
+        }
+      });
+
+      volSlider.addEventListener('input', e => {
+        const v = parseFloat(e.target.value);
+        state.stems[s.key].volume = v;
+        if (!state.stems[s.key].muted) {
+          player.volume.value = Tone.gainToDb(v === 0 ? 0.0001 : v);
+        }
+      });
+
+      muteBtn.addEventListener('click', () => {
+        const stem = state.stems[s.key];
+        stem.muted = !stem.muted;
+        if (stem.muted) {
+          player.volume.value = -Infinity;
+          muteBtn.textContent = 'Unmute';
+          muteBtn.classList.add('muted');
+        } else {
+          player.volume.value = Tone.gainToDb(stem.volume === 0 ? 0.0001 : stem.volume);
+          muteBtn.textContent = 'Mute';
+          muteBtn.classList.remove('muted');
+        }
+      });
+    }).catch(() => {
+      $(`play-${s.key}`).disabled = true;
+      $(`play-${s.key}`).title = 'Failed to load audio';
+    });
+  }
+
+  $('playersCard').style.display = 'block';
+  $('keyCard').style.display = 'block';
+  if (state.isDemo) $('demoNotice').style.display = 'block';
+  else $('demoNotice').style.display = 'none';
+}
+
+// ── Separate Button ────────────────────────────────────────────────────────
+$('separateBtn').addEventListener('click', async () => {
+  if (!state.file) return;
+
+  const btn = $('separateBtn');
+  const progressArea = $('progressArea');
+  const fill = $('progressFill');
+  const label = $('progressLabel');
+  const statusEl = $('separateStatus');
+
+  btn.disabled = true;
+  hideMsg(statusEl);
+  progressArea.style.display = 'block';
+  fill.style.width = '5%';
+  label.textContent = 'Starting…';
+
+  try {
+    let stemsData;
+
+    if (state.isDemo) {
+      // Simulate progress
+      label.textContent = 'Demo mode — loading audio for key-change preview…';
+      for (let p = 5; p <= 95; p += 15) {
+        fill.style.width = p + '%';
+        await new Promise(r => setTimeout(r, 180));
+      }
+      stemsData = getDemoStems();
+    } else {
+      label.textContent = 'Uploading to Replicate…';
+      fill.style.width = '8%';
+      const predId = await runReplicate();
+      label.textContent = 'AI separation running… (30–90 seconds)';
+      const output = await pollPrediction(predId, pct => { fill.style.width = pct + '%'; });
+      stemsData = parseReplicateOutput(output);
+    }
+
+    fill.style.width = '100%';
+    label.textContent = 'Done! Loading stem players…';
+    await buildStemPlayers(stemsData);
+    progressArea.style.display = 'none';
+    showMsg(statusEl, 'success', state.isDemo
+      ? '✓ Audio loaded in demo mode. Use the key controls below!'
+      : '✓ Stems separated successfully!');
+  } catch (err) {
+    progressArea.style.display = 'none';
+    showMsg(statusEl, 'error', `Error: ${err.message}`);
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+// ── Key / Pitch Shift ─────────────────────────────────────────────────────
+const NOTE_NAMES = ['C','C♯','D','D♯','E','F','F♯','G','G♯','A','A♯','B'];
+
+function semitoneLabel(n) {
+  if (n === 0) return 'Original key';
+  const sign = n > 0 ? '+' : '';
+  const noteShift = ((n % 12) + 12) % 12;
+  return `${sign}${n} semitones`;
+}
+
+function updateSemitoneUI(n) {
+  $('semitoneDisplay').textContent = (n >= 0 ? '+' : '') + n;
+  $('keySlider').value = n;
+  $('keyNoteDisplay').innerHTML = `<strong>${semitoneLabel(n)}</strong>`;
+}
+
+$('semitoneDown').addEventListener('click', () => {
+  state.semitones = Math.max(-12, state.semitones - 1);
+  updateSemitoneUI(state.semitones);
+});
+$('semitoneUp').addEventListener('click', () => {
+  state.semitones = Math.min(12, state.semitones + 1);
+  updateSemitoneUI(state.semitones);
+});
+$('keySlider').addEventListener('input', e => {
+  state.semitones = parseInt(e.target.value);
+  updateSemitoneUI(state.semitones);
+});
+
+$('applyKeyBtn').addEventListener('click', () => {
+  const count = Object.keys(state.stems).length;
+  if (count === 0) {
+    showMsg($('keyStatus'), 'error', 'No stems loaded yet. Run separation first.');
+    return;
+  }
+  Object.values(state.stems).forEach(s => {
+    if (s.pitchShift) s.pitchShift.pitch = state.semitones;
+  });
+  showMsg($('keyStatus'), 'success', `✓ Pitch shifted ${state.semitones >= 0 ? '+' : ''}${state.semitones} semitones on all stems.`);
+});
+
+$('resetKeyBtn').addEventListener('click', () => {
+  state.semitones = 0;
+  updateSemitoneUI(0);
+  Object.values(state.stems).forEach(s => { if (s.pitchShift) s.pitchShift.pitch = 0; });
+  showMsg($('keyStatus'), 'info', 'Pitch reset to original key.');
+});
+
+// init
+updateSemitoneUI(0);
+</script>
+</body>
+</html>
