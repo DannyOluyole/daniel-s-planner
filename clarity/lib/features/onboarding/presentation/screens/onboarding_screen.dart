@@ -121,7 +121,7 @@ class _AppLogo extends StatelessWidget {
         decoration: BoxDecoration(color: ct.purpleDeep, borderRadius: BorderRadius.circular(16)),
         child: Icon(TablerIcons.leaf, color: ct.purplePale, size: 26)),
     const SizedBox(height: 10),
-    Text('CLARITY', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500,
+    Text('PRODUCTIVITY MAX', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500,
         color: ct.purple, letterSpacing: 0.08 * 13)),
   ]);
 }

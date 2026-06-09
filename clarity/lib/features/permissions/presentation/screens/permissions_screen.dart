@@ -56,7 +56,7 @@ class _PermissionsScreenState extends ConsumerState<PermissionsScreen>
                       color: ct.textPrimary)),
               const SizedBox(height: 6),
               Text(
-                'Clarity needs 3 permissions to monitor and block apps on your device.',
+                'Productivity Max needs 3 permissions to monitor and block apps on your device.',
                 style: TextStyle(fontSize: 14, color: ct.textDisabled),
               ),
               const SizedBox(height: 12),
@@ -68,7 +68,7 @@ class _PermissionsScreenState extends ConsumerState<PermissionsScreen>
                 icon: TablerIcons.chart_bar,
                 iconColor: ct.teal,
                 title: 'Usage Access',
-                subtitle: 'Lets Clarity read how long each app is open — powers your screen time stats.',
+                subtitle: 'Lets Productivity Max read how long each app is open — powers your screen time stats.',
                 granted: perms.hasUsage,
                 onTap: perms.hasUsage ? null
                     : () => ref.read(permissionsProvider.notifier).requestUsage(),
@@ -109,7 +109,7 @@ class _PermissionsScreenState extends ConsumerState<PermissionsScreen>
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        'All data stays on your device. Clarity never reads message content, passwords, or personal files.',
+                        'All data stays on your device. Productivity Max never reads message content, passwords, or personal files.',
                         style: TextStyle(fontSize: 12, color: ct.textDisabled),
                       ),
                     ),

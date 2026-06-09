@@ -103,7 +103,7 @@ class _FeedTab extends StatelessWidget {
           badgeColor: ct.teal,
           timeAgo: '2 hours ago',
           body:
-              'Had a really hard evening. Opened TikTok three times out of habit — Clarity blocked it each time. But I didn\'t give in. That counts.',
+              'Had a really hard evening. Opened TikTok three times out of habit — Productivity Max blocked it each time. But I didn\'t give in. That counts.',
           likes: 24,
           replies: 8,
           liked: true,

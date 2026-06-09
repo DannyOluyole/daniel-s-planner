@@ -145,7 +145,7 @@ class _PaywallHero extends StatelessWidget {
               size: 34, color: ct.purplePale),
         ),
         const SizedBox(height: 16),
-        Text('Unlock Clarity Premium',
+        Text('Unlock Productivity Max Premium',
             textAlign: TextAlign.center,
             style: TextStyle(fontSize: 24, fontWeight: FontWeight.w500,
                 color: ct.textPrimary)),

@@ -374,7 +374,7 @@ class _AINudge extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Clarity',
+                Text('Productivity Max',
                     style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500,
                         color: ct.textSecondary)),
                 const SizedBox(height: 4),

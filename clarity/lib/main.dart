@@ -49,7 +49,7 @@ class ClarityApp extends ConsumerWidget {
     ));
 
     return MaterialApp.router(
-      title:                  'Clarity',
+      title:                  'Productivity Max',
       debugShowCheckedModeBanner: false,
       theme:                  AppTheme.light,
       darkTheme:              AppTheme.dark,

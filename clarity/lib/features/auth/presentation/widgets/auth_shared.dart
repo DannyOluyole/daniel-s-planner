@@ -20,7 +20,7 @@ class ClarityAuthLogo extends StatelessWidget {
               color: ct.purplePale, size: 20),
         ),
         const SizedBox(width: 10),
-        Text('CLARITY',
+        Text('PRODUCTIVITY MAX',
             style: TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w500,
