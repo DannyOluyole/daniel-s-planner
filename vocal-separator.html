@@ -644,15 +644,28 @@ document.querySelectorAll('#stemsMode .toggle-btn').forEach(btn => {
 });
 
 // ── Replicate API integration ──────────────────────────────────────────────
-const DEMUCS_VERSION = 'b4fd33fbc04392ef0b4d1f24db0bc9d84a6b7f68'; // facebook/demucs latest
+// Uses facebook/demucs via model slug (no hardcoded version hash needed)
+const DEMUCS_MODEL = 'facebook/demucs';
 
-async function fileToDataUrl(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result);
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
+async function uploadFileToReplicate(file, onProgress) {
+  // Replicate Files API: upload binary, get back a hosted URL
+  onProgress(5);
+  const resp = await fetch('https://api.replicate.com/v1/files', {
+    method: 'POST',
+    headers: {
+      Authorization: `Token ${state.apiKey}`,
+      'Content-Type': file.type || 'audio/mpeg',
+      'Content-Length': file.size,
+    },
+    body: file,
   });
+  if (!resp.ok) {
+    const err = await resp.json().catch(() => ({}));
+    throw new Error(err.detail || `File upload failed: ${resp.status}`);
+  }
+  const data = await resp.json();
+  onProgress(15);
+  return data.urls.get; // hosted URL Replicate can read
 }
 
 async function pollPrediction(predictionId, onProgress) {
@@ -668,18 +681,19 @@ async function pollPrediction(predictionId, onProgress) {
     const data = await resp.json();
     if (data.status === 'succeeded') return data.output;
     if (data.status === 'failed') throw new Error(data.error || 'Prediction failed');
-    onProgress(Math.min(10 + polls * 0.7, 85));
+    onProgress(Math.min(18 + polls * 0.65, 88));
   }
   throw new Error('Timed out waiting for Replicate prediction.');
 }
 
-async function runReplicate() {
-  const dataUrl = await fileToDataUrl(state.file);
-  const stemsMap = { '2stems': 2, '4stems': 4, '5stems': 5 };
+async function runReplicate(onProgress) {
+  // Step 1: upload file to Replicate storage
+  const audioUrl = await uploadFileToReplicate(state.file, onProgress);
+
+  // Step 2: create prediction using the model slug (resolves to latest version)
   const body = {
-    version: DEMUCS_VERSION,
     input: {
-      audio: dataUrl,
+      audio: audioUrl,
       stem: 'none',
       jobs: 0,
       segment: 22,
@@ -691,11 +705,12 @@ async function runReplicate() {
     }
   };
 
-  const resp = await fetch('https://api.replicate.com/v1/predictions', {
+  const resp = await fetch(`https://api.replicate.com/v1/models/${DEMUCS_MODEL}/predictions`, {
     method: 'POST',
     headers: {
       Authorization: `Token ${state.apiKey}`,
       'Content-Type': 'application/json',
+      'Prefer': 'wait=5',
     },
     body: JSON.stringify(body),
   });
@@ -705,7 +720,8 @@ async function runReplicate() {
     throw new Error(err.detail || `Replicate error: ${resp.status}`);
   }
   const prediction = await resp.json();
-  return prediction.id;
+  if (prediction.status === 'succeeded') return prediction.output;
+  return prediction.id; // still processing — poll
 }
 
 // ── Demo mode ─────────────────────────────────────────────────────────────
@@ -904,10 +920,16 @@ $('separateBtn').addEventListener('click', async () => {
       stemsData = getDemoStems();
     } else {
       label.textContent = 'Uploading to Replicate…';
-      fill.style.width = '8%';
-      const predId = await runReplicate();
-      label.textContent = 'AI separation running… (30–90 seconds)';
-      const output = await pollPrediction(predId, pct => { fill.style.width = pct + '%'; });
+      fill.style.width = '5%';
+      const resultOrId = await runReplicate(pct => { fill.style.width = pct + '%'; });
+      let output;
+      if (typeof resultOrId === 'string') {
+        // still processing — poll
+        label.textContent = 'AI separation running… (30–90 seconds)';
+        output = await pollPrediction(resultOrId, pct => { fill.style.width = pct + '%'; });
+      } else {
+        output = resultOrId;
+      }
       stemsData = parseReplicateOutput(output);
     }
 
