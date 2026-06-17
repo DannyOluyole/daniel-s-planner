@@ -49,19 +49,19 @@
         android:id="@+id/btn_go_back"
         android:text="Take me back"
         android:textColor="#FFFFFF"
+        android:background="@drawable/rounded_button_bg"
         android:backgroundTint="#6B4EFF"
         android:layout_width="match_parent"
         android:layout_height="52dp"
-        android:layout_marginBottom="12dp"
-        android:cornerRadius="12dp" />
+        android:layout_marginBottom="12dp" />
 
     <Button
         android:id="@+id/btn_bypass"
         android:text="I&#8217;ll use it anyway"
         android:textColor="#8A8A9A"
+        android:background="@drawable/rounded_button_bg"
         android:backgroundTint="#1E1E2E"
         android:layout_width="match_parent"
-        android:layout_height="52dp"
-        android:cornerRadius="12dp" />
+        android:layout_height="52dp" />
 
 </LinearLayout>
