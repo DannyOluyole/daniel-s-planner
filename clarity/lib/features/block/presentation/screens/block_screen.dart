@@ -335,7 +335,7 @@ class _AppLimitsSheetState extends State<_AppLimitsSheet> {
               onToggle: (v) => setState(() => _openEnabled = v),
               valueLabel: '$_openLimit ${_openLimit == 1 ? 'time' : 'times'}/day',
               value: _openLimit.toDouble(),
-              min: 1, max: 20,
+              min: 1, max: 100,
               onChanged: (v) => setState(() => _openLimit = v.round()),
             ),
             const SizedBox(height: 18),
