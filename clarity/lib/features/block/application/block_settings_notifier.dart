@@ -38,6 +38,24 @@ class BlockSettingsNotifier extends AsyncNotifier<BlockSettings> {
   Future<void> setStrictness(int value) =>
       _mutate((s) => s.copyWith(strictness: value));
 
+  Future<void> setAppLimits(
+    int index, {
+    int? openLimitPerDay,
+    bool clearOpenLimit = false,
+    int? timeLimitMinutes,
+    bool clearTimeLimit = false,
+  }) =>
+      _mutate((s) {
+        final apps = List<AppEntry>.from(s.apps);
+        apps[index] = apps[index].copyWith(
+          openLimitPerDay: openLimitPerDay,
+          timeLimitMinutes: timeLimitMinutes,
+          clearOpenLimit: clearOpenLimit,
+          clearTimeLimit: clearTimeLimit,
+        );
+        return s.copyWith(apps: apps);
+      });
+
   Future<void> _mutate(BlockSettings Function(BlockSettings) fn) async {
     final current = state.valueOrNull;
     if (current == null) return;
@@ -55,6 +73,17 @@ class BlockSettingsNotifier extends AsyncNotifier<BlockSettings> {
     await BlockingChannel.updateBlockedApps(blockedPackages);
     await BlockingChannel.updateBlockedKeywords(s.keywords);
     await BlockingChannel.setStrictness(s.strictness);
+
+    final limits = <String, Map<String, int?>>{};
+    for (final a in s.apps) {
+      if (a.packageName == null) continue;
+      if (a.openLimitPerDay == null && a.timeLimitMinutes == null) continue;
+      limits[a.packageName!] = {
+        'openLimit': a.openLimitPerDay,
+        'timeLimit': a.timeLimitMinutes,
+      };
+    }
+    await BlockingChannel.updateAppLimits(limits);
   }
 }
 

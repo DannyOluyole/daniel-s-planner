@@ -98,6 +98,16 @@ class MainActivity : FlutterActivity() {
                         result.success(null)
                     }
 
+                    "updateAppLimits" -> {
+                        val limitsJson = call.argument<String>("limits") ?: "{}"
+                        prefs.edit().putString("app_limits", limitsJson).apply()
+                        result.success(null)
+                    }
+
+                    "getAppLimitStats" -> {
+                        result.success(prefs.getString("app_stats", "{}"))
+                    }
+
                     // ── VPN (website blocking) ─────────────────────────────
                     "startVpn" -> {
                         startService(

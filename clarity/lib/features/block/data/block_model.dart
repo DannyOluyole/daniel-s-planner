@@ -7,30 +7,45 @@ class AppEntry {
     required this.category,
     required this.blocked,
     this.packageName,
+    this.openLimitPerDay,
+    this.timeLimitMinutes,
   });
 
   final String  emoji;
   final String  name;
   final String  category;
   final bool    blocked;
-  final String? packageName; // Android package id, e.g. "com.zhiliaoapp.musically"
+  final String? packageName;      // Android package id, e.g. "com.zhiliaoapp.musically"
+  final int?    openLimitPerDay;  // null = no open-count limit
+  final int?    timeLimitMinutes; // null = no daily time limit
 
-  AppEntry copyWith({bool? blocked}) => AppEntry(
+  AppEntry copyWith({
+    bool?  blocked,
+    int?   openLimitPerDay,
+    int?   timeLimitMinutes,
+    bool   clearOpenLimit = false,
+    bool   clearTimeLimit = false,
+  }) => AppEntry(
     emoji: emoji, name: name, category: category,
     blocked: blocked ?? this.blocked, packageName: packageName,
+    openLimitPerDay: clearOpenLimit ? null : (openLimitPerDay ?? this.openLimitPerDay),
+    timeLimitMinutes: clearTimeLimit ? null : (timeLimitMinutes ?? this.timeLimitMinutes),
   );
 
   Map<String, dynamic> toJson() => {
     'emoji': emoji, 'name': name, 'category': category,
     'blocked': blocked, 'packageName': packageName,
+    'openLimitPerDay': openLimitPerDay, 'timeLimitMinutes': timeLimitMinutes,
   };
 
   factory AppEntry.fromJson(Map<String, dynamic> j) => AppEntry(
-    emoji:       j['emoji']       as String,
-    name:        j['name']        as String,
-    category:    j['category']    as String,
-    blocked:     j['blocked']     as bool,
-    packageName: j['packageName'] as String?,
+    emoji:            j['emoji']            as String,
+    name:             j['name']             as String,
+    category:         j['category']         as String,
+    blocked:          j['blocked']          as bool,
+    packageName:      j['packageName']      as String?,
+    openLimitPerDay:  j['openLimitPerDay']  as int?,
+    timeLimitMinutes: j['timeLimitMinutes'] as int?,
   );
 }
 

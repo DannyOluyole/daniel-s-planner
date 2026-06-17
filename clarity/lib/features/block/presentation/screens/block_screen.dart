@@ -29,6 +29,26 @@ class _BlockScreenState extends ConsumerState<BlockScreen> {
     super.dispose();
   }
 
+  void _showLimitsSheet(BuildContext context, WidgetRef ref, int index, AppEntry app) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (_) => _AppLimitsSheet(
+        app: app,
+        onSave: (openLimit, timeLimit) {
+          ref.read(blockSettingsProvider.notifier).setAppLimits(
+                index,
+                openLimitPerDay: openLimit,
+                clearOpenLimit: openLimit == null,
+                timeLimitMinutes: timeLimit,
+                clearTimeLimit: timeLimit == null,
+              );
+        },
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final async = ref.watch(blockSettingsProvider);
@@ -94,6 +114,7 @@ class _BlockScreenState extends ConsumerState<BlockScreen> {
                             onToggle: (i) => ref
                                 .read(blockSettingsProvider.notifier)
                                 .toggleApp(i),
+                            onEditLimits: (i) => _showLimitsSheet(context, ref, i, settings.apps[i]),
                           ),
                           const SizedBox(height: 10),
                           _ScheduleCard(
@@ -150,9 +171,10 @@ class _BlockScreenState extends ConsumerState<BlockScreen> {
 // ─── Apps list ───────────────────────────────────────────────────────────────
 
 class _AppsList extends StatelessWidget {
-  const _AppsList({required this.apps, required this.onToggle});
+  const _AppsList({required this.apps, required this.onToggle, required this.onEditLimits});
   final List<AppEntry>    apps;
   final ValueChanged<int> onToggle;
+  final ValueChanged<int> onEditLimits;
 
   @override
   Widget build(BuildContext context) {
@@ -169,7 +191,8 @@ class _AppsList extends StatelessWidget {
           return _AppRow(
               app: app,
               isLast: i == apps.length - 1,
-              onToggle: () => onToggle(i));
+              onToggle: () => onToggle(i),
+              onEditLimits: () => onEditLimits(i));
         }).toList(),
       ),
     );
@@ -177,16 +200,22 @@ class _AppsList extends StatelessWidget {
 }
 
 class _AppRow extends StatelessWidget {
-  const _AppRow(
-      {required this.app, required this.isLast, required this.onToggle});
+  const _AppRow({
+    required this.app,
+    required this.isLast,
+    required this.onToggle,
+    required this.onEditLimits,
+  });
   final AppEntry     app;
   final bool         isLast;
   final VoidCallback onToggle;
+  final VoidCallback onEditLimits;
 
   @override
   Widget build(BuildContext context) {
+    final hasLimits = app.openLimitPerDay != null || app.timeLimitMinutes != null;
     return GestureDetector(
-      onTap: onToggle,
+      onTap: onEditLimits,
       child: Container(
         decoration: BoxDecoration(
           border: isLast
@@ -209,15 +238,234 @@ class _AppRow extends StatelessWidget {
                           fontSize: 14,
                           fontWeight: FontWeight.w500,
                           color: ct.textSecondary)),
-                  Text(app.category,
-                      style: TextStyle(
-                          fontSize: 11, color: ct.textDisabled)),
+                  Text(
+                    hasLimits
+                        ? [
+                            if (app.openLimitPerDay != null) '${app.openLimitPerDay}x/day',
+                            if (app.timeLimitMinutes != null) '${app.timeLimitMinutes}min/day',
+                          ].join(' · ')
+                        : app.category,
+                    style: TextStyle(
+                        fontSize: 11,
+                        color: hasLimits ? ct.purpleLight : ct.textDisabled),
+                  ),
                 ],
               ),
             ),
+            GestureDetector(
+              onTap: onEditLimits,
+              child: Icon(TablerIcons.adjustments_horizontal,
+                  size: 16, color: hasLimits ? ct.purpleLight : ct.textDisabled),
+            ),
+            const SizedBox(width: 14),
             _ClaritySwitch(value: app.blocked, onChanged: (_) => onToggle()),
           ],
         ),
+      ),
+    );
+  }
+}
+
+// ─── Per-app limits sheet ──────────────────────────────────────────────────
+
+class _AppLimitsSheet extends StatefulWidget {
+  const _AppLimitsSheet({required this.app, required this.onSave});
+  final AppEntry app;
+  final void Function(int? openLimit, int? timeLimit) onSave;
+
+  @override
+  State<_AppLimitsSheet> createState() => _AppLimitsSheetState();
+}
+
+class _AppLimitsSheetState extends State<_AppLimitsSheet> {
+  late bool _openEnabled;
+  late bool _timeEnabled;
+  late int  _openLimit;
+  late int  _timeLimit;
+
+  @override
+  void initState() {
+    super.initState();
+    _openEnabled = widget.app.openLimitPerDay != null;
+    _timeEnabled = widget.app.timeLimitMinutes != null;
+    _openLimit   = widget.app.openLimitPerDay ?? 3;
+    _timeLimit   = widget.app.timeLimitMinutes ?? 30;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+        decoration: BoxDecoration(
+          color: ct.bgSurface,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 36, height: 4,
+                decoration: BoxDecoration(
+                  color: ct.border, borderRadius: BorderRadius.circular(2)),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Text(widget.app.emoji, style: const TextStyle(fontSize: 24)),
+                const SizedBox(width: 10),
+                Text('${widget.app.name} limits',
+                    style: TextStyle(
+                        fontSize: 17, fontWeight: FontWeight.w600, color: ct.textPrimary)),
+              ],
+            ),
+            const SizedBox(height: 20),
+
+            _LimitRow(
+              icon: TablerIcons.repeat,
+              title: 'Daily open limit',
+              subtitle: _openEnabled
+                  ? 'Warns on the last allowed open, blocks after that'
+                  : 'Off — unlimited opens',
+              enabled: _openEnabled,
+              onToggle: (v) => setState(() => _openEnabled = v),
+              valueLabel: '$_openLimit ${_openLimit == 1 ? 'time' : 'times'}/day',
+              value: _openLimit.toDouble(),
+              min: 1, max: 20,
+              onChanged: (v) => setState(() => _openLimit = v.round()),
+            ),
+            const SizedBox(height: 18),
+            _LimitRow(
+              icon: TablerIcons.clock_hour_4,
+              title: 'Daily time limit',
+              subtitle: _timeEnabled
+                  ? 'Warns near the end, blocks once time is used up'
+                  : 'Off — unlimited time',
+              enabled: _timeEnabled,
+              onToggle: (v) => setState(() => _timeEnabled = v),
+              valueLabel: '$_timeLimit min/day',
+              value: _timeLimit.toDouble(),
+              min: 5, max: 180,
+              divisions: 35,
+              onChanged: (v) => setState(() => _timeLimit = v.round()),
+            ),
+
+            const SizedBox(height: 22),
+            GestureDetector(
+              onTap: () {
+                widget.onSave(
+                  _openEnabled ? _openLimit : null,
+                  _timeEnabled ? _timeLimit : null,
+                );
+                Navigator.pop(context);
+              },
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 15),
+                decoration: BoxDecoration(
+                  color: ct.primary,
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Text('Save',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                        fontSize: 15, fontWeight: FontWeight.w500, color: Colors.white)),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _LimitRow extends StatelessWidget {
+  const _LimitRow({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.enabled,
+    required this.onToggle,
+    required this.valueLabel,
+    required this.value,
+    required this.min,
+    required this.max,
+    required this.onChanged,
+    this.divisions,
+  });
+
+  final IconData icon;
+  final String   title;
+  final String   subtitle;
+  final bool     enabled;
+  final ValueChanged<bool> onToggle;
+  final String   valueLabel;
+  final double   value;
+  final double   min;
+  final double   max;
+  final int?     divisions;
+  final ValueChanged<double> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: ct.bgCard,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: ct.border, width: 0.5),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, size: 18, color: ct.purpleLight),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(title,
+                    style: TextStyle(
+                        fontSize: 14, fontWeight: FontWeight.w500, color: ct.textPrimary)),
+              ),
+              _ClaritySwitch(value: enabled, onChanged: onToggle),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(subtitle, style: TextStyle(fontSize: 11, color: ct.textDisabled)),
+          if (enabled) ...[
+            const SizedBox(height: 6),
+            Row(
+              children: [
+                Expanded(
+                  child: SliderTheme(
+                    data: SliderTheme.of(context).copyWith(
+                      activeTrackColor: ct.purple,
+                      inactiveTrackColor: ct.bgElevated,
+                      thumbColor: ct.purpleLight,
+                      overlayColor: ct.purpleTint,
+                    ),
+                    child: Slider(
+                      value: value.clamp(min, max),
+                      min: min, max: max, divisions: divisions,
+                      onChanged: onChanged,
+                    ),
+                  ),
+                ),
+                SizedBox(
+                  width: 78,
+                  child: Text(valueLabel,
+                      textAlign: TextAlign.right,
+                      style: TextStyle(
+                          fontSize: 12, fontWeight: FontWeight.w500, color: ct.purpleLight)),
+                ),
+              ],
+            ),
+          ],
+        ],
       ),
     );
   }

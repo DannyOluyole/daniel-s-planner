@@ -86,6 +86,25 @@ class BlockingChannel {
     await _ch.invokeMethod('setStrictness', {'level': level});
   }
 
+  /// limits: {packageName: {"openLimit": int?, "timeLimit": int? (minutes)}}
+  static Future<void> updateAppLimits(
+      Map<String, Map<String, int?>> limits) async {
+    if (!_isAndroid) return;
+    await _ch.invokeMethod('updateAppLimits', {'limits': jsonEncode(limits)});
+  }
+
+  /// Returns {packageName: {opens: int, minutesUsed: int}} for today.
+  static Future<Map<String, dynamic>> getAppLimitStats() async {
+    if (!_isAndroid) return {};
+    try {
+      final json = await _ch.invokeMethod<String>('getAppLimitStats');
+      if (json == null) return {};
+      return jsonDecode(json) as Map<String, dynamic>;
+    } on PlatformException {
+      return {};
+    }
+  }
+
   // ── VPN ───────────────────────────────────────────────────────────────────
 
   static Future<void> startVpn() async {

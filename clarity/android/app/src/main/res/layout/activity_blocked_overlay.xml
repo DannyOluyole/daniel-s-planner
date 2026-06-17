@@ -26,7 +26,8 @@
         android:layout_marginBottom="8dp" />
 
     <TextView
-        android:text="is blocked by Clarity"
+        android:id="@+id/tv_subtitle"
+        android:text="is blocked by Productivity Max"
         android:textSize="16sp"
         android:textColor="#8A8A9A"
         android:gravity="center"
@@ -35,6 +36,7 @@
         android:layout_marginBottom="16dp" />
 
     <TextView
+        android:id="@+id/tv_message"
         android:text="You set this block to help you stay focused.\nYou&#8217;ve got this."
         android:textSize="14sp"
         android:textColor="#8A8A9A"
