@@ -67,12 +67,7 @@ class BlockSettings {
   final int            strictness; // 0=Soft 1=Standard 2=Strict
 
   static const defaultSettings = BlockSettings(
-    apps: [
-      AppEntry(emoji: '📱', name: 'TikTok',      category: 'Short video', blocked: true,  packageName: 'com.zhiliaoapp.musically'),
-      AppEntry(emoji: '📸', name: 'Instagram',   category: 'Social',      blocked: true,  packageName: 'com.instagram.android'),
-      AppEntry(emoji: '👽', name: 'Reddit',      category: 'Forums',      blocked: false, packageName: 'com.reddit.frontpage'),
-      AppEntry(emoji: '🐦', name: 'X / Twitter', category: 'Social',      blocked: false, packageName: 'com.twitter.android'),
-    ],
+    apps: [],
     keywords:      ['porn', 'explicit', 'nsfw'],
     scheduleStart: '10:00 PM',
     scheduleEnd:   '7:00 AM',

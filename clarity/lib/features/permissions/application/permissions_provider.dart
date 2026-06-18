@@ -1,5 +1,6 @@
 // lib/features/permissions/application/permissions_provider.dart
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../block/application/block_settings_notifier.dart';
 import '../../block/platform/blocking_channel.dart';
 
 class PermissionsState {
@@ -64,6 +65,10 @@ class PermissionsNotifier extends Notifier<PermissionsState> {
     await BlockingChannel.requestVpnPermission();
     await Future.delayed(const Duration(milliseconds: 500));
     await _refresh();
+    if (state.hasVpn) {
+      final keywords = ref.read(blockSettingsProvider).valueOrNull?.keywords ?? const [];
+      if (keywords.isNotEmpty) await BlockingChannel.startVpn();
+    }
   }
 }
 

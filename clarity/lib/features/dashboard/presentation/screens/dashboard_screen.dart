@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_tabler_icons/flutter_tabler_icons.dart';
 
 import '../../../../core/theme/app_theme.dart';
+import '../../../block/application/block_settings_notifier.dart';
+import '../../../block/data/block_model.dart';
 import '../../application/streak_notifier.dart';
 
 class DashboardScreen extends ConsumerWidget {
@@ -225,15 +227,15 @@ class _StatCard extends StatelessWidget {
 
 // ─── Blocked apps ─────────────────────────────────────────────────────────────
 
-const _blockedApps = [
-  ('📱', 'TikTok',    true),
-  ('📸', 'Instagram', true),
-  ('👽', 'Reddit',    false),
-];
-
-class _BlockedAppsCard extends StatelessWidget {
+class _BlockedAppsCard extends ConsumerWidget {
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final settingsAsync = ref.watch(blockSettingsProvider);
+    final apps = settingsAsync.maybeWhen(
+      data: (s) => s.apps,
+      orElse: () => const <AppEntry>[],
+    );
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -248,42 +250,50 @@ class _BlockedAppsCard extends StatelessWidget {
             borderRadius: BorderRadius.circular(14),
             border: Border.all(color: ct.border, width: 0.5),
           ),
-          child: Column(
-            children: _blockedApps.asMap().entries.map((e) {
-              final app    = e.value;
-              final isLast = e.key == _blockedApps.length - 1;
-              return Container(
-                decoration: BoxDecoration(
-                  border: isLast ? null : Border(
-                      bottom: BorderSide(color: ct.borderFaint, width: 0.5)),
-                ),
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                child: Row(
-                  children: [
-                    Text(app.$1, style: const TextStyle(fontSize: 22)),
-                    const SizedBox(width: 12),
-                    Text(app.$2, style: TextStyle(fontSize: 14,
-                        fontWeight: FontWeight.w500, color: ct.textSecondary)),
-                    const Spacer(),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+          child: apps.isEmpty
+              ? Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                  child: Text(
+                    'No apps blocked yet. Add apps to block from the Block tab.',
+                    style: TextStyle(fontSize: 13, color: ct.textDisabled),
+                  ),
+                )
+              : Column(
+                  children: apps.asMap().entries.map((e) {
+                    final app    = e.value;
+                    final isLast = e.key == apps.length - 1;
+                    return Container(
                       decoration: BoxDecoration(
-                        color: app.$3
-                            ? ct.teal.withAlpha(34)
-                            : ct.amber.withAlpha(34),
-                        borderRadius: BorderRadius.circular(6),
+                        border: isLast ? null : Border(
+                            bottom: BorderSide(color: ct.borderFaint, width: 0.5)),
                       ),
-                      child: Text(
-                        app.$3 ? 'Blocking' : 'Paused',
-                        style: TextStyle(fontSize: 11, fontWeight: FontWeight.w500,
-                            color: app.$3 ? ct.teal : ct.amber),
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      child: Row(
+                        children: [
+                          Text(app.emoji, style: const TextStyle(fontSize: 22)),
+                          const SizedBox(width: 12),
+                          Text(app.name, style: TextStyle(fontSize: 14,
+                              fontWeight: FontWeight.w500, color: ct.textSecondary)),
+                          const Spacer(),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: app.blocked
+                                  ? ct.teal.withAlpha(34)
+                                  : ct.amber.withAlpha(34),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              app.blocked ? 'Blocking' : 'Paused',
+                              style: TextStyle(fontSize: 11, fontWeight: FontWeight.w500,
+                                  color: app.blocked ? ct.teal : ct.amber),
+                            ),
+                          ),
+                        ],
                       ),
-                    ),
-                  ],
+                    );
+                  }).toList(),
                 ),
-              );
-            }).toList(),
-          ),
         ),
       ],
     );

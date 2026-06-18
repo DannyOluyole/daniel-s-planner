@@ -74,6 +74,14 @@ class BlockSettingsNotifier extends AsyncNotifier<BlockSettings> {
     await BlockingChannel.updateBlockedKeywords(s.keywords);
     await BlockingChannel.setStrictness(s.strictness);
 
+    if (s.keywords.isNotEmpty) {
+      if (await BlockingChannel.hasVpnPermission()) {
+        await BlockingChannel.startVpn();
+      }
+    } else {
+      await BlockingChannel.stopVpn();
+    }
+
     final limits = <String, Map<String, int?>>{};
     for (final a in s.apps) {
       if (a.packageName == null) continue;
