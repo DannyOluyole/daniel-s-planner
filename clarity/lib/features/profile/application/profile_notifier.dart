@@ -43,7 +43,18 @@ class ProfileSettingsNotifier extends AsyncNotifier<ProfileSettings> {
   Future<void> setBedtimeMode(bool v)    => _mutate((s) => s.copyWith(bedtimeMode: v));
   Future<void> setAnonymousMode(bool v)  => _mutate((s) => s.copyWith(anonymousMode: v));
   Future<void> setDailyLimit(int hours)  => _mutate((s) => s.copyWith(dailyLimitHours: hours));
-  Future<void> setPinEnabled(bool v)     => _mutate((s) => s.copyWith(pinEnabled: v));
+
+  Future<void> setPin(String code) =>
+      _mutate((s) => s.copyWith(pinEnabled: true, pinCode: code));
+
+  Future<void> clearPin() =>
+      _mutate((s) => s.copyWith(pinEnabled: false, clearPinCode: true));
+
+  Future<void> setAccountabilityPartner(String email) =>
+      _mutate((s) => s.copyWith(accountabilityPartnerEmail: email));
+
+  Future<void> removeAccountabilityPartner() =>
+      _mutate((s) => s.copyWith(clearAccountabilityPartner: true));
 
   Future<void> _mutate(ProfileSettings Function(ProfileSettings) fn) async {
     final current = state.valueOrNull;

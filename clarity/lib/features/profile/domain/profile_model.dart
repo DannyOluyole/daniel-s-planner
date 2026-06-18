@@ -44,6 +44,8 @@ class ProfileSettings {
     required this.anonymousMode,
     required this.dailyLimitHours,
     required this.pinEnabled,
+    this.pinCode,
+    this.accountabilityPartnerEmail,
   });
 
   static const defaults = ProfileSettings(
@@ -52,20 +54,28 @@ class ProfileSettings {
     anonymousMode:   false,
     dailyLimitHours: 2,
     pinEnabled:      false,
+    pinCode:         null,
+    accountabilityPartnerEmail: null,
   );
 
-  final bool notifications;
-  final bool bedtimeMode;
-  final bool anonymousMode;
-  final int  dailyLimitHours;
-  final bool pinEnabled;
+  final bool   notifications;
+  final bool   bedtimeMode;
+  final bool   anonymousMode;
+  final int    dailyLimitHours;
+  final bool   pinEnabled;
+  final String? pinCode;
+  final String? accountabilityPartnerEmail;
 
   ProfileSettings copyWith({
-    bool? notifications,
-    bool? bedtimeMode,
-    bool? anonymousMode,
-    int?  dailyLimitHours,
-    bool? pinEnabled,
+    bool?   notifications,
+    bool?   bedtimeMode,
+    bool?   anonymousMode,
+    int?    dailyLimitHours,
+    bool?   pinEnabled,
+    String? pinCode,
+    bool    clearPinCode = false,
+    String? accountabilityPartnerEmail,
+    bool    clearAccountabilityPartner = false,
   }) =>
       ProfileSettings(
         notifications:   notifications   ?? this.notifications,
@@ -73,6 +83,10 @@ class ProfileSettings {
         anonymousMode:   anonymousMode   ?? this.anonymousMode,
         dailyLimitHours: dailyLimitHours ?? this.dailyLimitHours,
         pinEnabled:      pinEnabled      ?? this.pinEnabled,
+        pinCode:         clearPinCode ? null : (pinCode ?? this.pinCode),
+        accountabilityPartnerEmail: clearAccountabilityPartner
+            ? null
+            : (accountabilityPartnerEmail ?? this.accountabilityPartnerEmail),
       );
 
   Map<String, dynamic> toJson() => {
@@ -81,6 +95,8 @@ class ProfileSettings {
         'anonymousMode':   anonymousMode,
         'dailyLimitHours': dailyLimitHours,
         'pinEnabled':      pinEnabled,
+        'pinCode':         pinCode,
+        'accountabilityPartnerEmail': accountabilityPartnerEmail,
       };
 
   factory ProfileSettings.fromJson(Map<String, dynamic> j) => ProfileSettings(
@@ -89,5 +105,7 @@ class ProfileSettings {
         anonymousMode:   j['anonymousMode']   as bool,
         dailyLimitHours: j['dailyLimitHours'] as int,
         pinEnabled:      j['pinEnabled']      as bool,
+        pinCode:         j['pinCode']         as String?,
+        accountabilityPartnerEmail: j['accountabilityPartnerEmail'] as String?,
       );
 }

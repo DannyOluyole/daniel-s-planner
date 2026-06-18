@@ -70,7 +70,7 @@ class ProfileScreen extends ConsumerWidget {
               data:    (s) => _SettingsCard(settings: s),
             ),
             const SizedBox(height: 14),
-            const _SignOutButton(),
+            if (authUser != null) const _SignOutButton(),
             const SizedBox(height: 24),
           ],
         ),
@@ -487,6 +487,7 @@ class _SettingsCard extends ConsumerWidget {
             iconColor: ct.purplePale,
             label:     'Daily screen limit',
             value:     '${settings.dailyLimitHours} hr',
+            onTap:     () => _showDailyLimitSheet(context, ref, settings.dailyLimitHours),
           ),
           _ArrowRow(
             iconBg:    ct.bgCard,
@@ -494,14 +495,16 @@ class _SettingsCard extends ConsumerWidget {
             iconColor: ct.purplePale,
             label:     'PIN lock',
             value:     settings.pinEnabled ? 'On' : 'Off',
+            onTap:     () => _showPinLockSheet(context, ref, settings),
           ),
           _ArrowRow(
             iconBg:    ct.bgCard,
             icon:      TablerIcons.heart_handshake,
             iconColor: ct.pink,
             label:     'Accountability partner',
-            value:     'Add',
+            value:     settings.accountabilityPartnerEmail ?? 'Add',
             isLast:    true,
+            onTap:     () => _showAccountabilityPartnerSheet(context, ref, settings),
           ),
         ],
       ),
@@ -548,13 +551,15 @@ class _ArrowRow extends StatelessWidget {
     required this.label,
     required this.value,
     this.isLast = false,
+    this.onTap,
   });
-  final Color    iconBg;
-  final IconData icon;
-  final Color    iconColor;
-  final String   label;
-  final String   value;
-  final bool     isLast;
+  final Color       iconBg;
+  final IconData    icon;
+  final Color       iconColor;
+  final String      label;
+  final String      value;
+  final bool        isLast;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -564,6 +569,7 @@ class _ArrowRow extends StatelessWidget {
       iconColor: iconColor,
       label:     label,
       isLast:    isLast,
+      onTap:     onTap,
       trailing:  Row(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -587,17 +593,19 @@ class _SettingsRow extends StatelessWidget {
     required this.label,
     required this.trailing,
     this.isLast = false,
+    this.onTap,
   });
-  final Color    iconBg;
-  final IconData icon;
-  final Color    iconColor;
-  final String   label;
-  final Widget   trailing;
-  final bool     isLast;
+  final Color       iconBg;
+  final IconData    icon;
+  final Color       iconColor;
+  final String      label;
+  final Widget      trailing;
+  final bool        isLast;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    final row = Container(
       decoration: BoxDecoration(
         border: isLast
             ? null
@@ -627,7 +635,236 @@ class _SettingsRow extends StatelessWidget {
         ],
       ),
     );
+    if (onTap == null) return row;
+    return InkWell(onTap: onTap, child: row);
   }
+}
+
+// ─── Settings sheets ─────────────────────────────────────────────────────────
+
+void _showDailyLimitSheet(BuildContext context, WidgetRef ref, int currentHours) {
+  showModalBottomSheet(
+    context: context,
+    backgroundColor: ct.bgCard,
+    shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+    builder: (sheetContext) {
+      var hours = currentHours;
+      return StatefulBuilder(builder: (sheetContext, setState) {
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Daily screen limit',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500,
+                      color: ct.textPrimary)),
+              const SizedBox(height: 16),
+              Text('$hours hour${hours == 1 ? '' : 's'} / day',
+                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.w500,
+                      color: ct.purpleLight)),
+              Slider(
+                value: hours.toDouble(),
+                min: 1, max: 12, divisions: 11,
+                activeColor: ct.purple,
+                label: '$hours hr',
+                onChanged: (v) => setState(() => hours = v.round()),
+              ),
+              const SizedBox(height: 8),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () {
+                    ref.read(profileSettingsProvider.notifier).setDailyLimit(hours);
+                    Navigator.of(sheetContext).pop();
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: ct.purple,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14)),
+                  ),
+                  child: const Text('Save'),
+                ),
+              ),
+            ],
+          ),
+        );
+      });
+    },
+  );
+}
+
+void _showPinLockSheet(BuildContext context, WidgetRef ref, ProfileSettings settings) {
+  final controller = TextEditingController();
+  showModalBottomSheet(
+    context: context,
+    backgroundColor: ct.bgCard,
+    shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+    builder: (sheetContext) {
+      return Padding(
+        padding: EdgeInsets.fromLTRB(20, 20, 20,
+            32 + MediaQuery.of(sheetContext).viewInsets.bottom),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('PIN lock',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500,
+                    color: ct.textPrimary)),
+            const SizedBox(height: 4),
+            Text(
+              settings.pinEnabled
+                  ? 'PIN lock is on. Enter a new 4-digit PIN to change it, or turn it off below.'
+                  : 'Set a 4-digit PIN to require it before changing block settings.',
+              style: TextStyle(fontSize: 12, color: ct.textDisabled),
+            ),
+            const SizedBox(height: 14),
+            TextField(
+              controller: controller,
+              keyboardType: TextInputType.number,
+              maxLength: 4,
+              obscureText: true,
+              style: TextStyle(color: ct.textPrimary, fontSize: 20, letterSpacing: 8),
+              textAlign: TextAlign.center,
+              decoration: InputDecoration(
+                counterText: '',
+                filled: true,
+                fillColor: ct.bgSurface,
+                border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide.none),
+              ),
+            ),
+            const SizedBox(height: 14),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () {
+                  final pin = controller.text.trim();
+                  if (pin.length != 4) return;
+                  ref.read(profileSettingsProvider.notifier).setPin(pin);
+                  Navigator.of(sheetContext).pop();
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: ct.purple,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14)),
+                ),
+                child: const Text('Save PIN'),
+              ),
+            ),
+            if (settings.pinEnabled) ...[
+              const SizedBox(height: 8),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton(
+                  onPressed: () {
+                    ref.read(profileSettingsProvider.notifier).clearPin();
+                    Navigator.of(sheetContext).pop();
+                  },
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: ct.red,
+                    side: BorderSide(color: ct.redDark, width: 0.5),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14)),
+                  ),
+                  child: const Text('Turn off PIN lock'),
+                ),
+              ),
+            ],
+          ],
+        ),
+      );
+    },
+  );
+}
+
+void _showAccountabilityPartnerSheet(
+    BuildContext context, WidgetRef ref, ProfileSettings settings) {
+  final controller = TextEditingController(text: settings.accountabilityPartnerEmail ?? '');
+  showModalBottomSheet(
+    context: context,
+    backgroundColor: ct.bgCard,
+    shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+    builder: (sheetContext) {
+      return Padding(
+        padding: EdgeInsets.fromLTRB(20, 20, 20,
+            32 + MediaQuery.of(sheetContext).viewInsets.bottom),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Accountability partner',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500,
+                    color: ct.textPrimary)),
+            const SizedBox(height: 4),
+            Text("We'll save their email so you can share your streak progress with them.",
+                style: TextStyle(fontSize: 12, color: ct.textDisabled)),
+            const SizedBox(height: 14),
+            TextField(
+              controller: controller,
+              keyboardType: TextInputType.emailAddress,
+              style: TextStyle(color: ct.textPrimary),
+              decoration: InputDecoration(
+                hintText: 'partner@example.com',
+                hintStyle: TextStyle(color: ct.textDisabled),
+                filled: true,
+                fillColor: ct.bgSurface,
+                border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide.none),
+              ),
+            ),
+            const SizedBox(height: 14),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () {
+                  final email = controller.text.trim();
+                  if (email.isEmpty) return;
+                  ref.read(profileSettingsProvider.notifier).setAccountabilityPartner(email);
+                  Navigator.of(sheetContext).pop();
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: ct.purple,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14)),
+                ),
+                child: const Text('Save'),
+              ),
+            ),
+            if (settings.accountabilityPartnerEmail != null) ...[
+              const SizedBox(height: 8),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton(
+                  onPressed: () {
+                    ref.read(profileSettingsProvider.notifier).removeAccountabilityPartner();
+                    Navigator.of(sheetContext).pop();
+                  },
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: ct.red,
+                    side: BorderSide(color: ct.redDark, width: 0.5),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14)),
+                  ),
+                  child: const Text('Remove partner'),
+                ),
+              ),
+            ],
+          ],
+        ),
+      );
+    },
+  );
 }
 
 class _MiniSwitch extends StatelessWidget {
@@ -675,7 +912,22 @@ class _SignOutButton extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return OutlinedButton(
-      onPressed: () => ref.read(authNotifierProvider.notifier).signOut(),
+      onPressed: () async {
+        try {
+          await ref.read(authNotifierProvider.notifier).signOut();
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Signed out')),
+            );
+          }
+        } catch (e) {
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Sign out failed: $e')),
+            );
+          }
+        }
+      },
       style: OutlinedButton.styleFrom(
         foregroundColor: ct.red,
         side: BorderSide(color: ct.redDark, width: 0.5),
