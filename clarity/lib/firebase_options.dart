@@ -18,9 +18,7 @@ class DefaultFirebaseOptions {
       case TargetPlatform.android:
         return android;
       case TargetPlatform.iOS:
-        throw UnsupportedError(
-          'DefaultFirebaseOptions have not been configured for iOS.',
-        );
+        return ios;
       default:
         throw UnsupportedError(
           'DefaultFirebaseOptions are not supported for this platform.',
@@ -34,5 +32,14 @@ class DefaultFirebaseOptions {
     messagingSenderId: '489895201925',
     projectId: 'clarity-app-df280',
     storageBucket: 'clarity-app-df280.firebasestorage.app',
+  );
+
+  static const FirebaseOptions ios = FirebaseOptions(
+    apiKey: 'AIzaSyBwUi0HUKibi-N7MHmj5tFWJORIT06gChI',
+    appId: '1:489895201925:ios:9485f393cc79aa94e5edec',
+    messagingSenderId: '489895201925',
+    projectId: 'clarity-app-df280',
+    storageBucket: 'clarity-app-df280.firebasestorage.app',
+    iosBundleId: 'com.clarity.app',
   );
 }
