@@ -12,9 +12,9 @@ class UserProfile {
   final DateTime joinDate;
 
   static UserProfile get defaultProfile => UserProfile(
-        displayName: 'Danny Kay',
-        username: 'dannyk',
-        joinDate: DateTime(2025, 6, 1),
+        displayName: 'Guest',
+        username: 'guest',
+        joinDate: DateTime.now(),
       );
 
   UserProfile copyWith({String? displayName, String? username, DateTime? joinDate}) =>
