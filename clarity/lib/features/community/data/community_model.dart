@@ -115,7 +115,7 @@ class CommunityNotifier extends StateNotifier<CommunityState> {
             Milestone(emoji: '🌱', name: 'Alex',   days: 7,  note: 'Porn-free first week'),
             Milestone(emoji: '💎', name: 'Sam',    days: 60, note: 'No doomscrolling'),
           ],
-          peers: const [
+          peers: [
             SupportPeer(
               initials: 'JL',
               avatarColor: ct.tealTint,
@@ -126,7 +126,7 @@ class CommunityNotifier extends StateNotifier<CommunityState> {
             ),
             SupportPeer(
               initials: 'TD',
-              avatarColor: Color(0xFF1A1520),
+              avatarColor: const Color(0xFF1A1520),
               initColor: ct.purplePale,
               name: 'Taylor D.',
               streak: 30,

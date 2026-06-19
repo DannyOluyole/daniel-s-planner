@@ -1,4 +1,5 @@
 // lib/core/router/app_router.dart
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -32,24 +33,55 @@ class Routes {
   static const profile       = '/profile';
 }
 
-// Routes that don't require auth
-const _publicRoutes = {
-  Routes.onboarding,
+// Routes reachable without being signed in
+const _authRoutes = {
   Routes.signIn,
   Routes.signUp,
   Routes.forgotPassword,
-  Routes.paywall,
 };
 
+// Notifies GoRouter whenever auth or onboarding state changes, so it
+// re-evaluates `redirect` without rebuilding the router itself.
+class _RouterRefreshNotifier extends ChangeNotifier {
+  _RouterRefreshNotifier(Ref ref) {
+    ref.listen(authStateProvider, (_, __) => notifyListeners());
+    ref.listen(onboardingNotifierProvider, (_, __) => notifyListeners());
+  }
+}
+
 final appRouterProvider = Provider<GoRouter>((ref) {
-  final authAsync        = ref.watch(authStateProvider);
-  final onboardingAsync  = ref.watch(onboardingNotifierProvider);
+  final refresh = _RouterRefreshNotifier(ref);
+  ref.onDispose(refresh.dispose);
 
   return GoRouter(
-    initialLocation: Routes.home,
+    initialLocation: Routes.onboarding,
     debugLogDiagnostics: true,
+    refreshListenable: refresh,
     redirect: (context, state) {
-      return null; // DEMO MODE: all routes open freely
+      final authAsync       = ref.read(authStateProvider);
+      final onboardingAsync = ref.read(onboardingNotifierProvider);
+
+      // Wait for the first auth/onboarding snapshot before deciding anything.
+      if (!authAsync.hasValue || !onboardingAsync.hasValue) return null;
+
+      final isSignedIn     = authAsync.value != null;
+      final onboardingDone = onboardingAsync.value ?? false;
+      final path           = state.matchedLocation;
+
+      if (!onboardingDone) {
+        return path == Routes.onboarding ? null : Routes.onboarding;
+      }
+
+      if (!isSignedIn) {
+        return _authRoutes.contains(path) ? null : Routes.signIn;
+      }
+
+      // Signed in and onboarded — keep users away from onboarding/auth screens.
+      if (path == Routes.onboarding || _authRoutes.contains(path)) {
+        return Routes.home;
+      }
+
+      return null;
     },
     routes: [
       // ── Public ──────────────────────────────────────────────────────────
