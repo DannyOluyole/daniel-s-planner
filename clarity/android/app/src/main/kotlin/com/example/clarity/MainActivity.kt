@@ -50,6 +50,10 @@ class MainActivity : FlutterActivity() {
                         result.success(null)
                     }
 
+                    "getInstalledApps" -> {
+                        result.success(getInstalledLaunchableApps())
+                    }
+
                     // ── Usage stats ────────────────────────────────────────
                     "getTodayUsage" -> {
                         if (!UsageStatsHelper.hasPermission(this)) {
@@ -126,6 +130,24 @@ class MainActivity : FlutterActivity() {
                     else -> result.notImplemented()
                 }
             }
+    }
+
+    private fun getInstalledLaunchableApps(): String {
+        val pm = packageManager
+        val launcherIntent = Intent(Intent.ACTION_MAIN, null)
+        launcherIntent.addCategory(Intent.CATEGORY_LAUNCHER)
+        val resolved = pm.queryIntentActivities(launcherIntent, 0)
+        val apps = JSONArray()
+        val seen = HashSet<String>()
+        for (info in resolved) {
+            val pkg = info.activityInfo.packageName
+            if (pkg == packageName || !seen.add(pkg)) continue
+            val obj = org.json.JSONObject()
+            obj.put("packageName", pkg)
+            obj.put("appName", info.loadLabel(pm).toString())
+            apps.put(obj)
+        }
+        return apps.toString()
     }
 
     private fun isAccessibilityEnabled(): Boolean {

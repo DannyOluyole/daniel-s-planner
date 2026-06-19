@@ -11,6 +11,7 @@ import '../../../paywall/presentation/widgets/premium_gate.dart';
 import '../../../permissions/application/permissions_provider.dart';
 import '../../application/block_settings_notifier.dart';
 import '../../data/block_model.dart';
+import '../../platform/blocking_channel.dart';
 
 class BlockScreen extends ConsumerStatefulWidget {
   const BlockScreen({super.key});
@@ -27,6 +28,33 @@ class _BlockScreenState extends ConsumerState<BlockScreen> {
   void dispose() {
     _kwController.dispose();
     super.dispose();
+  }
+
+  void _showAddAppSheet(BuildContext context, WidgetRef ref, List<AppEntry> existing) {
+    final existingPackages = existing.map((a) => a.packageName).whereType<String>().toSet();
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (_) => _AddAppSheet(
+        existingPackages: existingPackages,
+        onAddInstalled: (name, pkg) {
+          ref.read(blockSettingsProvider.notifier).addApp(
+                name: name,
+                emoji: '📱',
+                category: 'App',
+                packageName: pkg,
+              );
+        },
+        onAddManual: (name) {
+          ref.read(blockSettingsProvider.notifier).addApp(
+                name: name,
+                emoji: '🔒',
+                category: 'Custom',
+              );
+        },
+      ),
+    );
   }
 
   void _showLimitsSheet(BuildContext context, WidgetRef ref, int index, AppEntry app) {
@@ -74,7 +102,8 @@ class _BlockScreenState extends ConsumerState<BlockScreen> {
                   IconButton(
                     icon: Icon(TablerIcons.plus,
                         color: ct.purpleLight),
-                    onPressed: () {},
+                    onPressed: () => _showAddAppSheet(
+                        context, ref, async.valueOrNull?.apps ?? const []),
                   ),
                 ],
               ),
@@ -109,13 +138,20 @@ class _BlockScreenState extends ConsumerState<BlockScreen> {
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   children: _tab == 0
                       ? [
-                          _AppsList(
-                            apps: settings.apps,
-                            onToggle: (i) => ref
-                                .read(blockSettingsProvider.notifier)
-                                .toggleApp(i),
-                            onEditLimits: (i) => _showLimitsSheet(context, ref, i, settings.apps[i]),
-                          ),
+                          settings.apps.isEmpty
+                              ? _EmptyAppsHint(
+                                  onTap: () => _showAddAppSheet(context, ref, settings.apps),
+                                )
+                              : _AppsList(
+                                  apps: settings.apps,
+                                  onToggle: (i) => ref
+                                      .read(blockSettingsProvider.notifier)
+                                      .toggleApp(i),
+                                  onEditLimits: (i) => _showLimitsSheet(context, ref, i, settings.apps[i]),
+                                  onRemove: (i) => ref
+                                      .read(blockSettingsProvider.notifier)
+                                      .removeApp(i),
+                                ),
                           const SizedBox(height: 10),
                           _ScheduleCard(
                             activeDays: settings.activeDays,
@@ -170,11 +206,49 @@ class _BlockScreenState extends ConsumerState<BlockScreen> {
 
 // ─── Apps list ───────────────────────────────────────────────────────────────
 
+class _EmptyAppsHint extends StatelessWidget {
+  const _EmptyAppsHint({required this.onTap});
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 16),
+        decoration: BoxDecoration(
+          color: ct.bgCard,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: ct.border, width: 0.5),
+        ),
+        child: Column(
+          children: [
+            Icon(TablerIcons.apps, size: 28, color: ct.textDisabled),
+            const SizedBox(height: 10),
+            Text('No apps blocked yet',
+                style: TextStyle(
+                    fontSize: 14, fontWeight: FontWeight.w500, color: ct.textSecondary)),
+            const SizedBox(height: 4),
+            Text('Tap + above to add apps to block',
+                style: TextStyle(fontSize: 12, color: ct.textDisabled)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _AppsList extends StatelessWidget {
-  const _AppsList({required this.apps, required this.onToggle, required this.onEditLimits});
+  const _AppsList({
+    required this.apps,
+    required this.onToggle,
+    required this.onEditLimits,
+    required this.onRemove,
+  });
   final List<AppEntry>    apps;
   final ValueChanged<int> onToggle;
   final ValueChanged<int> onEditLimits;
+  final ValueChanged<int> onRemove;
 
   @override
   Widget build(BuildContext context) {
@@ -188,11 +262,22 @@ class _AppsList extends StatelessWidget {
         children: apps.asMap().entries.map((e) {
           final i   = e.key;
           final app = e.value;
-          return _AppRow(
-              app: app,
-              isLast: i == apps.length - 1,
-              onToggle: () => onToggle(i),
-              onEditLimits: () => onEditLimits(i));
+          return Dismissible(
+            key: ValueKey('${app.packageName}-${app.name}-$i'),
+            direction: DismissDirection.endToStart,
+            background: Container(
+              alignment: Alignment.centerRight,
+              padding: const EdgeInsets.only(right: 18),
+              color: ct.pink.withOpacity(0.15),
+              child: Icon(TablerIcons.trash, size: 18, color: ct.pink),
+            ),
+            onDismissed: (_) => onRemove(i),
+            child: _AppRow(
+                app: app,
+                isLast: i == apps.length - 1,
+                onToggle: () => onToggle(i),
+                onEditLimits: () => onEditLimits(i)),
+          );
         }).toList(),
       ),
     );
@@ -259,6 +344,150 @@ class _AppRow extends StatelessWidget {
             ),
             const SizedBox(width: 14),
             _ClaritySwitch(value: app.blocked, onChanged: (_) => onToggle()),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Add app sheet ───────────────────────────────────────────────────────────
+
+class _AddAppSheet extends StatefulWidget {
+  const _AddAppSheet({
+    required this.existingPackages,
+    required this.onAddInstalled,
+    required this.onAddManual,
+  });
+  final Set<String> existingPackages;
+  final void Function(String name, String packageName) onAddInstalled;
+  final void Function(String name) onAddManual;
+
+  @override
+  State<_AddAppSheet> createState() => _AddAppSheetState();
+}
+
+class _AddAppSheetState extends State<_AddAppSheet> {
+  List<Map<String, dynamic>> _allApps = [];
+  bool _loading = true;
+  String _query = '';
+  final TextEditingController _manualController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    final apps = await BlockingChannel.getInstalledApps();
+    apps.sort((a, b) =>
+        (a['appName'] as String).toLowerCase().compareTo((b['appName'] as String).toLowerCase()));
+    if (!mounted) return;
+    setState(() {
+      _allApps = apps;
+      _loading = false;
+    });
+  }
+
+  @override
+  void dispose() {
+    _manualController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final filtered = _allApps
+        .where((a) => !widget.existingPackages.contains(a['packageName']))
+        .where((a) => (a['appName'] as String).toLowerCase().contains(_query.toLowerCase()))
+        .toList();
+
+    return Padding(
+      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+      child: Container(
+        height: MediaQuery.of(context).size.height * 0.75,
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
+        decoration: BoxDecoration(
+          color: ct.bgSurface,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 36, height: 4,
+                decoration: BoxDecoration(
+                  color: ct.border, borderRadius: BorderRadius.circular(2)),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text('Add an app to block',
+                style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600, color: ct.textPrimary)),
+            const SizedBox(height: 14),
+            TextField(
+              style: TextStyle(color: ct.textSecondary, fontSize: 13),
+              decoration: const InputDecoration(hintText: 'Search installed apps…'),
+              onChanged: (v) => setState(() => _query = v),
+            ),
+            const SizedBox(height: 12),
+            Expanded(
+              child: _loading
+                  ? Center(child: CircularProgressIndicator(color: ct.purpleLight))
+                  : filtered.isEmpty
+                      ? Center(
+                          child: Text('No matching apps found',
+                              style: TextStyle(fontSize: 13, color: ct.textDisabled)))
+                      : ListView.builder(
+                          itemCount: filtered.length,
+                          itemBuilder: (_, i) {
+                            final a = filtered[i];
+                            return ListTile(
+                              contentPadding: EdgeInsets.zero,
+                              leading: Icon(TablerIcons.apps, color: ct.purpleLight),
+                              title: Text(a['appName'] as String,
+                                  style: TextStyle(fontSize: 14, color: ct.textPrimary)),
+                              trailing: Icon(TablerIcons.plus, size: 18, color: ct.purpleLight),
+                              onTap: () {
+                                widget.onAddInstalled(
+                                    a['appName'] as String, a['packageName'] as String);
+                                Navigator.pop(context);
+                              },
+                            );
+                          },
+                        ),
+            ),
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _manualController,
+                    style: TextStyle(color: ct.textSecondary, fontSize: 13),
+                    decoration: const InputDecoration(hintText: 'Or add a custom entry by name…'),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                GestureDetector(
+                  onTap: () {
+                    final name = _manualController.text.trim();
+                    if (name.isEmpty) return;
+                    widget.onAddManual(name);
+                    Navigator.pop(context);
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: ct.purple,
+                      borderRadius: BorderRadius.circular(9),
+                    ),
+                    child: Text('Add',
+                        style: TextStyle(fontSize: 13, color: ct.textPrimary)),
+                  ),
+                ),
+              ],
+            ),
           ],
         ),
       ),

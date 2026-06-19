@@ -12,6 +12,33 @@ class BlockSettingsNotifier extends AsyncNotifier<BlockSettings> {
   @override
   Future<BlockSettings> build() => _repo.load();
 
+  Future<void> addApp({
+    required String name,
+    required String emoji,
+    required String category,
+    String? packageName,
+  }) =>
+      _mutate((s) {
+        if (packageName != null &&
+            s.apps.any((a) => a.packageName == packageName)) {
+          return s;
+        }
+        final apps = List<AppEntry>.from(s.apps)
+          ..add(AppEntry(
+            emoji: emoji,
+            name: name,
+            category: category,
+            blocked: true,
+            packageName: packageName,
+          ));
+        return s.copyWith(apps: apps);
+      });
+
+  Future<void> removeApp(int index) => _mutate((s) {
+    final apps = List<AppEntry>.from(s.apps)..removeAt(index);
+    return s.copyWith(apps: apps);
+  });
+
   Future<void> toggleApp(int index) => _mutate((s) {
     final apps = List<AppEntry>.from(s.apps);
     apps[index] = apps[index].copyWith(blocked: !apps[index].blocked);

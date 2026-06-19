@@ -40,6 +40,19 @@ class BlockingChannel {
     await _ch.invokeMethod('requestVpnPermission');
   }
 
+  /// Returns list of {packageName, appName} for all launchable apps on device.
+  static Future<List<Map<String, dynamic>>> getInstalledApps() async {
+    if (!_isAndroid) return [];
+    try {
+      final json = await _ch.invokeMethod<String>('getInstalledApps');
+      if (json == null) return [];
+      final list = jsonDecode(json) as List;
+      return list.cast<Map<String, dynamic>>();
+    } on PlatformException {
+      return [];
+    }
+  }
+
   // ── Usage stats ────────────────────────────────────────────────────────────
 
   /// Returns list of {packageName, appName, minutesUsed} for today.
