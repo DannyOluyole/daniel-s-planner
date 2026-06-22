@@ -128,7 +128,10 @@ class _PermissionsScreenState extends ConsumerState<PermissionsScreen>
                 _ClarityButton(
                   label: 'Skip for now',
                   secondary: true,
-                  onTap: () => context.go(Routes.home),
+                  onTap: () {
+                    ref.read(permissionsSkippedProvider.notifier).state = true;
+                    context.go(Routes.home);
+                  },
                 ),
                 const SizedBox(height: 8),
                 Center(

@@ -8,6 +8,7 @@ import '../../../../core/router/app_router.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../block/application/block_settings_notifier.dart';
 import '../../../block/data/block_model.dart';
+import '../../../activity/application/activity_provider.dart';
 import '../../application/streak_notifier.dart';
 
 class DashboardScreen extends ConsumerWidget {
@@ -188,30 +189,41 @@ class _WeekChart extends StatelessWidget {
 
 // ─── Stat row ────────────────────────────────────────────────────────────────
 
-class _StatRow extends StatelessWidget {
+class _StatRow extends ConsumerWidget {
   const _StatRow({required this.totalBlocks});
   final int totalBlocks;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final screenTimeAsync = ref.watch(screenTimeTodayMinutesProvider);
+    final screenTimeLabel = screenTimeAsync.when(
+      data: (mins) {
+        final h = mins ~/ 60;
+        final m = mins % 60;
+        return h > 0 ? '${h}h ${m}m' : '${m}m';
+      },
+      loading: () => '—',
+      error: (_, __) => '—',
+    );
+
     return Row(
       children: [
         Expanded(
             child: _StatCard(
-                value: '2h 14m',
+                value: screenTimeLabel,
                 label: 'Screen time',
-                delta: '↓ 45 min',
                 onTap: () => context.push(Routes.appActivity))),
         const SizedBox(width: 10),
-        Expanded(child: _StatCard(value: '$totalBlocks', label: 'Urges blocked', delta: '↑ 3 today')),
+        Expanded(child: _StatCard(value: '$totalBlocks', label: 'Urges blocked')),
       ],
     );
   }
 }
 
 class _StatCard extends StatelessWidget {
-  const _StatCard({required this.value, required this.label, required this.delta, this.onTap});
-  final String value, label, delta;
+  const _StatCard({required this.value, required this.label, this.delta, this.onTap});
+  final String value, label;
+  final String? delta;
   final VoidCallback? onTap;
 
   @override
@@ -231,8 +243,10 @@ class _StatCard extends StatelessWidget {
           ),
           const SizedBox(height: 2),
           Text(label, style: TextStyle(fontSize: 11, color: ct.textDisabled)),
-          const SizedBox(height: 4),
-          Text(delta, style: TextStyle(fontSize: 11, color: ct.teal)),
+          if (delta != null) ...[
+            const SizedBox(height: 4),
+            Text(delta!, style: TextStyle(fontSize: 11, color: ct.teal)),
+          ],
         ],
       ),
     );

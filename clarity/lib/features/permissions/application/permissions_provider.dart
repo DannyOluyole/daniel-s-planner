@@ -74,3 +74,8 @@ class PermissionsNotifier extends Notifier<PermissionsState> {
 
 final permissionsProvider =
     NotifierProvider<PermissionsNotifier, PermissionsState>(PermissionsNotifier.new);
+
+// Tracks whether the user explicitly skipped the permissions screen this
+// app session — lets the router stop forcing them back to it immediately,
+// while still re-prompting on next app launch if permissions are missing.
+final permissionsSkippedProvider = StateProvider<bool>((_) => false);

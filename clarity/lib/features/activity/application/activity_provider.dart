@@ -36,3 +36,10 @@ final activityTotalTodayProvider = FutureProvider.autoDispose<int>((ref) async {
   final metric = ref.watch(selectedMetricProvider);
   return repo.getTotalToday(metric);
 });
+
+// Screen-time minutes for today, independent of whatever metric the
+// activity screen has selected — used for the dashboard's "Screen time" stat.
+final screenTimeTodayMinutesProvider = FutureProvider.autoDispose<int>((ref) async {
+  final repo = ref.watch(activityRepositoryProvider);
+  return repo.getTotalToday(ActivityMetric.screenTime);
+});
