@@ -12,6 +12,7 @@ import '../../../permissions/application/permissions_provider.dart';
 import '../../application/block_settings_notifier.dart';
 import '../../data/block_model.dart';
 import '../../platform/blocking_channel.dart';
+import '../../../profile/application/profile_notifier.dart';
 
 class BlockScreen extends ConsumerStatefulWidget {
   const BlockScreen({super.key});
@@ -59,6 +60,65 @@ class _BlockScreenState extends ConsumerState<BlockScreen> {
         },
       ),
     );
+  }
+
+  // Shows a PIN-entry dialog when PIN lock is enabled, and returns true if the
+  // user is allowed to proceed (PIN disabled, or correct PIN entered).
+  Future<bool> _verifyPin(BuildContext context, WidgetRef ref) async {
+    final profile = ref.read(profileSettingsProvider).valueOrNull;
+    if (profile == null || !profile.pinEnabled || profile.pinCode == null) {
+      return true;
+    }
+
+    final controller = TextEditingController();
+    var error = false;
+
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (dialogContext, setDialogState) => AlertDialog(
+          backgroundColor: ct.bgCard,
+          title: Text('Enter PIN', style: TextStyle(color: ct.textPrimary)),
+          content: TextField(
+            controller: controller,
+            autofocus: true,
+            obscureText: true,
+            keyboardType: TextInputType.number,
+            maxLength: 4,
+            style: TextStyle(color: ct.textPrimary),
+            decoration: InputDecoration(
+              errorText: error ? 'Incorrect PIN' : null,
+              counterText: '',
+            ),
+            onSubmitted: (_) {
+              if (controller.text == profile.pinCode) {
+                Navigator.of(dialogContext).pop(true);
+              } else {
+                setDialogState(() => error = true);
+              }
+            },
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () {
+                if (controller.text == profile.pinCode) {
+                  Navigator.of(dialogContext).pop(true);
+                } else {
+                  setDialogState(() => error = true);
+                }
+              },
+              child: const Text('Unlock'),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    return ok ?? false;
   }
 
   void _showLimitsSheet(BuildContext context, WidgetRef ref, int index, AppEntry app) {
@@ -158,14 +218,24 @@ class _BlockScreenState extends ConsumerState<BlockScreen> {
                                   : _AppsList(
                                       apps: filteredApps,
                                       indexOf: (app) => settings.apps.indexOf(app),
-                                      onToggle: (i) => ref
-                                          .read(blockSettingsProvider.notifier)
-                                          .toggleApp(i),
+                                      onToggle: (i) async {
+                                        final isUnblocking = settings.apps[i].blocked;
+                                        if (isUnblocking &&
+                                            !await _verifyPin(context, ref)) {
+                                          return;
+                                        }
+                                        ref
+                                            .read(blockSettingsProvider.notifier)
+                                            .toggleApp(i);
+                                      },
                                       onEditLimits: (i) =>
                                           _showLimitsSheet(context, ref, i, settings.apps[i]),
-                                      onRemove: (i) => ref
-                                          .read(blockSettingsProvider.notifier)
-                                          .removeApp(i),
+                                      onRemove: (i) async {
+                                        if (!await _verifyPin(context, ref)) return;
+                                        ref
+                                            .read(blockSettingsProvider.notifier)
+                                            .removeApp(i);
+                                      },
                                     ),
                           const SizedBox(height: 10),
                           _ScheduleCard(
@@ -200,9 +270,12 @@ class _BlockScreenState extends ConsumerState<BlockScreen> {
                                     .addKeyword(_kwController.text);
                                 _kwController.clear();
                               },
-                              onRemove: (i) => ref
-                                  .read(blockSettingsProvider.notifier)
-                                  .removeKeyword(i),
+                              onRemove: (i) async {
+                                if (!await _verifyPin(context, ref)) return;
+                                ref
+                                    .read(blockSettingsProvider.notifier)
+                                    .removeKeyword(i);
+                              },
                             ),
                           ),
                           const SizedBox(height: 10),

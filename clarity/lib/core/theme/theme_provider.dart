@@ -6,6 +6,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 const _kDarkModeKey = 'dark_mode';
 
 class ThemeNotifier extends Notifier<ThemeMode> {
+  SharedPreferences? _prefs;
+
   @override
   ThemeMode build() {
     _load();
@@ -13,16 +15,16 @@ class ThemeNotifier extends Notifier<ThemeMode> {
   }
 
   Future<void> _load() async {
-    final prefs  = await SharedPreferences.getInstance();
-    final isDark = prefs.getBool(_kDarkModeKey) ?? false;
+    _prefs = await SharedPreferences.getInstance();
+    final isDark = _prefs!.getBool(_kDarkModeKey) ?? false;
     state = isDark ? ThemeMode.dark : ThemeMode.light;
   }
 
-  Future<void> toggle() async {
+  void toggle() {
     final next = state == ThemeMode.dark ? ThemeMode.light : ThemeMode.dark;
     state = next;
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(_kDarkModeKey, next == ThemeMode.dark);
+    // Persist in the background — the UI/theme has already switched above.
+    _prefs?.setBool(_kDarkModeKey, next == ThemeMode.dark);
   }
 
   bool get isDark => state == ThemeMode.dark;

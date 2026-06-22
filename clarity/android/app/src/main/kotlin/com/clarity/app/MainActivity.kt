@@ -31,7 +31,7 @@ class MainActivity : FlutterActivity() {
                         result.success(UsageStatsHelper.hasPermission(this))
 
                     "requestUsagePermission" -> {
-                        startActivity(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS))
+                        startActivity(buildUsageAccessIntent())
                         result.success(null)
                     }
 
@@ -39,7 +39,7 @@ class MainActivity : FlutterActivity() {
                         result.success(isAccessibilityEnabled())
 
                     "requestAccessibilityPermission" -> {
-                        startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
+                        startActivity(buildAccessibilitySettingsIntent())
                         result.success(null)
                     }
 
@@ -184,6 +184,35 @@ class MainActivity : FlutterActivity() {
             apps.put(obj)
         }
         return apps.toString()
+    }
+
+    // Tries to deep-link straight to this app's usage-access entry. Most OEMs
+    // honour the "package:" data URI on this action (same convention as
+    // ACTION_APPLICATION_DETAILS_SETTINGS); falls back to the generic list
+    // when a device's Settings app can't resolve the deep link.
+    private fun buildUsageAccessIntent(): Intent {
+        val deepLink = Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS)
+            .setData(android.net.Uri.parse("package:$packageName"))
+        return if (deepLink.resolveActivity(packageManager) != null) {
+            deepLink
+        } else {
+            Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS)
+        }
+    }
+
+    // On Android 12+ this deep-links straight to this app's accessibility
+    // service toggle; older versions fall back to the generic service list
+    // since there's no public deep-link API before ACTION_ACCESSIBILITY_DETAILS_SETTINGS.
+    private fun buildAccessibilitySettingsIntent(): Intent {
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+            val component = android.content.ComponentName(
+                this, com.clarity.app.blocking.ClarityBlockingService::class.java
+            )
+            val deepLink = Intent("android.settings.ACCESSIBILITY_DETAILS_SETTINGS")
+                .putExtra("android.provider.extra.ACCESSIBILITY_COMPONENT_NAME", component.flattenToString())
+            if (deepLink.resolveActivity(packageManager) != null) return deepLink
+        }
+        return Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
     }
 
     private fun isAccessibilityEnabled(): Boolean {
