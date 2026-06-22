@@ -40,8 +40,13 @@ class ClarityBlockingService : AccessibilityService() {
         }
     }
 
+    private val prefsListener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+        if (key == "blocked_packages") checkCurrentAppNowBlocked()
+    }
+
     override fun onServiceConnected() {
         prefs = getSharedPreferences("clarity_blocking", MODE_PRIVATE)
+        prefs.registerOnSharedPreferenceChangeListener(prefsListener)
         serviceInfo = AccessibilityServiceInfo().apply {
             eventTypes  = AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED
             feedbackType = AccessibilityServiceInfo.FEEDBACK_GENERIC
@@ -49,6 +54,14 @@ class ClarityBlockingService : AccessibilityService() {
             notificationTimeout = 100
         }
         handler.post(tickRunnable)
+    }
+
+    /** Re-checks the app currently in the foreground against the blocklist —
+     * needed because the blocklist can change while the user is still inside
+     * an app that just became blocked (no new window-state event fires). */
+    private fun checkCurrentAppNowBlocked() {
+        val pkg = currentPkg ?: return
+        if (loadBlockedApps().contains(pkg)) launchOverlay(pkg, "BLOCKED")
     }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent) {
@@ -90,6 +103,7 @@ class ClarityBlockingService : AccessibilityService() {
 
     override fun onDestroy() {
         handler.removeCallbacks(tickRunnable)
+        prefs.unregisterOnSharedPreferenceChangeListener(prefsListener)
         super.onDestroy()
     }
 

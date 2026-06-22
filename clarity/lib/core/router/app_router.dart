@@ -13,7 +13,6 @@ import '../../features/onboarding/presentation/screens/onboarding_screen.dart';
 import '../../features/permissions/presentation/screens/permissions_screen.dart';
 import '../../features/dashboard/presentation/screens/dashboard_screen.dart';
 import '../../features/block/presentation/screens/block_screen.dart';
-import '../../features/community/presentation/screens/community_screen.dart';
 import '../../features/profile/presentation/screens/profile_screen.dart';
 import '../../features/activity/presentation/screens/app_activity_screen.dart';
 import '../shell/main_shell.dart';
@@ -30,7 +29,6 @@ class Routes {
   static const permissions   = '/permissions';
   static const home          = '/home';
   static const block         = '/block';
-  static const community     = '/community';
   static const profile       = '/profile';
   static const appActivity   = '/app-activity';
 }
@@ -113,10 +111,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           StatefulShellBranch(routes: [
             GoRoute(path: Routes.block,
                 builder: (_, __) => const BlockScreen()),
-          ]),
-          StatefulShellBranch(routes: [
-            GoRoute(path: Routes.community,
-                builder: (_, __) => const CommunityScreen()),
           ]),
           StatefulShellBranch(routes: [
             GoRoute(path: Routes.profile,

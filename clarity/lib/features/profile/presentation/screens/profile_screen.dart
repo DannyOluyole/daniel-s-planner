@@ -473,14 +473,6 @@ class _SettingsCard extends ConsumerWidget {
             value:     settings.bedtimeMode,
             onChanged: notifier.setBedtimeMode,
           ),
-          _ToggleRow(
-            iconBg:    ct.amberTint,
-            icon:      TablerIcons.user_circle,
-            iconColor: ct.amber,
-            label:     'Anonymous mode',
-            value:     settings.anonymousMode,
-            onChanged: notifier.setAnonymousMode,
-          ),
           _ArrowRow(
             iconBg:    ct.bgCard,
             icon:      TablerIcons.target,

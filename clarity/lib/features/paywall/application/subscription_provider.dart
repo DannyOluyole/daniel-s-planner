@@ -16,10 +16,9 @@ final subscriptionStatusProvider = FutureProvider<SubscriptionStatus>((ref) asyn
   return ref.read(purchaseRepositoryProvider).getStatus();
 });
 
-// Convenience bool — use this to gate features
-final isPremiumProvider = Provider<bool>((ref) {
-  return ref.watch(subscriptionStatusProvider).valueOrNull?.isActive ?? false;
-});
+// Convenience bool — use this to gate features.
+// App is free for now — paywall is disabled until billing is ready.
+final isPremiumProvider = Provider<bool>((ref) => true);
 
 final isTrialProvider = Provider<bool>((ref) {
   return ref.watch(subscriptionStatusProvider).valueOrNull?.isTrial ?? false;

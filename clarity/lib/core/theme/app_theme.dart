@@ -226,8 +226,8 @@ extension ClarityThemeX on BuildContext {
 class AppTheme {
   AppTheme._();
 
-  static ThemeData get light => _build(ClarityColors.light);
-  static ThemeData get dark  => _build(ClarityColors.dark);
+  static final ThemeData light = _build(ClarityColors.light);
+  static final ThemeData dark  = _build(ClarityColors.dark);
 
   static ThemeData _build(ClarityColors c) {
     final base     = c.isDark ? ThemeData.dark(useMaterial3: true)

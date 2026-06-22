@@ -38,7 +38,6 @@ class _ClarityTabBar extends StatelessWidget {
   static const _tabs = [
     _TabItem(icon: TablerIcons.home,   label: 'Home'),
     _TabItem(icon: TablerIcons.shield, label: 'Block'),
-    _TabItem(icon: TablerIcons.users,  label: 'Community'),
     _TabItem(icon: TablerIcons.user,   label: 'Profile'),
   ];
 

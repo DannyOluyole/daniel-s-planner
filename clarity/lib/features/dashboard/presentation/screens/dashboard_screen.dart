@@ -220,8 +220,15 @@ class _StatCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(value, style: TextStyle(fontSize: 20, fontWeight: FontWeight.w500,
-              color: ct.textPrimary)),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(value, style: TextStyle(fontSize: 20, fontWeight: FontWeight.w500,
+                  color: ct.textPrimary)),
+              if (onTap != null)
+                Icon(TablerIcons.chevron_right, size: 16, color: ct.textDisabled),
+            ],
+          ),
           const SizedBox(height: 2),
           Text(label, style: TextStyle(fontSize: 11, color: ct.textDisabled)),
           const SizedBox(height: 4),
