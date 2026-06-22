@@ -2,7 +2,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_tabler_icons/flutter_tabler_icons.dart';
+import 'package:go_router/go_router.dart';
 
+import '../../../../core/router/app_router.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../block/application/block_settings_notifier.dart';
 import '../../../block/data/block_model.dart';
@@ -194,8 +196,12 @@ class _StatRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        const Expanded(
-            child: _StatCard(value: '2h 14m', label: 'Screen time', delta: '↓ 45 min')),
+        Expanded(
+            child: _StatCard(
+                value: '2h 14m',
+                label: 'Screen time',
+                delta: '↓ 45 min',
+                onTap: () => context.push(Routes.appActivity))),
         const SizedBox(width: 10),
         Expanded(child: _StatCard(value: '$totalBlocks', label: 'Urges blocked', delta: '↑ 3 today')),
       ],
@@ -204,12 +210,13 @@ class _StatRow extends StatelessWidget {
 }
 
 class _StatCard extends StatelessWidget {
-  const _StatCard({required this.value, required this.label, required this.delta});
+  const _StatCard({required this.value, required this.label, required this.delta, this.onTap});
   final String value, label, delta;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    return _ClarityCard(
+    final card = _ClarityCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -222,6 +229,8 @@ class _StatCard extends StatelessWidget {
         ],
       ),
     );
+    if (onTap == null) return card;
+    return GestureDetector(onTap: onTap, child: card);
   }
 }
 

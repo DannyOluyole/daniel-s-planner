@@ -9,7 +9,9 @@ import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 import org.json.JSONArray
 import com.clarity.app.blocking.ClarityVpnService
+import com.clarity.app.blocking.NotificationCounterService
 import com.clarity.app.blocking.UsageStatsHelper
+import java.util.Calendar
 
 class MainActivity : FlutterActivity() {
 
@@ -69,6 +71,40 @@ class MainActivity : FlutterActivity() {
                         } else {
                             result.success(UsageStatsHelper.getTotalMinutesToday(this))
                         }
+                    }
+
+                    // ── App activity (screen time / opens / notifications) ──
+
+                    "hasNotificationPermission" ->
+                        result.success(NotificationCounterService.hasAccess(this))
+
+                    "requestNotificationPermission" -> {
+                        startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
+                        result.success(null)
+                    }
+
+                    "getAppOpens" -> {
+                        if (!UsageStatsHelper.hasPermission(this)) {
+                            result.error("NO_PERMISSION", "Usage access not granted", null)
+                        } else {
+                            val dayStart = call.argument<Long>("dayStart") ?: startOfToday()
+                            val dayEnd   = call.argument<Long>("dayEnd") ?: System.currentTimeMillis()
+                            result.success(UsageStatsHelper.getAppOpens(this, dayStart, dayEnd).toString())
+                        }
+                    }
+
+                    "getNotificationsForDay" -> {
+                        val dayStart = call.argument<Long>("dayStart") ?: startOfToday()
+                        result.success(NotificationCounterService.getCountsForDay(this, dayStart).toString())
+                    }
+
+                    "getWeeklyTotals" -> {
+                        val metric = call.argument<String>("metric") ?: "screenTime"
+                        val totals = when (metric) {
+                            "notifications" -> NotificationCounterService.getDailyTotals(this)
+                            else            -> UsageStatsHelper.getDailyTotals(this, metric)
+                        }
+                        result.success(totals.toString())
                     }
 
                     // ── Block config ───────────────────────────────────────
@@ -156,6 +192,15 @@ class MainActivity : FlutterActivity() {
             contentResolver, Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES
         ) ?: return false
         return enabled.contains(service)
+    }
+
+    private fun startOfToday(): Long {
+        val cal = Calendar.getInstance()
+        cal.set(Calendar.HOUR_OF_DAY, 0)
+        cal.set(Calendar.MINUTE, 0)
+        cal.set(Calendar.SECOND, 0)
+        cal.set(Calendar.MILLISECOND, 0)
+        return cal.timeInMillis
     }
 
     companion object {

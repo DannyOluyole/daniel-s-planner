@@ -77,6 +77,70 @@ class BlockingChannel {
     }
   }
 
+  // ── App activity (screen time / opens / notifications) ──────────────────────
+
+  static Future<bool> hasNotificationPermission() async {
+    if (!_isAndroid) return false;
+    return await _ch.invokeMethod<bool>('hasNotificationPermission') ?? false;
+  }
+
+  static Future<void> requestNotificationPermission() async {
+    if (!_isAndroid) return;
+    await _ch.invokeMethod('requestNotificationPermission');
+  }
+
+  /// Returns list of {packageName, appName, opens} between [dayStart, dayEnd).
+  static Future<List<Map<String, dynamic>>> getAppOpens({
+    int? dayStart,
+    int? dayEnd,
+  }) async {
+    if (!_isAndroid) return [];
+    try {
+      final json = await _ch.invokeMethod<String>('getAppOpens', {
+        if (dayStart != null) 'dayStart': dayStart,
+        if (dayEnd != null) 'dayEnd': dayEnd,
+      });
+      if (json == null) return [];
+      final list = jsonDecode(json) as List;
+      return list.cast<Map<String, dynamic>>();
+    } on PlatformException {
+      return [];
+    }
+  }
+
+  /// Returns list of {packageName, appName, notifications} for the given day.
+  static Future<List<Map<String, dynamic>>> getNotificationsForDay({
+    int? dayStart,
+  }) async {
+    if (!_isAndroid) return [];
+    try {
+      final json = await _ch.invokeMethod<String>('getNotificationsForDay', {
+        if (dayStart != null) 'dayStart': dayStart,
+      });
+      if (json == null) return [];
+      final list = jsonDecode(json) as List;
+      return list.cast<Map<String, dynamic>>();
+    } on PlatformException {
+      return [];
+    }
+  }
+
+  /// metric: "screenTime" | "opens" | "notifications".
+  /// Returns 7 entries {dateMillis, value}, oldest first.
+  static Future<List<Map<String, dynamic>>> getWeeklyTotals(
+      String metric) async {
+    if (!_isAndroid) return [];
+    try {
+      final json =
+          await _ch.invokeMethod<String>('getWeeklyTotals', {'metric': metric});
+      if (json == null) return [];
+      final list = jsonDecode(json) as List;
+      return list.cast<Map<String, dynamic>>();
+    } on PlatformException {
+      return [];
+    }
+  }
+
   // ── Block config (synced to native services) ───────────────────────────────
 
   static Future<void> updateBlockedApps(List<String> packages) async {

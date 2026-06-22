@@ -15,6 +15,7 @@ import '../../features/dashboard/presentation/screens/dashboard_screen.dart';
 import '../../features/block/presentation/screens/block_screen.dart';
 import '../../features/community/presentation/screens/community_screen.dart';
 import '../../features/profile/presentation/screens/profile_screen.dart';
+import '../../features/activity/presentation/screens/app_activity_screen.dart';
 import '../shell/main_shell.dart';
 
 part 'app_router.g.dart';
@@ -31,6 +32,7 @@ class Routes {
   static const block         = '/block';
   static const community     = '/community';
   static const profile       = '/profile';
+  static const appActivity   = '/app-activity';
 }
 
 // Routes reachable without being signed in
@@ -97,6 +99,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           builder: (_, __) => const PaywallScreen(isDismissible: false)),
       GoRoute(path: Routes.permissions,
           builder: (_, __) => const PermissionsScreen()),
+      GoRoute(path: Routes.appActivity,
+          builder: (_, __) => const AppActivityScreen()),
 
       // ── Protected shell ──────────────────────────────────────────────────
       StatefulShellRoute.indexedStack(
