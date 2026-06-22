@@ -22,11 +22,15 @@ class BlockScreen extends ConsumerStatefulWidget {
 
 class _BlockScreenState extends ConsumerState<BlockScreen> {
   int _tab = 0;
+  int _statusFilter = 1; // 0 = Unlocked, 1 = Locked
+  String _query = '';
   final TextEditingController _kwController = TextEditingController();
+  final TextEditingController _searchController = TextEditingController();
 
   @override
   void dispose() {
     _kwController.dispose();
+    _searchController.dispose();
     super.dispose();
   }
 
@@ -88,25 +92,11 @@ class _BlockScreenState extends ConsumerState<BlockScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text('Block Setup',
-                        style: TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.w500,
-                            color: ct.textPrimary)),
-                  ),
-                  IconButton(
-                    icon: Icon(TablerIcons.plus,
-                        color: ct.purpleLight),
-                    onPressed: () => _showAddAppSheet(
-                        context, ref, async.valueOrNull?.apps ?? const []),
-                  ),
-                ],
-              ),
+            _SecureHeader(
+              lockedCount: async.valueOrNull?.apps.where((a) => a.blocked).length ?? 0,
+              totalCount: async.valueOrNull?.apps.length ?? 0,
+              onAdd: () => _showAddAppSheet(
+                  context, ref, async.valueOrNull?.apps ?? const []),
             ),
 
             // ── Permissions setup banner (Android only, dismisses once all granted) ──
@@ -134,24 +124,49 @@ class _BlockScreenState extends ConsumerState<BlockScreen> {
                     child: Text('Error: $e',
                         style: TextStyle(
                             color: ct.textDisabled))),
-                data: (settings) => ListView(
+                data: (settings) {
+                  final filteredApps = settings.apps.where((a) {
+                    final matchesQuery =
+                        _query.isEmpty || a.name.toLowerCase().contains(_query.toLowerCase());
+                    final matchesStatus = _statusFilter == 1 ? a.blocked : !a.blocked;
+                    return matchesQuery && matchesStatus;
+                  }).toList();
+
+                  return ListView(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   children: _tab == 0
                       ? [
+                          if (settings.apps.isNotEmpty) ...[
+                            _AppSearchField(
+                              controller: _searchController,
+                              onChanged: (v) => setState(() => _query = v),
+                            ),
+                            const SizedBox(height: 10),
+                            _SegmentControl(
+                              labels: const ['Unlocked', 'Locked'],
+                              current: _statusFilter,
+                              onChanged: (i) => setState(() => _statusFilter = i),
+                            ),
+                            const SizedBox(height: 10),
+                          ],
                           settings.apps.isEmpty
                               ? _EmptyAppsHint(
                                   onTap: () => _showAddAppSheet(context, ref, settings.apps),
                                 )
-                              : _AppsList(
-                                  apps: settings.apps,
-                                  onToggle: (i) => ref
-                                      .read(blockSettingsProvider.notifier)
-                                      .toggleApp(i),
-                                  onEditLimits: (i) => _showLimitsSheet(context, ref, i, settings.apps[i]),
-                                  onRemove: (i) => ref
-                                      .read(blockSettingsProvider.notifier)
-                                      .removeApp(i),
-                                ),
+                              : filteredApps.isEmpty
+                                  ? _EmptyFilterHint(locked: _statusFilter == 1)
+                                  : _AppsList(
+                                      apps: filteredApps,
+                                      indexOf: (app) => settings.apps.indexOf(app),
+                                      onToggle: (i) => ref
+                                          .read(blockSettingsProvider.notifier)
+                                          .toggleApp(i),
+                                      onEditLimits: (i) =>
+                                          _showLimitsSheet(context, ref, i, settings.apps[i]),
+                                      onRemove: (i) => ref
+                                          .read(blockSettingsProvider.notifier)
+                                          .removeApp(i),
+                                    ),
                           const SizedBox(height: 10),
                           _ScheduleCard(
                             activeDays: settings.activeDays,
@@ -194,11 +209,128 @@ class _BlockScreenState extends ConsumerState<BlockScreen> {
                           const _SavedIndicator(),
                           const SizedBox(height: 20),
                         ],
-                ),
+                );
+                },
               ),
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+// ─── Secure header ───────────────────────────────────────────────────────────
+
+class _SecureHeader extends StatelessWidget {
+  const _SecureHeader({
+    required this.lockedCount,
+    required this.totalCount,
+    required this.onAdd,
+  });
+  final int          lockedCount;
+  final int          totalCount;
+  final VoidCallback onAdd;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [ct.purpleDeep, ct.purple],
+        ),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Secure Your Apps',
+                    style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w600,
+                        color: ct.textPrimary)),
+                const SizedBox(height: 6),
+                Text(
+                  totalCount == 0
+                      ? 'No apps added yet'
+                      : '$lockedCount of $totalCount apps locked',
+                  style: TextStyle(fontSize: 13, color: ct.purplePale),
+                ),
+              ],
+            ),
+          ),
+          GestureDetector(
+            onTap: onAdd,
+            child: Container(
+              width: 40, height: 40,
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.15),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(TablerIcons.plus, size: 20, color: ct.textPrimary),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─── Search field ────────────────────────────────────────────────────────────
+
+class _AppSearchField extends StatelessWidget {
+  const _AppSearchField({required this.controller, required this.onChanged});
+  final TextEditingController controller;
+  final ValueChanged<String>  onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return TextField(
+      controller: controller,
+      onChanged: onChanged,
+      style: TextStyle(fontSize: 13, color: ct.textSecondary),
+      decoration: InputDecoration(
+        hintText: 'Search apps…',
+        prefixIcon: Icon(TablerIcons.search, size: 18, color: ct.textDisabled),
+      ),
+    );
+  }
+}
+
+// ─── Empty filter hint ───────────────────────────────────────────────────────
+
+class _EmptyFilterHint extends StatelessWidget {
+  const _EmptyFilterHint({required this.locked});
+  final bool locked;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 16),
+      decoration: BoxDecoration(
+        color: ct.bgCard,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: ct.border, width: 0.5),
+      ),
+      child: Column(
+        children: [
+          Icon(TablerIcons.search_off, size: 28, color: ct.textDisabled),
+          const SizedBox(height: 10),
+          Text(
+            locked
+                ? 'No locked apps match your search'
+                : 'No unlocked apps match your search',
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 13, color: ct.textDisabled),
+          ),
+        ],
       ),
     );
   }
@@ -241,14 +373,16 @@ class _EmptyAppsHint extends StatelessWidget {
 class _AppsList extends StatelessWidget {
   const _AppsList({
     required this.apps,
+    required this.indexOf,
     required this.onToggle,
     required this.onEditLimits,
     required this.onRemove,
   });
-  final List<AppEntry>    apps;
-  final ValueChanged<int> onToggle;
-  final ValueChanged<int> onEditLimits;
-  final ValueChanged<int> onRemove;
+  final List<AppEntry>      apps;
+  final int Function(AppEntry) indexOf;
+  final ValueChanged<int>   onToggle;
+  final ValueChanged<int>   onEditLimits;
+  final ValueChanged<int>   onRemove;
 
   @override
   Widget build(BuildContext context) {
@@ -260,8 +394,9 @@ class _AppsList extends StatelessWidget {
       ),
       child: Column(
         children: apps.asMap().entries.map((e) {
-          final i   = e.key;
-          final app = e.value;
+          final listIndex = e.key;
+          final app       = e.value;
+          final i         = indexOf(app);
           return Dismissible(
             key: ValueKey('${app.packageName}-${app.name}-$i'),
             direction: DismissDirection.endToStart,
@@ -274,7 +409,7 @@ class _AppsList extends StatelessWidget {
             onDismissed: (_) => onRemove(i),
             child: _AppRow(
                 app: app,
-                isLast: i == apps.length - 1,
+                isLast: listIndex == apps.length - 1,
                 onToggle: () => onToggle(i),
                 onEditLimits: () => onEditLimits(i)),
           );
@@ -296,25 +431,42 @@ class _AppRow extends StatelessWidget {
   final VoidCallback onToggle;
   final VoidCallback onEditLimits;
 
+  static const _avatarColors = [
+    Color(0xFF7C5CFC), Color(0xFF38B6A6), Color(0xFFE0A23B),
+    Color(0xFFE0577A), Color(0xFF4C9AE0), Color(0xFF6FCF7A),
+  ];
+
+  Color _avatarColor(String name) =>
+      _avatarColors[name.codeUnits.fold<int>(0, (a, b) => a + b) % _avatarColors.length];
+
   @override
   Widget build(BuildContext context) {
     final hasLimits = app.openLimitPerDay != null || app.timeLimitMinutes != null;
-    return GestureDetector(
-      onTap: onEditLimits,
-      child: Container(
-        decoration: BoxDecoration(
-          border: isLast
-              ? null
-              : Border(
-                  bottom: BorderSide(
-                      color: ct.borderFaint, width: 0.5)),
-        ),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-        child: Row(
-          children: [
-            Text(app.emoji, style: const TextStyle(fontSize: 22)),
-            const SizedBox(width: 12),
-            Expanded(
+    return Container(
+      decoration: BoxDecoration(
+        border: isLast
+            ? null
+            : Border(
+                bottom: BorderSide(
+                    color: ct.borderFaint, width: 0.5)),
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      child: Row(
+        children: [
+          Container(
+            width: 38, height: 38,
+            decoration: BoxDecoration(
+              color: _avatarColor(app.name).withOpacity(0.25),
+              shape: BoxShape.circle,
+            ),
+            child: Center(
+              child: Text(app.emoji, style: const TextStyle(fontSize: 18)),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: GestureDetector(
+              onTap: onEditLimits,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -337,15 +489,28 @@ class _AppRow extends StatelessWidget {
                 ],
               ),
             ),
-            GestureDetector(
-              onTap: onEditLimits,
+          ),
+          GestureDetector(
+            onTap: onEditLimits,
+            child: Padding(
+              padding: const EdgeInsets.all(6),
               child: Icon(TablerIcons.adjustments_horizontal,
                   size: 16, color: hasLimits ? ct.purpleLight : ct.textDisabled),
             ),
-            const SizedBox(width: 14),
-            _ClaritySwitch(value: app.blocked, onChanged: (_) => onToggle()),
-          ],
-        ),
+          ),
+          const SizedBox(width: 6),
+          GestureDetector(
+            onTap: onToggle,
+            child: Padding(
+              padding: const EdgeInsets.all(6),
+              child: Icon(
+                app.blocked ? TablerIcons.lock : TablerIcons.lock_open,
+                size: 20,
+                color: app.blocked ? ct.purpleLight : ct.textDisabled,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
