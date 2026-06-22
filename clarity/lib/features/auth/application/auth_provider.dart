@@ -1,4 +1,5 @@
 // lib/features/auth/application/auth_provider.dart
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../data/auth_repository.dart';
@@ -152,6 +153,7 @@ class AuthNotifier extends Notifier<AuthState> {
     if (msg.contains('weak-password'))     return 'Password must be at least 6 characters.';
     if (msg.contains('network-request'))   return 'No internet connection.';
     if (msg.contains('cancelled'))         return ''; // user cancelled — no toast needed
+    debugPrint('Auth error: ${e.runtimeType} $e');
     return 'Something went wrong. Please try again.';
   }
 }

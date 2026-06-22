@@ -1,4 +1,4 @@
-package com.example.clarity.blocking
+package com.clarity.app.blocking
 
 import android.app.Activity
 import android.os.Bundle
@@ -6,7 +6,7 @@ import android.os.CountDownTimer
 import android.view.WindowManager
 import android.widget.Button
 import android.widget.TextView
-import com.example.clarity.R
+import com.clarity.app.R
 
 /**
  * Full-screen overlay shown when a blocked app is opened, or when a

@@ -17,7 +17,9 @@ void main() async {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
-  } catch (_) {}
+  } catch (e) {
+    debugPrint('Firebase init error: $e');
+  }
 
   try {
     await PurchaseRepository.configure(appUserId: 'anonymous');

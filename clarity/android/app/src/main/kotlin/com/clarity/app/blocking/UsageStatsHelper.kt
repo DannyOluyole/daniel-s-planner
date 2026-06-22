@@ -1,4 +1,4 @@
-package com.example.clarity.blocking
+package com.clarity.app.blocking
 
 import android.app.AppOpsManager
 import android.app.usage.UsageStatsManager

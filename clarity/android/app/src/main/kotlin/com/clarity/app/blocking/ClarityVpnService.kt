@@ -1,4 +1,4 @@
-package com.example.clarity.blocking
+package com.clarity.app.blocking
 
 import android.content.Intent
 import android.content.SharedPreferences

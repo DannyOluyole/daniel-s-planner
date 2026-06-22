@@ -1,4 +1,4 @@
-package com.example.clarity.blocking
+package com.clarity.app.blocking
 
 import android.accessibilityservice.AccessibilityService
 import android.accessibilityservice.AccessibilityServiceInfo

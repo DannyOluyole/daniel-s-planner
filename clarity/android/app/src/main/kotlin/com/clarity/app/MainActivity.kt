@@ -1,4 +1,4 @@
-package com.example.clarity
+package com.clarity.app
 
 import android.content.Intent
 import android.content.SharedPreferences
@@ -8,8 +8,8 @@ import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 import org.json.JSONArray
-import com.example.clarity.blocking.ClarityVpnService
-import com.example.clarity.blocking.UsageStatsHelper
+import com.clarity.app.blocking.ClarityVpnService
+import com.clarity.app.blocking.UsageStatsHelper
 
 class MainActivity : FlutterActivity() {
 
