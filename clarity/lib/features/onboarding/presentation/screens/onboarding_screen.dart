@@ -20,8 +20,6 @@ const _steps = [
       description: 'Set limits on apps and websites that pull you away from what actually matters.'),
   _OnboardStep(icon: TablerIcons.clock_stop, title: 'Track your screen time',
       description: 'See exactly where your hours go. Awareness is the first step to change.'),
-  _OnboardStep(icon: TablerIcons.users, title: "You're not alone in this",
-      description: 'A community of people working through the same things. Support when you need it most.'),
   _OnboardStep(icon: TablerIcons.heart, title: 'Build better habits',
       description: 'Streaks, check-ins, and a daily companion that keeps you honest.'),
 ];

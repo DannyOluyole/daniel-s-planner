@@ -64,11 +64,16 @@ class AuthNotifier extends Notifier<AuthState> {
       final user = await _repo.signUpWithEmail(
         email: email, password: password, displayName: displayName,
       );
-      await ref.read(firestoreUserRepositoryProvider).createUserDoc(user);
+      try {
+        await ref.read(firestoreUserRepositoryProvider).createUserDoc(user);
+      } catch (_) {
+        // The auth account was created either way — don't block sign-up on a
+        // Firestore write failure (e.g. rules misconfigured).
+      }
       await _rcLogin(user.uid);
       state = const AuthState(status: AuthStatus.success);
       return true;
-    } on Exception catch (e) {
+    } catch (e) {
       state = AuthState(status: AuthStatus.error, errorMsg: _message(e));
       return false;
     }
@@ -86,7 +91,7 @@ class AuthNotifier extends Notifier<AuthState> {
       await _rcLogin(user.uid);
       state = const AuthState(status: AuthStatus.success);
       return true;
-    } on Exception catch (e) {
+    } catch (e) {
       state = AuthState(status: AuthStatus.error, errorMsg: _message(e));
       return false;
     }
@@ -98,11 +103,13 @@ class AuthNotifier extends Notifier<AuthState> {
     state = const AuthState(status: AuthStatus.loading);
     try {
       final user = await _repo.signInWithGoogle();
-      await ref.read(firestoreUserRepositoryProvider).upsertUserDoc(user);
+      try {
+        await ref.read(firestoreUserRepositoryProvider).upsertUserDoc(user);
+      } catch (_) {}
       await _rcLogin(user.uid);
       state = const AuthState(status: AuthStatus.success);
       return true;
-    } on Exception catch (e) {
+    } catch (e) {
       state = AuthState(status: AuthStatus.error, errorMsg: _message(e));
       return false;
     }
@@ -114,11 +121,13 @@ class AuthNotifier extends Notifier<AuthState> {
     state = const AuthState(status: AuthStatus.loading);
     try {
       final user = await _repo.signInWithApple();
-      await ref.read(firestoreUserRepositoryProvider).upsertUserDoc(user);
+      try {
+        await ref.read(firestoreUserRepositoryProvider).upsertUserDoc(user);
+      } catch (_) {}
       await _rcLogin(user.uid);
       state = const AuthState(status: AuthStatus.success);
       return true;
-    } on Exception catch (e) {
+    } catch (e) {
       state = AuthState(status: AuthStatus.error, errorMsg: _message(e));
       return false;
     }
@@ -144,13 +153,18 @@ class AuthNotifier extends Notifier<AuthState> {
 
   // ── Error message mapper ──────────────────────────────────────────────────
 
-  String _message(Exception e) {
+  String _message(Object e) {
     final msg = e.toString();
     if (msg.contains('user-not-found'))    return 'No account found with that email.';
     if (msg.contains('wrong-password'))    return 'Incorrect password.';
+    // Newer Firebase projects return this generic code for both a wrong
+    // password and a non-existent account (enumeration protection).
+    if (msg.contains('invalid-credential')) return 'Incorrect email or password.';
     if (msg.contains('email-already'))     return 'An account already exists with that email.';
     if (msg.contains('invalid-email'))     return 'Please enter a valid email address.';
     if (msg.contains('weak-password'))     return 'Password must be at least 6 characters.';
+    if (msg.contains('user-disabled'))     return 'This account has been disabled.';
+    if (msg.contains('too-many-requests')) return 'Too many attempts. Try again later.';
     if (msg.contains('network-request'))   return 'No internet connection.';
     if (msg.contains('cancelled'))         return ''; // user cancelled — no toast needed
     debugPrint('Auth error: ${e.runtimeType} $e');
