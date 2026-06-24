@@ -1,4 +1,7 @@
 // lib/features/block/presentation/screens/block_screen.dart
+import 'dart:convert';
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_tabler_icons/flutter_tabler_icons.dart';
@@ -526,16 +529,7 @@ class _AppRow extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       child: Row(
         children: [
-          Container(
-            width: 38, height: 38,
-            decoration: BoxDecoration(
-              color: _avatarColor(app.name).withOpacity(0.25),
-              shape: BoxShape.circle,
-            ),
-            child: Center(
-              child: Text(app.emoji, style: const TextStyle(fontSize: 18)),
-            ),
-          ),
+          _AppIcon(app: app, avatarColor: _avatarColor(app.name)),
           const SizedBox(width: 12),
           Expanded(
             child: GestureDetector(
@@ -584,6 +578,78 @@ class _AppRow extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+// ─── App icon ────────────────────────────────────────────────────────────────
+// Loads the real launcher icon for a package (base64 PNG from native).
+// Falls back to coloured circle + initial when unavailable.
+
+class _AppIcon extends StatefulWidget {
+  const _AppIcon({required this.app, required this.avatarColor});
+  final AppEntry app;
+  final Color    avatarColor;
+
+  @override
+  State<_AppIcon> createState() => _AppIconState();
+}
+
+class _AppIconState extends State<_AppIcon> {
+  Uint8List? _bytes;
+  bool _loaded = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  @override
+  void didUpdateWidget(_AppIcon old) {
+    super.didUpdateWidget(old);
+    if (old.app.packageName != widget.app.packageName) {
+      setState(() { _bytes = null; _loaded = false; });
+      _load();
+    }
+  }
+
+  Future<void> _load() async {
+    final pkg = widget.app.packageName;
+    if (pkg == null || pkg.isEmpty) { setState(() => _loaded = true); return; }
+    final b64 = await BlockingChannel.getAppIcon(pkg);
+    if (!mounted) return;
+    setState(() {
+      _bytes = b64 != null ? base64Decode(b64) : null;
+      _loaded = true;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_loaded && _bytes != null) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(10),
+        child: Image.memory(_bytes!, width: 38, height: 38, fit: BoxFit.cover),
+      );
+    }
+    // Fallback: coloured circle with first letter
+    return Container(
+      width: 38, height: 38,
+      decoration: BoxDecoration(
+        color: widget.avatarColor.withOpacity(0.25),
+        shape: BoxShape.circle,
+      ),
+      child: Center(
+        child: Text(
+          widget.app.name.isNotEmpty ? widget.app.name[0].toUpperCase() : '?',
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            color: widget.avatarColor,
+          ),
+        ),
       ),
     );
   }

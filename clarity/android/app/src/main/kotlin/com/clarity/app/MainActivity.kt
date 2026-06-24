@@ -2,9 +2,14 @@ package com.clarity.app
 
 import android.content.Intent
 import android.content.SharedPreferences
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.drawable.BitmapDrawable
 import android.net.VpnService
 import android.provider.Settings
+import android.util.Base64
 import io.flutter.embedding.android.FlutterActivity
+import java.io.ByteArrayOutputStream
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 import org.json.JSONArray
@@ -54,6 +59,15 @@ class MainActivity : FlutterActivity() {
 
                     "getInstalledApps" -> {
                         result.success(getInstalledLaunchableApps())
+                    }
+
+                    "getAppIcon" -> {
+                        val pkg = call.argument<String>("packageName")
+                        if (pkg == null) {
+                            result.success(null)
+                        } else {
+                            result.success(getAppIconBase64(pkg))
+                        }
                     }
 
                     // ── Usage stats ────────────────────────────────────────
@@ -166,6 +180,27 @@ class MainActivity : FlutterActivity() {
                     else -> result.notImplemented()
                 }
             }
+    }
+
+    private fun getAppIconBase64(packageName: String): String? {
+        return try {
+            val drawable = packageManager.getApplicationIcon(packageName)
+            val bitmap = if (drawable is BitmapDrawable) {
+                drawable.bitmap
+            } else {
+                val bmp = Bitmap.createBitmap(drawable.intrinsicWidth.coerceAtLeast(1),
+                    drawable.intrinsicHeight.coerceAtLeast(1), Bitmap.Config.ARGB_8888)
+                val canvas = Canvas(bmp)
+                drawable.setBounds(0, 0, canvas.width, canvas.height)
+                drawable.draw(canvas)
+                bmp
+            }
+            val stream = ByteArrayOutputStream()
+            bitmap.compress(Bitmap.CompressFormat.PNG, 100, stream)
+            Base64.encodeToString(stream.toByteArray(), Base64.NO_WRAP)
+        } catch (e: Exception) {
+            null
+        }
     }
 
     private fun getInstalledLaunchableApps(): String {

@@ -1,4 +1,5 @@
 // lib/features/auth/application/auth_provider.dart
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -154,21 +155,31 @@ class AuthNotifier extends Notifier<AuthState> {
   // ── Error message mapper ──────────────────────────────────────────────────
 
   String _message(Object e) {
-    final msg = e.toString();
-    if (msg.contains('user-not-found'))    return 'No account found with that email.';
-    if (msg.contains('wrong-password'))    return 'Incorrect password.';
-    // Newer Firebase projects return this generic code for both a wrong
-    // password and a non-existent account (enumeration protection).
-    if (msg.contains('invalid-credential')) return 'Incorrect email or password.';
-    if (msg.contains('email-already'))     return 'An account already exists with that email.';
-    if (msg.contains('invalid-email'))     return 'Please enter a valid email address.';
-    if (msg.contains('weak-password'))     return 'Password must be at least 6 characters.';
-    if (msg.contains('user-disabled'))     return 'This account has been disabled.';
-    if (msg.contains('too-many-requests')) return 'Too many attempts. Try again later.';
-    if (msg.contains('network-request'))   return 'No internet connection.';
-    if (msg.contains('cancelled'))         return ''; // user cancelled — no toast needed
-    debugPrint('Auth error: ${e.runtimeType} $e');
-    return 'Something went wrong. Please try again.';
+    // Use the structured code from FirebaseAuthException directly when possible
+    // — avoids fragile string-matching on toString() formats that vary by SDK version.
+    final code = e is FirebaseAuthException ? e.code.toLowerCase() : e.toString().toLowerCase();
+
+    if (code.contains('user-not-found'))      return 'No account found with that email.';
+    if (code.contains('wrong-password'))       return 'Incorrect password.';
+    // Enumeration-protected projects return this for wrong password OR unknown email.
+    if (code.contains('invalid-credential') ||
+        code.contains('invalid_login_credentials')) return 'Incorrect email or password.';
+    if (code.contains('email-already') ||
+        code.contains('email_already'))        return 'An account already exists with that email.';
+    if (code.contains('invalid-email') ||
+        code.contains('invalid_email'))        return 'Please enter a valid email address.';
+    if (code.contains('weak-password'))        return 'Password must be at least 6 characters.';
+    if (code.contains('user-disabled'))        return 'This account has been disabled.';
+    if (code.contains('too-many-requests'))    return 'Too many attempts. Try again later.';
+    if (code.contains('network-request') ||
+        code.contains('network_error'))        return 'No internet connection.';
+    if (code.contains('operation-not-allowed')) return 'Sign-in method not enabled. Contact support.';
+    if (code.contains('cancelled'))            return ''; // user cancelled — no toast needed
+
+    // Fall back to Firebase's own human-readable message, then the raw error.
+    final fallback = e is FirebaseAuthException ? e.message : null;
+    debugPrint('Auth error [${e.runtimeType}]: $e');
+    return fallback ?? 'Sign-in failed. Please try again.';
   }
 }
 

@@ -40,6 +40,16 @@ class BlockingChannel {
     await _ch.invokeMethod('requestVpnPermission');
   }
 
+  /// Returns base64-encoded PNG of the app's launcher icon, or null.
+  static Future<String?> getAppIcon(String packageName) async {
+    if (!_isAndroid) return null;
+    try {
+      return await _ch.invokeMethod<String>('getAppIcon', {'packageName': packageName});
+    } on PlatformException {
+      return null;
+    }
+  }
+
   /// Returns list of {packageName, appName} for all launchable apps on device.
   static Future<List<Map<String, dynamic>>> getInstalledApps() async {
     if (!_isAndroid) return [];

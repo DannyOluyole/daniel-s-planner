@@ -87,6 +87,11 @@
     </application>
 
     <queries>
+        <!-- Needed on Android 11+ to enumerate installed launcher apps -->
+        <intent>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.LAUNCHER" />
+        </intent>
         <intent>
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>
