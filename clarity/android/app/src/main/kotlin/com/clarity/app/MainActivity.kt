@@ -203,10 +203,23 @@ class MainActivity : FlutterActivity() {
                     }
 
                     "requestLocationPermission" -> {
-                        val perms = mutableListOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)
-                        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q)
-                            perms.add(Manifest.permission.ACCESS_BACKGROUND_LOCATION)
-                        ActivityCompat.requestPermissions(this, perms.toTypedArray(), LOCATION_PERMISSION_CODE)
+                        // Android 12+ requires background location to be requested in a
+                        // separate call AFTER fine/coarse are already granted.
+                        val fineGranted = ActivityCompat.checkSelfPermission(
+                            this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
+                        if (fineGranted && android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+                            ActivityCompat.requestPermissions(
+                                this,
+                                arrayOf(Manifest.permission.ACCESS_BACKGROUND_LOCATION),
+                                LOCATION_PERMISSION_CODE
+                            )
+                        } else {
+                            ActivityCompat.requestPermissions(
+                                this,
+                                arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION),
+                                LOCATION_PERMISSION_CODE
+                            )
+                        }
                         result.success(null)
                     }
 
@@ -241,11 +254,13 @@ class MainActivity : FlutterActivity() {
                         val lng      = call.argument<Double>("lng") ?: 0.0
                         val radius   = (call.argument<Double>("radius") ?: 100.0).toFloat()
                         val packages = call.argument<List<String>>("packages") ?: emptyList()
+                        val appNames = call.argument<List<String>>("appNames") ?: emptyList()
 
                         val rule = JSONObject().apply {
                             put("id", id); put("name", name)
                             put("lat", lat); put("lng", lng); put("radius", radius.toDouble())
                             put("packages", JSONArray(packages))
+                            put("appNames", JSONArray(appNames))
                         }
                         LocationBlockingHelper.saveRule(prefs, rule)
                         LocationBlockingHelper.addGeofence(this, id, lat, lng, radius)

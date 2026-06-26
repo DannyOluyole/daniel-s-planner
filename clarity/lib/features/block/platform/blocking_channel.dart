@@ -206,9 +206,11 @@ class BlockingChannel {
 
   /// Returns {lat, lng, accuracy} or throws if unavailable.
   static Future<Map<String, double>> getCurrentLocation() async {
+    if (!_isAndroid) throw UnsupportedError('Location only available on Android');
     final raw = await _ch.invokeMethod<Map>('getCurrentLocation');
+    if (raw == null) throw PlatformException(code: 'UNAVAILABLE', message: 'No location returned');
     return {
-      'lat':      (raw!['lat']      as num).toDouble(),
+      'lat':      (raw['lat']      as num).toDouble(),
       'lng':      (raw['lng']       as num).toDouble(),
       'accuracy': (raw['accuracy']  as num).toDouble(),
     };
