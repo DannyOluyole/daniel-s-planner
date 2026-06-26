@@ -1345,7 +1345,7 @@ class _AddLocationSheetState extends State<_AddLocationSheet> {
                         dense: true,
                         contentPadding: EdgeInsets.zero,
                         leading: _AppIcon(
-                          app: AppEntry(emoji: '📱', name: name, category: 'App', packageName: pkg),
+                          app: AppEntry(emoji: '📱', name: name, category: 'App', blocked: false, packageName: pkg),
                           avatarColor: const Color(0xFF7C5CFC),
                         ),
                         title: Text(name, style: TextStyle(fontSize: 14, color: ct.textSecondary)),
