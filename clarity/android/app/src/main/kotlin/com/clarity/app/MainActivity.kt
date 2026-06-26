@@ -1,22 +1,35 @@
 package com.clarity.app
 
+import android.Manifest
 import android.content.Intent
 import android.content.SharedPreferences
+import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.drawable.BitmapDrawable
+import android.location.Location
 import android.net.VpnService
+import android.os.Looper
 import android.provider.Settings
 import android.util.Base64
+import androidx.core.app.ActivityCompat
+import com.google.android.gms.location.LocationCallback
+import com.google.android.gms.location.LocationRequest
+import com.google.android.gms.location.LocationResult
+import com.google.android.gms.location.LocationServices
+import com.google.android.gms.location.Priority
 import io.flutter.embedding.android.FlutterActivity
 import java.io.ByteArrayOutputStream
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 import org.json.JSONArray
+import org.json.JSONObject
 import com.clarity.app.blocking.ClarityVpnService
+import com.clarity.app.blocking.LocationBlockingHelper
 import com.clarity.app.blocking.NotificationCounterService
 import com.clarity.app.blocking.UsageStatsHelper
 import java.util.Calendar
+import java.util.UUID
 
 class MainActivity : FlutterActivity() {
 
@@ -124,9 +137,12 @@ class MainActivity : FlutterActivity() {
                     // ── Block config ───────────────────────────────────────
                     "updateBlockedApps" -> {
                         val packages = call.argument<List<String>>("packages") ?: emptyList()
+                        // Write to manually_blocked_packages so geofence receiver can
+                        // merge location-based blocks on top without clobbering them.
                         prefs.edit()
-                            .putString("blocked_packages", JSONArray(packages).toString())
+                            .putString("manually_blocked_packages", JSONArray(packages).toString())
                             .apply()
+                        LocationBlockingHelper.rebuildBlockedPackages(prefs)
                         result.success(null)
                     }
 
@@ -175,6 +191,84 @@ class MainActivity : FlutterActivity() {
                             Intent(this, ClarityVpnService::class.java).setAction("STOP")
                         )
                         result.success(null)
+                    }
+
+                    // ── Location blocking ─────────────────────────────────
+                    "hasLocationPermission" -> {
+                        val fine = ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
+                        val bg   = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q)
+                            ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_BACKGROUND_LOCATION) == PackageManager.PERMISSION_GRANTED
+                        else true
+                        result.success(fine && bg)
+                    }
+
+                    "requestLocationPermission" -> {
+                        val perms = mutableListOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)
+                        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q)
+                            perms.add(Manifest.permission.ACCESS_BACKGROUND_LOCATION)
+                        ActivityCompat.requestPermissions(this, perms.toTypedArray(), LOCATION_PERMISSION_CODE)
+                        result.success(null)
+                    }
+
+                    "getCurrentLocation" -> {
+                        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+                            result.error("NO_PERMISSION", "Location permission not granted", null)
+                            return@setMethodCallHandler
+                        }
+                        val fusedClient = LocationServices.getFusedLocationProviderClient(this)
+                        // Try last known first for speed; fall back to a fresh request
+                        fusedClient.lastLocation.addOnSuccessListener { loc: Location? ->
+                            if (loc != null) {
+                                result.success(mapOf("lat" to loc.latitude, "lng" to loc.longitude, "accuracy" to loc.accuracy.toDouble()))
+                            } else {
+                                val req = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 1000L).setMaxUpdates(1).build()
+                                fusedClient.requestLocationUpdates(req, object : LocationCallback() {
+                                    override fun onLocationResult(r: LocationResult) {
+                                        fusedClient.removeLocationUpdates(this)
+                                        val l = r.lastLocation
+                                        if (l != null) result.success(mapOf("lat" to l.latitude, "lng" to l.longitude, "accuracy" to l.accuracy.toDouble()))
+                                        else result.error("UNAVAILABLE", "Could not get location", null)
+                                    }
+                                }, Looper.getMainLooper())
+                            }
+                        }.addOnFailureListener { e -> result.error("ERROR", e.message, null) }
+                    }
+
+                    "saveLocationRule" -> {
+                        val id       = call.argument<String>("id") ?: UUID.randomUUID().toString()
+                        val name     = call.argument<String>("name") ?: "Location"
+                        val lat      = call.argument<Double>("lat") ?: 0.0
+                        val lng      = call.argument<Double>("lng") ?: 0.0
+                        val radius   = (call.argument<Double>("radius") ?: 100.0).toFloat()
+                        val packages = call.argument<List<String>>("packages") ?: emptyList()
+
+                        val rule = JSONObject().apply {
+                            put("id", id); put("name", name)
+                            put("lat", lat); put("lng", lng); put("radius", radius.toDouble())
+                            put("packages", JSONArray(packages))
+                        }
+                        LocationBlockingHelper.saveRule(prefs, rule)
+                        LocationBlockingHelper.addGeofence(this, id, lat, lng, radius)
+                        result.success(id)
+                    }
+
+                    "removeLocationRule" -> {
+                        val id = call.argument<String>("id") ?: ""
+                        LocationBlockingHelper.removeGeofence(this, id)
+                        LocationBlockingHelper.removeRule(prefs, id)
+                        val active = prefs.getStringSet("active_geofences", emptySet())!!.toMutableSet()
+                        active.remove(id)
+                        prefs.edit().putStringSet("active_geofences", active).apply()
+                        LocationBlockingHelper.rebuildBlockedPackages(prefs, active)
+                        result.success(null)
+                    }
+
+                    "getLocationRules" -> {
+                        result.success(LocationBlockingHelper.loadRules(prefs).toString())
+                    }
+
+                    "getActiveGeofences" -> {
+                        result.success(prefs.getStringSet("active_geofences", emptySet())!!.toList())
                     }
 
                     else -> result.notImplemented()
@@ -268,6 +362,7 @@ class MainActivity : FlutterActivity() {
     }
 
     companion object {
-        private const val VPN_REQUEST_CODE = 1001
+        private const val VPN_REQUEST_CODE      = 1001
+        private const val LOCATION_PERMISSION_CODE = 1002
     }
 }

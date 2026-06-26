@@ -192,6 +192,72 @@ class BlockingChannel {
     }
   }
 
+  // ── Location blocking ─────────────────────────────────────────────────────
+
+  static Future<bool> hasLocationPermission() async {
+    if (!_isAndroid) return false;
+    return await _ch.invokeMethod<bool>('hasLocationPermission') ?? false;
+  }
+
+  static Future<void> requestLocationPermission() async {
+    if (!_isAndroid) return;
+    await _ch.invokeMethod('requestLocationPermission');
+  }
+
+  /// Returns {lat, lng, accuracy} or throws if unavailable.
+  static Future<Map<String, double>> getCurrentLocation() async {
+    final raw = await _ch.invokeMethod<Map>('getCurrentLocation');
+    return {
+      'lat':      (raw!['lat']      as num).toDouble(),
+      'lng':      (raw['lng']       as num).toDouble(),
+      'accuracy': (raw['accuracy']  as num).toDouble(),
+    };
+  }
+
+  /// Saves rule to native, registers geofence, returns the assigned id.
+  static Future<String> saveLocationRule({
+    required String name,
+    required double lat,
+    required double lng,
+    required double radiusMeters,
+    required List<String> packageNames,
+    required List<String> appNames,
+  }) async {
+    if (!_isAndroid) return DateTime.now().millisecondsSinceEpoch.toString();
+    final id = await _ch.invokeMethod<String>('saveLocationRule', {
+      'name':     name,
+      'lat':      lat,
+      'lng':      lng,
+      'radius':   radiusMeters,
+      'packages': packageNames,
+      'appNames': appNames,
+    });
+    return id ?? DateTime.now().millisecondsSinceEpoch.toString();
+  }
+
+  static Future<void> removeLocationRule(String id) async {
+    if (!_isAndroid) return;
+    await _ch.invokeMethod('removeLocationRule', {'id': id});
+  }
+
+  static Future<List<Map<String, dynamic>>> getLocationRules() async {
+    if (!_isAndroid) return [];
+    try {
+      final json = await _ch.invokeMethod<String>('getLocationRules');
+      if (json == null || json == '[]') return [];
+      final list = jsonDecode(json) as List;
+      return list.cast<Map<String, dynamic>>();
+    } on PlatformException { return []; }
+  }
+
+  static Future<List<String>> getActiveGeofences() async {
+    if (!_isAndroid) return [];
+    try {
+      final list = await _ch.invokeMethod<List>('getActiveGeofences');
+      return list?.cast<String>() ?? [];
+    } on PlatformException { return []; }
+  }
+
   // ── VPN ───────────────────────────────────────────────────────────────────
 
   static Future<void> startVpn() async {

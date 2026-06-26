@@ -16,6 +16,12 @@
     <!-- Receive boot event to restart blocking services -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
+    <!-- Location-based blocking -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <!-- Background location needed for geofence triggers when app is not open -->
+    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
+
     <application
         android:label="Productivity Max"
         android:name="${applicationName}"
@@ -79,6 +85,11 @@
                 <action android:name="android.service.notification.NotificationListenerService" />
             </intent-filter>
         </service>
+
+        <!-- Receives geofence enter/exit events for location-based blocking -->
+        <receiver
+            android:name=".blocking.GeofenceReceiver"
+            android:exported="false" />
 
         <!-- Flutter plugin registration -->
         <meta-data

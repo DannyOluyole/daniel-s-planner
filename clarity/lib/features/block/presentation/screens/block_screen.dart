@@ -13,7 +13,9 @@ import '../../../../core/theme/app_theme.dart';
 import '../../../paywall/presentation/widgets/premium_gate.dart';
 import '../../../permissions/application/permissions_provider.dart';
 import '../../application/block_settings_notifier.dart';
+import '../../application/location_rules_notifier.dart';
 import '../../data/block_model.dart';
+import '../../data/location_rule.dart';
 import '../../platform/blocking_channel.dart';
 import '../../../profile/application/profile_notifier.dart';
 
@@ -60,6 +62,24 @@ class _BlockScreenState extends ConsumerState<BlockScreen> {
                 emoji: '🔒',
                 category: 'Custom',
               );
+        },
+      ),
+    );
+  }
+
+  void _showAddLocationSheet(BuildContext context, WidgetRef ref) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (_) => _AddLocationSheet(
+        onSave: (name, lat, lng, radius, pkgs, appNames) {
+          ref.read(locationRulesProvider.notifier).addRule(
+            name: name, lat: lat, lng: lng,
+            radiusMeters: radius,
+            packageNames: pkgs,
+            appNames: appNames,
+          );
         },
       ),
     );
@@ -255,6 +275,11 @@ class _BlockScreenState extends ConsumerState<BlockScreen> {
                             onSelect: (i) => ref
                                 .read(blockSettingsProvider.notifier)
                                 .setStrictness(i),
+                          ),
+                          const SizedBox(height: 10),
+                          _LocationRulesCard(
+                            installedApps: const [],
+                            onShowAdd: () => _showAddLocationSheet(context, ref),
                           ),
                           const SizedBox(height: 10),
                           const _SavedIndicator(),
@@ -999,6 +1024,346 @@ class _LimitRow extends StatelessWidget {
             ),
           ],
         ],
+      ),
+    );
+  }
+}
+
+// ─── Location rules card ─────────────────────────────────────────────────────
+
+class _LocationRulesCard extends ConsumerWidget {
+  const _LocationRulesCard({required this.installedApps, required this.onShowAdd});
+  final List<Map<String, dynamic>> installedApps;
+  final VoidCallback onShowAdd;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final rulesAsync  = ref.watch(locationRulesProvider);
+    final activeAsync = ref.watch(activeGeofencesProvider);
+    final activeIds   = activeAsync.valueOrNull ?? {};
+    final rules       = rulesAsync.valueOrNull ?? [];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text('LOCATION RULES',
+                style: TextStyle(fontSize: 11, color: ct.textDisabled, letterSpacing: 0.8)),
+            GestureDetector(
+              onTap: onShowAdd,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: ct.purpleTint,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(TablerIcons.plus, size: 12, color: ct.purpleLight),
+                    const SizedBox(width: 4),
+                    Text('Add', style: TextStyle(fontSize: 12, color: ct.purpleLight)),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Container(
+          decoration: BoxDecoration(
+            color: ct.bgCard,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: ct.border, width: 0.5),
+          ),
+          child: rules.isEmpty
+              ? Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Text(
+                    'No location rules yet.\nAdd one to automatically block apps when you arrive at a saved location.',
+                    style: TextStyle(fontSize: 13, color: ct.textDisabled, height: 1.5),
+                  ),
+                )
+              : Column(
+                  children: rules.asMap().entries.map((e) {
+                    final rule   = e.value;
+                    final isLast = e.key == rules.length - 1;
+                    final active = activeIds.contains(rule.id);
+                    return Container(
+                      decoration: BoxDecoration(
+                        border: isLast ? null : Border(
+                            bottom: BorderSide(color: ct.borderFaint, width: 0.5)),
+                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 36, height: 36,
+                            decoration: BoxDecoration(
+                              color: active ? ct.teal.withOpacity(0.15) : ct.bgElevated,
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(
+                              TablerIcons.map_pin,
+                              size: 18,
+                              color: active ? ct.teal : ct.textDisabled,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Text(rule.name,
+                                        style: TextStyle(fontSize: 14,
+                                            fontWeight: FontWeight.w500,
+                                            color: ct.textSecondary)),
+                                    if (active) ...[
+                                      const SizedBox(width: 6),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                        decoration: BoxDecoration(
+                                          color: ct.tealTint,
+                                          borderRadius: BorderRadius.circular(4),
+                                        ),
+                                        child: Text('Here now',
+                                            style: TextStyle(fontSize: 10, color: ct.teal)),
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  rule.appNames.isEmpty
+                                      ? rule.coordLabel
+                                      : '${rule.appNames.take(3).join(', ')}${rule.appNames.length > 3 ? ' +${rule.appNames.length - 3}' : ''} · ${rule.radiusMeters.round()}m radius',
+                                  style: TextStyle(fontSize: 11, color: ct.textDisabled),
+                                ),
+                              ],
+                            ),
+                          ),
+                          GestureDetector(
+                            onTap: () => ref.read(locationRulesProvider.notifier).removeRule(rule.id),
+                            child: Padding(
+                              padding: const EdgeInsets.all(6),
+                              child: Icon(TablerIcons.trash, size: 16, color: ct.textDisabled),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }).toList(),
+                ),
+        ),
+      ],
+    );
+  }
+}
+
+// ─── Add location sheet ───────────────────────────────────────────────────────
+
+class _AddLocationSheet extends StatefulWidget {
+  const _AddLocationSheet({required this.onSave});
+  final void Function(String name, double lat, double lng, double radius,
+      List<String> packages, List<String> appNames) onSave;
+
+  @override
+  State<_AddLocationSheet> createState() => _AddLocationSheetState();
+}
+
+class _AddLocationSheetState extends State<_AddLocationSheet> {
+  final _nameCtrl = TextEditingController();
+  double? _lat, _lng;
+  double _radius = 100;
+  bool _loading  = false;
+  String? _error;
+
+  // Apps picked for this location rule
+  final _picked = <String, String>{}; // package -> display name
+
+  List<Map<String, dynamic>> _installedApps = [];
+  bool _loadingApps = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchApps();
+    _detectLocation();
+  }
+
+  @override
+  void dispose() { _nameCtrl.dispose(); super.dispose(); }
+
+  Future<void> _fetchApps() async {
+    setState(() => _loadingApps = true);
+    final apps = await BlockingChannel.getInstalledApps();
+    if (mounted) setState(() { _installedApps = apps; _loadingApps = false; });
+  }
+
+  Future<void> _detectLocation() async {
+    setState(() { _loading = true; _error = null; });
+    try {
+      final loc = await BlockingChannel.getCurrentLocation();
+      if (mounted) setState(() { _lat = loc['lat']; _lng = loc['lng']; _loading = false; });
+    } catch (e) {
+      if (mounted) setState(() { _loading = false; _error = 'Could not get location. Grant location permission first.'; });
+    }
+  }
+
+  Future<void> _save() async {
+    final name = _nameCtrl.text.trim();
+    if (name.isEmpty) { setState(() => _error = 'Enter a name for this location.'); return; }
+    if (_lat == null || _lng == null) { setState(() => _error = 'Location not available yet.'); return; }
+    widget.onSave(name, _lat!, _lng!, _radius,
+        _picked.keys.toList(), _picked.values.toList());
+    Navigator.of(context).pop();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final canSave = _nameCtrl.text.trim().isNotEmpty && _lat != null;
+    return DraggableScrollableSheet(
+      expand: false,
+      initialChildSize: 0.85,
+      maxChildSize: 0.95,
+      builder: (_, scroll) => Container(
+        decoration: BoxDecoration(
+          color: ct.bgCard,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: Column(
+          children: [
+            const SizedBox(height: 10),
+            Container(width: 36, height: 4,
+                decoration: BoxDecoration(color: ct.border, borderRadius: BorderRadius.circular(2))),
+            const SizedBox(height: 16),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Row(
+                children: [
+                  Text('Add Location Rule',
+                      style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600,
+                          color: ct.textPrimary)),
+                  const Spacer(),
+                  GestureDetector(
+                    onTap: canSave ? _save : null,
+                    child: Text('Save',
+                        style: TextStyle(fontSize: 15, color: canSave ? ct.purpleLight : ct.textDisabled,
+                            fontWeight: FontWeight.w500)),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            Expanded(
+              child: ListView(
+                controller: scroll,
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                children: [
+                  // Name
+                  TextField(
+                    controller: _nameCtrl,
+                    style: TextStyle(color: ct.textPrimary),
+                    decoration: InputDecoration(
+                      labelText: 'Location name',
+                      hintText: 'e.g. Church, School, Work, Home',
+                      labelStyle: TextStyle(color: ct.textDisabled),
+                      hintStyle: TextStyle(color: ct.textDisabled),
+                    ),
+                    onChanged: (_) => setState(() {}),
+                  ),
+                  const SizedBox(height: 20),
+
+                  // Location
+                  Row(
+                    children: [
+                      Icon(TablerIcons.map_pin, size: 16, color: ct.textDisabled),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: _loading
+                            ? Text('Detecting location…', style: TextStyle(fontSize: 13, color: ct.textDisabled))
+                            : _lat != null
+                                ? Text(
+                                    '${_lat!.abs().toStringAsFixed(4)}°${_lat! >= 0 ? 'N' : 'S'}, '
+                                    '${_lng!.abs().toStringAsFixed(4)}°${_lng! >= 0 ? 'E' : 'W'}',
+                                    style: TextStyle(fontSize: 13, color: ct.textMuted))
+                                : Text(_error ?? 'Location unavailable',
+                                    style: TextStyle(fontSize: 13, color: ct.red)),
+                      ),
+                      GestureDetector(
+                        onTap: _detectLocation,
+                        child: Text('Refresh', style: TextStyle(fontSize: 12, color: ct.purpleLight)),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Radius picker
+                  Text('Radius', style: TextStyle(fontSize: 13, color: ct.textDisabled)),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [50.0, 100.0, 200.0, 500.0].map((r) {
+                      final sel = _radius == r;
+                      return GestureDetector(
+                        onTap: () => setState(() => _radius = r),
+                        child: Container(
+                          margin: const EdgeInsets.only(right: 8),
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: sel ? ct.purpleTint : ct.bgElevated,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: sel ? ct.purple : ct.border, width: 0.5),
+                          ),
+                          child: Text('${r.round()}m',
+                              style: TextStyle(fontSize: 12,
+                                  color: sel ? ct.purpleLight : ct.textDisabled)),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                  const SizedBox(height: 20),
+
+                  // App picker
+                  Text('Block these apps at this location',
+                      style: TextStyle(fontSize: 13, color: ct.textDisabled)),
+                  const SizedBox(height: 8),
+                  if (_loadingApps)
+                    Center(child: CircularProgressIndicator(color: ct.purpleLight, strokeWidth: 2))
+                  else if (_installedApps.isEmpty)
+                    Text('No installed apps found.',
+                        style: TextStyle(fontSize: 13, color: ct.textDisabled))
+                  else
+                    ..._installedApps.map((app) {
+                      final pkg  = app['packageName'] as String;
+                      final name = app['appName'] as String;
+                      final sel  = _picked.containsKey(pkg);
+                      return ListTile(
+                        dense: true,
+                        contentPadding: EdgeInsets.zero,
+                        leading: _AppIcon(
+                          app: AppEntry(emoji: '📱', name: name, category: 'App', packageName: pkg),
+                          avatarColor: const Color(0xFF7C5CFC),
+                        ),
+                        title: Text(name, style: TextStyle(fontSize: 14, color: ct.textSecondary)),
+                        trailing: Icon(
+                          sel ? TablerIcons.square_check_filled : TablerIcons.square,
+                          size: 20, color: sel ? ct.purpleLight : ct.textDisabled,
+                        ),
+                        onTap: () => setState(() {
+                          if (sel) _picked.remove(pkg); else _picked[pkg] = name;
+                        }),
+                      );
+                    }),
+                  const SizedBox(height: 32),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
