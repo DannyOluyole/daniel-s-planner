@@ -1,0 +1,37 @@
+@import "tailwindcss";
+
+:root {
+  --color-coral: #ff5c5c;
+  --color-teal: #0fb5ae;
+  --color-yellow: #ffc93c;
+  --color-ink: #1b1b1f;
+  --color-cloud: #f7f5f2;
+  --color-mint: #36d399;
+  --color-ember: #ff7849;
+}
+
+@theme inline {
+  --color-pod-coral: var(--color-coral);
+  --color-pod-teal: var(--color-teal);
+  --color-pod-yellow: var(--color-yellow);
+  --color-pod-ink: var(--color-ink);
+  --color-pod-cloud: var(--color-cloud);
+  --color-pod-mint: var(--color-mint);
+  --color-pod-ember: var(--color-ember);
+  --font-display: var(--font-outfit);
+  --font-body: var(--font-inter);
+}
+
+body {
+  background: var(--color-cloud);
+  color: var(--color-ink);
+  font-family: var(--font-inter), system-ui, sans-serif;
+}
+
+h1, h2, h3, .font-display {
+  font-family: var(--font-outfit), system-ui, sans-serif;
+}
+
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
