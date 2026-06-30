@@ -260,6 +260,44 @@ class BlockingChannel {
     } on PlatformException { return []; }
   }
 
+  // ── Time-window blocking ────────────────────────────────────────────────
+
+  /// Saves rule to native, returns the assigned id.
+  static Future<String> saveTimeRule({
+    required String name,
+    required int startMinutes,
+    required int endMinutes,
+    required List<bool> days,
+    required List<String> packageNames,
+    required List<String> appNames,
+  }) async {
+    if (!_isAndroid) return DateTime.now().millisecondsSinceEpoch.toString();
+    final id = await _ch.invokeMethod<String>('saveTimeRule', {
+      'name':     name,
+      'start':    startMinutes,
+      'end':      endMinutes,
+      'days':     days,
+      'packages': packageNames,
+      'appNames': appNames,
+    });
+    return id ?? DateTime.now().millisecondsSinceEpoch.toString();
+  }
+
+  static Future<void> removeTimeRule(String id) async {
+    if (!_isAndroid) return;
+    await _ch.invokeMethod('removeTimeRule', {'id': id});
+  }
+
+  static Future<List<Map<String, dynamic>>> getTimeRules() async {
+    if (!_isAndroid) return [];
+    try {
+      final json = await _ch.invokeMethod<String>('getTimeRules');
+      if (json == null || json == '[]') return [];
+      final list = jsonDecode(json) as List;
+      return list.cast<Map<String, dynamic>>();
+    } on PlatformException { return []; }
+  }
+
   // ── VPN ───────────────────────────────────────────────────────────────────
 
   static Future<void> startVpn() async {

@@ -14,8 +14,10 @@ import '../../../paywall/presentation/widgets/premium_gate.dart';
 import '../../../permissions/application/permissions_provider.dart';
 import '../../application/block_settings_notifier.dart';
 import '../../application/location_rules_notifier.dart';
+import '../../application/time_rules_notifier.dart';
 import '../../data/block_model.dart';
 import '../../data/location_rule.dart';
+import '../../data/time_rule.dart';
 import '../../platform/blocking_channel.dart';
 import '../../../profile/application/profile_notifier.dart';
 
@@ -79,6 +81,79 @@ class _BlockScreenState extends ConsumerState<BlockScreen> {
             radiusMeters: radius,
             packageNames: pkgs,
             appNames: appNames,
+          );
+        },
+      ),
+    );
+  }
+
+  void _showCreateBlockingSheet(BuildContext context, WidgetRef ref) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (_) => _CreateBlockingSheet(
+        onPickTime: () {
+          Navigator.pop(context);
+          _showAddTimeRuleSheet(context, ref);
+        },
+        onPickUsageLimit: () {
+          Navigator.pop(context);
+          _showCreateLimitSheet(context, ref, isTime: true);
+        },
+        onPickLaunchCount: () {
+          Navigator.pop(context);
+          _showCreateLimitSheet(context, ref, isTime: false);
+        },
+      ),
+    );
+  }
+
+  void _showAddTimeRuleSheet(BuildContext context, WidgetRef ref) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (_) => _AddTimeRuleSheet(
+        onSave: (name, start, end, days, pkgs, appNames) {
+          ref.read(timeRulesProvider.notifier).addRule(
+            name: name,
+            startMinutes: start,
+            endMinutes: end,
+            days: days,
+            packageNames: pkgs,
+            appNames: appNames,
+          );
+        },
+      ),
+    );
+  }
+
+  void _showCreateLimitSheet(BuildContext context, WidgetRef ref, {required bool isTime}) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (_) => _CreateLimitSheet(
+        isTime: isTime,
+        onSave: (pkg, name, value) async {
+          final notifier = ref.read(blockSettingsProvider.notifier);
+          final current = ref.read(blockSettingsProvider).valueOrNull;
+          var index = current?.apps.indexWhere((a) => a.packageName == pkg) ?? -1;
+          if (index == -1) {
+            await notifier.addApp(name: name, emoji: '📱', category: 'App', packageName: pkg);
+            final updated = ref.read(blockSettingsProvider).valueOrNull!;
+            index = updated.apps.indexWhere((a) => a.packageName == pkg);
+            // New entries default to fully blocked; a usage/launch limit caps
+            // usage rather than blocking outright, so start it unlocked.
+            await notifier.toggleApp(index);
+          }
+          await notifier.setAppLimits(
+            index,
+            openLimitPerDay: isTime ? null : value,
+            clearOpenLimit: isTime,
+            timeLimitMinutes: isTime ? value : null,
+            clearTimeLimit: !isTime,
           );
         },
       ),
@@ -180,6 +255,7 @@ class _BlockScreenState extends ConsumerState<BlockScreen> {
               totalCount: async.valueOrNull?.apps.length ?? 0,
               onAdd: () => _showAddAppSheet(
                   context, ref, async.valueOrNull?.apps ?? const []),
+              onCreateBlocking: () => _showCreateBlockingSheet(context, ref),
             ),
 
             // ── Permissions setup banner (Android only, dismisses once all granted) ──
@@ -270,6 +346,10 @@ class _BlockScreenState extends ConsumerState<BlockScreen> {
                             scheduleEnd: settings.scheduleEnd,
                           ),
                           const SizedBox(height: 10),
+                          _TimeRulesCard(
+                            onShowAdd: () => _showAddTimeRuleSheet(context, ref),
+                          ),
+                          const SizedBox(height: 10),
                           _StrictnessCard(
                             current: settings.strictness,
                             onSelect: (i) => ref
@@ -328,10 +408,12 @@ class _SecureHeader extends StatelessWidget {
     required this.lockedCount,
     required this.totalCount,
     required this.onAdd,
+    required this.onCreateBlocking,
   });
   final int          lockedCount;
   final int          totalCount;
   final VoidCallback onAdd;
+  final VoidCallback onCreateBlocking;
 
   @override
   Widget build(BuildContext context) {
@@ -365,6 +447,18 @@ class _SecureHeader extends StatelessWidget {
                   style: TextStyle(fontSize: 13, color: ct.purplePale),
                 ),
               ],
+            ),
+          ),
+          GestureDetector(
+            onTap: onCreateBlocking,
+            child: Container(
+              width: 40, height: 40,
+              margin: const EdgeInsets.only(right: 10),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.15),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(TablerIcons.layout_grid_add, size: 19, color: ct.textPrimary),
             ),
           ),
           GestureDetector(
@@ -1358,6 +1452,679 @@ class _AddLocationSheetState extends State<_AddLocationSheet> {
                         }),
                       );
                     }),
+                  const SizedBox(height: 32),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Create blocking sheet (Time / Usage limit / Launch count picker) ───────
+
+class _CreateBlockingSheet extends StatelessWidget {
+  const _CreateBlockingSheet({
+    required this.onPickTime,
+    required this.onPickUsageLimit,
+    required this.onPickLaunchCount,
+  });
+
+  final VoidCallback onPickTime;
+  final VoidCallback onPickUsageLimit;
+  final VoidCallback onPickLaunchCount;
+
+  @override
+  Widget build(BuildContext context) {
+    return DraggableScrollableSheet(
+      expand: false,
+      initialChildSize: 0.6,
+      maxChildSize: 0.85,
+      builder: (_, scroll) => Container(
+        decoration: BoxDecoration(
+          color: ct.bgCard,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: ListView(
+          controller: scroll,
+          padding: const EdgeInsets.fromLTRB(20, 10, 20, 32),
+          children: [
+            Center(
+              child: Container(
+                width: 36, height: 4,
+                decoration: BoxDecoration(
+                    color: ct.border, borderRadius: BorderRadius.circular(2)),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text('Create new blocking',
+                style: TextStyle(
+                    fontSize: 17, fontWeight: FontWeight.w600, color: ct.textPrimary)),
+            const SizedBox(height: 4),
+            Text('Choose how you want to limit an app',
+                style: TextStyle(fontSize: 13, color: ct.textDisabled)),
+            const SizedBox(height: 20),
+            _BlockingTypeCard(
+              icon: TablerIcons.clock,
+              title: 'Time',
+              subtitle: 'Block during set hours and days, e.g. 8:00–16:00 weekdays.',
+              tags: const ['WORK', 'STUDY', 'BED TIME', 'HABIT'],
+              onTap: onPickTime,
+            ),
+            const SizedBox(height: 12),
+            _BlockingTypeCard(
+              icon: TablerIcons.hourglass_low,
+              title: 'Usage limit',
+              subtitle: 'Cap how long you can use an app per day, e.g. 30 min for social media.',
+              tags: const ['LIMIT', 'USAGE CONTROL'],
+              onTap: onPickUsageLimit,
+            ),
+            const SizedBox(height: 12),
+            _BlockingTypeCard(
+              icon: TablerIcons.repeat,
+              title: 'Launch count',
+              subtitle: 'Limit how many times you can open an app, e.g. Instagram 5×/day.',
+              tags: const ['LIMIT', 'HABIT', 'MINDFUL USE'],
+              onTap: onPickLaunchCount,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _BlockingTypeCard extends StatelessWidget {
+  const _BlockingTypeCard({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.tags,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String   title;
+  final String   subtitle;
+  final List<String> tags;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: ct.bgElevated,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: ct.border, width: 0.5),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: 40, height: 40,
+              decoration: BoxDecoration(
+                color: ct.purpleTint,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, size: 19, color: ct.purpleLight),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title,
+                      style: TextStyle(
+                          fontSize: 15, fontWeight: FontWeight.w600, color: ct.textPrimary)),
+                  const SizedBox(height: 3),
+                  Text(subtitle,
+                      style: TextStyle(fontSize: 12, color: ct.textDisabled, height: 1.4)),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 6, runSpacing: 6,
+                    children: tags.map((t) => Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: ct.bgCard,
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(color: ct.borderFaint, width: 0.5),
+                      ),
+                      child: Text(t,
+                          style: TextStyle(fontSize: 9, color: ct.textDisabled, letterSpacing: 0.4)),
+                    )).toList(),
+                  ),
+                ],
+              ),
+            ),
+            Icon(TablerIcons.chevron_right, size: 18, color: ct.textDisabled),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Time rules card ──────────────────────────────────────────────────────────
+
+class _TimeRulesCard extends ConsumerWidget {
+  const _TimeRulesCard({required this.onShowAdd});
+  final VoidCallback onShowAdd;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final rulesAsync = ref.watch(timeRulesProvider);
+    final rules       = rulesAsync.valueOrNull ?? [];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text('TIME RULES',
+                style: TextStyle(fontSize: 11, color: ct.textDisabled, letterSpacing: 0.8)),
+            GestureDetector(
+              onTap: onShowAdd,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: ct.purpleTint,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(TablerIcons.plus, size: 12, color: ct.purpleLight),
+                    const SizedBox(width: 4),
+                    Text('Add', style: TextStyle(fontSize: 12, color: ct.purpleLight)),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Container(
+          decoration: BoxDecoration(
+            color: ct.bgCard,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: ct.border, width: 0.5),
+          ),
+          child: rules.isEmpty
+              ? Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Text(
+                    'No time rules yet.\nAdd one to automatically block apps during set hours, e.g. work or bed time.',
+                    style: TextStyle(fontSize: 13, color: ct.textDisabled, height: 1.5),
+                  ),
+                )
+              : Column(
+                  children: rules.asMap().entries.map((e) {
+                    final rule   = e.value;
+                    final isLast = e.key == rules.length - 1;
+                    return Container(
+                      decoration: BoxDecoration(
+                        border: isLast ? null : Border(
+                            bottom: BorderSide(color: ct.borderFaint, width: 0.5)),
+                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 36, height: 36,
+                            decoration: BoxDecoration(
+                              color: ct.bgElevated,
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(TablerIcons.clock, size: 18, color: ct.purpleLight),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(rule.name,
+                                    style: TextStyle(fontSize: 14,
+                                        fontWeight: FontWeight.w500,
+                                        color: ct.textSecondary)),
+                                const SizedBox(height: 2),
+                                Text(
+                                  '${rule.timeRangeLabel} · ${rule.daysLabel}'
+                                  '${rule.appNames.isEmpty ? '' : ' · ${rule.appNames.take(2).join(', ')}${rule.appNames.length > 2 ? ' +${rule.appNames.length - 2}' : ''}'}',
+                                  style: TextStyle(fontSize: 11, color: ct.textDisabled),
+                                ),
+                              ],
+                            ),
+                          ),
+                          GestureDetector(
+                            onTap: () => ref.read(timeRulesProvider.notifier).removeRule(rule.id),
+                            child: Padding(
+                              padding: const EdgeInsets.all(6),
+                              child: Icon(TablerIcons.trash, size: 16, color: ct.textDisabled),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }).toList(),
+                ),
+        ),
+      ],
+    );
+  }
+}
+
+// ─── Add time rule sheet ──────────────────────────────────────────────────────
+
+class _AddTimeRuleSheet extends StatefulWidget {
+  const _AddTimeRuleSheet({required this.onSave});
+  final void Function(String name, int startMinutes, int endMinutes,
+      List<bool> days, List<String> packages, List<String> appNames) onSave;
+
+  @override
+  State<_AddTimeRuleSheet> createState() => _AddTimeRuleSheetState();
+}
+
+class _AddTimeRuleSheetState extends State<_AddTimeRuleSheet> {
+  final _nameCtrl = TextEditingController();
+  int _start = 8 * 60;
+  int _end   = 16 * 60;
+  List<bool> _days = List.filled(7, true);
+  String? _error;
+
+  final _picked = <String, String>{}; // package -> display name
+
+  List<Map<String, dynamic>> _installedApps = [];
+  bool _loadingApps = false;
+
+  static const _presets = [
+    {'label': 'WORK', 'start': 9 * 60, 'end': 17 * 60, 'days': [true, true, true, true, true, false, false]},
+    {'label': 'STUDY', 'start': 8 * 60, 'end': 16 * 60, 'days': [true, true, true, true, true, false, false]},
+    {'label': 'BED TIME', 'start': 22 * 60, 'end': 7 * 60, 'days': [true, true, true, true, true, true, true]},
+    {'label': 'HABIT', 'start': 12 * 60, 'end': 13 * 60, 'days': [true, true, true, true, true, true, true]},
+  ];
+
+  static const _dayLabels = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchApps();
+  }
+
+  @override
+  void dispose() { _nameCtrl.dispose(); super.dispose(); }
+
+  Future<void> _fetchApps() async {
+    setState(() => _loadingApps = true);
+    final apps = await BlockingChannel.getInstalledApps();
+    if (mounted) setState(() { _installedApps = apps; _loadingApps = false; });
+  }
+
+  Future<void> _pickTime(bool isStart) async {
+    final initial = TimeOfDay(hour: (isStart ? _start : _end) ~/ 60, minute: (isStart ? _start : _end) % 60);
+    final picked = await showTimePicker(context: context, initialTime: initial);
+    if (picked == null) return;
+    setState(() {
+      final minutes = picked.hour * 60 + picked.minute;
+      if (isStart) _start = minutes; else _end = minutes;
+    });
+  }
+
+  void _save() {
+    final name = _nameCtrl.text.trim();
+    if (name.isEmpty) { setState(() => _error = 'Enter a name for this schedule.'); return; }
+    if (!_days.contains(true)) { setState(() => _error = 'Select at least one day.'); return; }
+    if (_picked.isEmpty) { setState(() => _error = 'Pick at least one app to block.'); return; }
+    widget.onSave(name, _start, _end, _days, _picked.keys.toList(), _picked.values.toList());
+    Navigator.of(context).pop();
+  }
+
+  static String _fmt(int minutes) {
+    final h24 = minutes ~/ 60;
+    final m   = minutes % 60;
+    final h12 = h24 % 12 == 0 ? 12 : h24 % 12;
+    final ampm = h24 < 12 ? 'AM' : 'PM';
+    return '$h12:${m.toString().padLeft(2, '0')} $ampm';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final canSave = _nameCtrl.text.trim().isNotEmpty;
+    return DraggableScrollableSheet(
+      expand: false,
+      initialChildSize: 0.85,
+      maxChildSize: 0.95,
+      builder: (_, scroll) => Container(
+        decoration: BoxDecoration(
+          color: ct.bgCard,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: Column(
+          children: [
+            const SizedBox(height: 10),
+            Container(width: 36, height: 4,
+                decoration: BoxDecoration(color: ct.border, borderRadius: BorderRadius.circular(2))),
+            const SizedBox(height: 16),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Row(
+                children: [
+                  Text('Add Time Rule',
+                      style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600,
+                          color: ct.textPrimary)),
+                  const Spacer(),
+                  GestureDetector(
+                    onTap: canSave ? _save : null,
+                    child: Text('Save',
+                        style: TextStyle(fontSize: 15, color: canSave ? ct.purpleLight : ct.textDisabled,
+                            fontWeight: FontWeight.w500)),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            Expanded(
+              child: ListView(
+                controller: scroll,
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                children: [
+                  // Presets
+                  Wrap(
+                    spacing: 8, runSpacing: 8,
+                    children: _presets.map((p) {
+                      return GestureDetector(
+                        onTap: () => setState(() {
+                          _nameCtrl.text = p['label'] as String;
+                          _start = p['start'] as int;
+                          _end   = p['end'] as int;
+                          _days  = List<bool>.from(p['days'] as List<bool>);
+                        }),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: ct.bgElevated,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: ct.border, width: 0.5),
+                          ),
+                          child: Text(p['label'] as String,
+                              style: TextStyle(fontSize: 11, color: ct.textDisabled, letterSpacing: 0.4)),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                  const SizedBox(height: 18),
+
+                  TextField(
+                    controller: _nameCtrl,
+                    style: TextStyle(color: ct.textPrimary),
+                    decoration: InputDecoration(
+                      labelText: 'Schedule name',
+                      hintText: 'e.g. Work hours, Bed time',
+                      labelStyle: TextStyle(color: ct.textDisabled),
+                      hintStyle: TextStyle(color: ct.textDisabled),
+                    ),
+                    onChanged: (_) => setState(() {}),
+                  ),
+                  const SizedBox(height: 20),
+
+                  Text('Time window', style: TextStyle(fontSize: 13, color: ct.textDisabled)),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      GestureDetector(
+                        onTap: () => _pickTime(true),
+                        child: _TimePill(label: _fmt(_start)),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        child: Text('to', style: TextStyle(fontSize: 12, color: ct.textDisabled)),
+                      ),
+                      GestureDetector(
+                        onTap: () => _pickTime(false),
+                        child: _TimePill(label: _fmt(_end)),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+
+                  Text('Days', style: TextStyle(fontSize: 13, color: ct.textDisabled)),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: _dayLabels.asMap().entries.map((e) {
+                      final i  = e.key;
+                      final on = _days[i];
+                      return Expanded(
+                        child: GestureDetector(
+                          onTap: () => setState(() => _days[i] = !_days[i]),
+                          child: Container(
+                            margin: const EdgeInsets.symmetric(horizontal: 2),
+                            padding: const EdgeInsets.symmetric(vertical: 7),
+                            decoration: BoxDecoration(
+                              color: on ? ct.purple : ct.bgElevated,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(e.value,
+                                textAlign: TextAlign.center,
+                                style: TextStyle(fontSize: 11, fontWeight: FontWeight.w500,
+                                    color: on ? ct.textPrimary : ct.textDisabled)),
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                  const SizedBox(height: 20),
+
+                  Text('Block these apps during this window',
+                      style: TextStyle(fontSize: 13, color: ct.textDisabled)),
+                  const SizedBox(height: 8),
+                  if (_loadingApps)
+                    Center(child: CircularProgressIndicator(color: ct.purpleLight, strokeWidth: 2))
+                  else if (_installedApps.isEmpty)
+                    Text('No installed apps found.',
+                        style: TextStyle(fontSize: 13, color: ct.textDisabled))
+                  else
+                    ..._installedApps.map((app) {
+                      final pkg  = app['packageName'] as String;
+                      final name = app['appName'] as String;
+                      final sel  = _picked.containsKey(pkg);
+                      return ListTile(
+                        dense: true,
+                        contentPadding: EdgeInsets.zero,
+                        leading: _AppIcon(
+                          app: AppEntry(emoji: '📱', name: name, category: 'App', blocked: false, packageName: pkg),
+                          avatarColor: const Color(0xFF7C5CFC),
+                        ),
+                        title: Text(name, style: TextStyle(fontSize: 14, color: ct.textSecondary)),
+                        trailing: Icon(
+                          sel ? TablerIcons.square_check_filled : TablerIcons.square,
+                          size: 20, color: sel ? ct.purpleLight : ct.textDisabled,
+                        ),
+                        onTap: () => setState(() {
+                          if (sel) _picked.remove(pkg); else _picked[pkg] = name;
+                        }),
+                      );
+                    }),
+                  if (_error != null) ...[
+                    const SizedBox(height: 8),
+                    Text(_error!, style: TextStyle(fontSize: 12, color: ct.red)),
+                  ],
+                  const SizedBox(height: 32),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Create limit sheet (Usage limit / Launch count) ─────────────────────────
+
+class _CreateLimitSheet extends StatefulWidget {
+  const _CreateLimitSheet({required this.isTime, required this.onSave});
+  final bool isTime;
+  final Future<void> Function(String packageName, String appName, int value) onSave;
+
+  @override
+  State<_CreateLimitSheet> createState() => _CreateLimitSheetState();
+}
+
+class _CreateLimitSheetState extends State<_CreateLimitSheet> {
+  String? _pkg;
+  String? _name;
+  int _value = 30;
+  bool _saving = false;
+  String? _error;
+
+  List<Map<String, dynamic>> _installedApps = [];
+  bool _loadingApps = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _value = widget.isTime ? 30 : 5;
+    _fetchApps();
+  }
+
+  Future<void> _fetchApps() async {
+    setState(() => _loadingApps = true);
+    final apps = await BlockingChannel.getInstalledApps();
+    if (mounted) setState(() { _installedApps = apps; _loadingApps = false; });
+  }
+
+  Future<void> _save() async {
+    if (_pkg == null || _name == null) { setState(() => _error = 'Pick an app first.'); return; }
+    setState(() => _saving = true);
+    await widget.onSave(_pkg!, _name!, _value);
+    if (mounted) Navigator.of(context).pop();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final canSave = _pkg != null && !_saving;
+    return DraggableScrollableSheet(
+      expand: false,
+      initialChildSize: 0.8,
+      maxChildSize: 0.95,
+      builder: (_, scroll) => Container(
+        decoration: BoxDecoration(
+          color: ct.bgCard,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: Column(
+          children: [
+            const SizedBox(height: 10),
+            Container(width: 36, height: 4,
+                decoration: BoxDecoration(color: ct.border, borderRadius: BorderRadius.circular(2))),
+            const SizedBox(height: 16),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Row(
+                children: [
+                  Text(widget.isTime ? 'New Usage Limit' : 'New Launch Count',
+                      style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600,
+                          color: ct.textPrimary)),
+                  const Spacer(),
+                  GestureDetector(
+                    onTap: canSave ? _save : null,
+                    child: Text('Save',
+                        style: TextStyle(fontSize: 15, color: canSave ? ct.purpleLight : ct.textDisabled,
+                            fontWeight: FontWeight.w500)),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            Expanded(
+              child: ListView(
+                controller: scroll,
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                children: [
+                  Text('Pick an app', style: TextStyle(fontSize: 13, color: ct.textDisabled)),
+                  const SizedBox(height: 8),
+                  if (_loadingApps)
+                    Center(child: CircularProgressIndicator(color: ct.purpleLight, strokeWidth: 2))
+                  else if (_installedApps.isEmpty)
+                    Text('No installed apps found.',
+                        style: TextStyle(fontSize: 13, color: ct.textDisabled))
+                  else
+                    ..._installedApps.map((app) {
+                      final pkg  = app['packageName'] as String;
+                      final name = app['appName'] as String;
+                      final sel  = _pkg == pkg;
+                      return ListTile(
+                        dense: true,
+                        contentPadding: EdgeInsets.zero,
+                        leading: _AppIcon(
+                          app: AppEntry(emoji: '📱', name: name, category: 'App', blocked: false, packageName: pkg),
+                          avatarColor: const Color(0xFF7C5CFC),
+                        ),
+                        title: Text(name, style: TextStyle(fontSize: 14, color: ct.textSecondary)),
+                        trailing: Icon(
+                          sel ? TablerIcons.radio : TablerIcons.circle,
+                          size: 20, color: sel ? ct.purpleLight : ct.textDisabled,
+                        ),
+                        onTap: () => setState(() { _pkg = pkg; _name = name; }),
+                      );
+                    }),
+                  const SizedBox(height: 20),
+                  if (_pkg != null) ...[
+                    Text(widget.isTime ? 'Daily time limit' : 'Daily open limit',
+                        style: TextStyle(fontSize: 13, color: ct.textDisabled)),
+                    const SizedBox(height: 8),
+                    Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: ct.bgElevated,
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: ct.border, width: 0.5),
+                      ),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: SliderTheme(
+                              data: SliderTheme.of(context).copyWith(
+                                activeTrackColor: ct.purple,
+                                inactiveTrackColor: ct.bgCard,
+                                thumbColor: ct.purpleLight,
+                                overlayColor: ct.purpleTint,
+                              ),
+                              child: Slider(
+                                value: _value.toDouble().clamp(
+                                    widget.isTime ? 5 : 1, widget.isTime ? 180 : 100),
+                                min: widget.isTime ? 5 : 1,
+                                max: widget.isTime ? 180 : 100,
+                                divisions: widget.isTime ? 35 : 99,
+                                onChanged: (v) => setState(() => _value = v.round()),
+                              ),
+                            ),
+                          ),
+                          SizedBox(
+                            width: 90,
+                            child: Text(
+                              widget.isTime
+                                  ? '$_value min/day'
+                                  : '$_value ${_value == 1 ? 'time' : 'times'}/day',
+                              textAlign: TextAlign.right,
+                              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500,
+                                  color: ct.purpleLight),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                  if (_error != null) ...[
+                    const SizedBox(height: 8),
+                    Text(_error!, style: TextStyle(fontSize: 12, color: ct.red)),
+                  ],
                   const SizedBox(height: 32),
                 ],
               ),

@@ -26,6 +26,7 @@ import org.json.JSONArray
 import org.json.JSONObject
 import com.clarity.app.blocking.ClarityVpnService
 import com.clarity.app.blocking.LocationBlockingHelper
+import com.clarity.app.blocking.TimeBlockingHelper
 import com.clarity.app.blocking.NotificationCounterService
 import com.clarity.app.blocking.UsageStatsHelper
 import java.util.Calendar
@@ -284,6 +285,37 @@ class MainActivity : FlutterActivity() {
 
                     "getActiveGeofences" -> {
                         result.success(prefs.getStringSet("active_geofences", emptySet())!!.toList())
+                    }
+
+                    // ── Time-window blocking ────────────────────────────────
+                    "saveTimeRule" -> {
+                        val id       = call.argument<String>("id") ?: UUID.randomUUID().toString()
+                        val name     = call.argument<String>("name") ?: "Schedule"
+                        val start    = call.argument<Int>("start") ?: 0
+                        val end      = call.argument<Int>("end") ?: 0
+                        val days     = call.argument<List<Boolean>>("days") ?: List(7) { false }
+                        val packages = call.argument<List<String>>("packages") ?: emptyList()
+                        val appNames = call.argument<List<String>>("appNames") ?: emptyList()
+
+                        val rule = JSONObject().apply {
+                            put("id", id); put("name", name)
+                            put("start", start); put("end", end)
+                            put("days", JSONArray(days))
+                            put("packages", JSONArray(packages))
+                            put("appNames", JSONArray(appNames))
+                        }
+                        TimeBlockingHelper.saveRule(prefs, rule)
+                        result.success(id)
+                    }
+
+                    "removeTimeRule" -> {
+                        val id = call.argument<String>("id") ?: ""
+                        TimeBlockingHelper.removeRule(prefs, id)
+                        result.success(null)
+                    }
+
+                    "getTimeRules" -> {
+                        result.success(TimeBlockingHelper.loadRules(prefs).toString())
                     }
 
                     else -> result.notImplemented()

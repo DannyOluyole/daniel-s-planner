@@ -61,8 +61,11 @@ class ClarityBlockingService : AccessibilityService() {
      * an app that just became blocked (no new window-state event fires). */
     private fun checkCurrentAppNowBlocked() {
         val pkg = currentPkg ?: return
-        if (loadBlockedApps().contains(pkg)) launchOverlay(pkg, "BLOCKED")
+        if (isPackageBlocked(pkg)) launchOverlay(pkg, "BLOCKED")
     }
+
+    private fun isPackageBlocked(pkg: String): Boolean =
+        loadBlockedApps().contains(pkg) || TimeBlockingHelper.isBlockedNow(prefs, pkg)
 
     override fun onAccessibilityEvent(event: AccessibilityEvent) {
         if (event.eventType != AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) return
@@ -74,7 +77,7 @@ class ClarityBlockingService : AccessibilityService() {
         currentPkg = pkg
         sessionStartMs = System.currentTimeMillis()
 
-        if (loadBlockedApps().contains(pkg)) {
+        if (isPackageBlocked(pkg)) {
             launchOverlay(pkg, "BLOCKED")
             return
         }
@@ -123,6 +126,13 @@ class ClarityBlockingService : AccessibilityService() {
 
     private fun checkOngoingSession() {
         val pkg = currentPkg ?: return
+
+        // A time-window rule may have just started while this app stayed open.
+        if (TimeBlockingHelper.isBlockedNow(prefs, pkg)) {
+            launchOverlay(pkg, "BLOCKED")
+            return
+        }
+
         val limit = loadLimits()[pkg] ?: return
         if (limit.timeLimitMin == null) return
 
