@@ -1,16 +1,20 @@
 import { promises as fs } from "fs";
+import os from "os";
 import path from "path";
 
-// NOTE on Vercel: this writes to the local filesystem, which works for
-// `next dev` and for a single long-lived `next start` process, but Vercel's
-// serverless functions have a read-only filesystem except for `/tmp`, and
-// `/tmp` is not shared across invocations or persisted between deploys.
-// Before deploying this app to Vercel, swap this module's read/write calls
-// for a real store (e.g. Vercel Postgres, Vercel KV, or Supabase) — the
-// function signatures below (`getSubmissions`, `appendSubmission`) are kept
-// deliberately small so that swap only touches this one file.
+// NOTE on Vercel: serverless functions have a read-only filesystem except
+// for `/tmp`, and `/tmp` is not shared across invocations or persisted
+// between deploys — so submissions written there will NOT survive past the
+// current invocation/instance. This keeps the app from crashing on Vercel,
+// but it is not durable storage. Before relying on this for real signups,
+// swap this module's read/write calls for a real store (e.g. Vercel
+// Postgres, Vercel KV, or Supabase) — the function signatures below
+// (`getSubmissions`, `appendSubmission`) are kept deliberately small so that
+// swap only touches this one file.
 
-const DATA_DIR = path.join(process.cwd(), "data");
+const DATA_DIR = process.env.VERCEL
+  ? path.join(os.tmpdir(), "pod-data")
+  : path.join(process.cwd(), "data");
 const DATA_FILE = path.join(DATA_DIR, "submissions.json");
 
 async function ensureFile() {
