@@ -1,50 +1,76 @@
-import { promises as fs } from "fs";
-import os from "os";
-import path from "path";
+import { neon } from "@neondatabase/serverless";
 
-// NOTE on Vercel: serverless functions have a read-only filesystem except
-// for `/tmp`, and `/tmp` is not shared across invocations or persisted
-// between deploys — so submissions written there will NOT survive past the
-// current invocation/instance. This keeps the app from crashing on Vercel,
-// but it is not durable storage. Before relying on this for real signups,
-// swap this module's read/write calls for a real store (e.g. Vercel
-// Postgres, Vercel KV, or Supabase) — the function signatures below
-// (`getSubmissions`, `appendSubmission`) are kept deliberately small so that
-// swap only touches this one file.
+// Backed by Vercel Postgres (Neon). Connect a database in the Vercel
+// dashboard's Storage tab and it will inject DATABASE_URL (or POSTGRES_URL)
+// automatically. For local dev, run `vercel env pull .env.development.local`
+// to pull the same connection string down.
 
-const DATA_DIR = process.env.VERCEL
-  ? path.join(os.tmpdir(), "pod-data")
-  : path.join(process.cwd(), "data");
-const DATA_FILE = path.join(DATA_DIR, "submissions.json");
-
-async function ensureFile() {
-  await fs.mkdir(DATA_DIR, { recursive: true });
-  try {
-    await fs.access(DATA_FILE);
-  } catch {
-    await fs.writeFile(DATA_FILE, "[]", "utf8");
+function getSql() {
+  const connectionString = process.env.DATABASE_URL || process.env.POSTGRES_URL;
+  if (!connectionString) {
+    throw new Error(
+      "Missing DATABASE_URL/POSTGRES_URL — connect a Postgres database in Vercel's Storage tab, or run `vercel env pull .env.development.local` for local dev."
+    );
   }
+  return neon(connectionString);
+}
+
+let tableEnsured = false;
+async function ensureTable(sql) {
+  if (tableEnsured) return;
+  await sql`
+    CREATE TABLE IF NOT EXISTS submissions (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      submitted_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+      gender TEXT,
+      age_range TEXT,
+      goal TEXT,
+      pod_size TEXT,
+      source TEXT,
+      email TEXT NOT NULL,
+      user_agent TEXT,
+      referrer TEXT
+    )
+  `;
+  tableEnsured = true;
+}
+
+function toSubmission(row) {
+  return {
+    id: row.id,
+    submittedAt:
+      row.submitted_at instanceof Date
+        ? row.submitted_at.toISOString()
+        : row.submitted_at,
+    gender: row.gender,
+    ageRange: row.age_range,
+    goal: row.goal,
+    podSize: row.pod_size,
+    source: row.source,
+    email: row.email,
+    userAgent: row.user_agent,
+    referrer: row.referrer,
+  };
 }
 
 export async function getSubmissions() {
-  await ensureFile();
-  const raw = await fs.readFile(DATA_FILE, "utf8");
-  try {
-    return JSON.parse(raw);
-  } catch {
-    return [];
-  }
+  const sql = getSql();
+  await ensureTable(sql);
+  const rows = await sql`SELECT * FROM submissions ORDER BY submitted_at ASC`;
+  return rows.map(toSubmission);
 }
 
 export async function appendSubmission(submission) {
-  await ensureFile();
-  const all = await getSubmissions();
-  const record = {
-    id: crypto.randomUUID(),
-    submittedAt: new Date().toISOString(),
-    ...submission,
-  };
-  all.push(record);
-  await fs.writeFile(DATA_FILE, JSON.stringify(all, null, 2), "utf8");
-  return record;
+  const sql = getSql();
+  await ensureTable(sql);
+  const { gender, ageRange, goal, podSize, source, email, userAgent, referrer } =
+    submission;
+  const rows = await sql`
+    INSERT INTO submissions
+      (gender, age_range, goal, pod_size, source, email, user_agent, referrer)
+    VALUES
+      (${gender}, ${ageRange}, ${goal}, ${podSize}, ${source}, ${email}, ${userAgent}, ${referrer})
+    RETURNING *
+  `;
+  return toSubmission(rows[0]);
 }
