@@ -63,6 +63,9 @@ export default function SignupForm() {
         return;
       }
       setStatus("done");
+      if (typeof window !== "undefined" && window.fbq) {
+        window.fbq("track", "Lead");
+      }
     } catch {
       setError("Something went wrong. Try again.");
       setStatus("error");
