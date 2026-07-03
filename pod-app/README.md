@@ -10,11 +10,15 @@ wearable sync. Those layer on top of this once the core loop is proven.
 
 ## Stack
 
-- Expo SDK 57 + Expo Router (file-based navigation, see `app/`)
+- Expo SDK 54 + Expo Router (file-based navigation, see `app/`) — **pinned
+  deliberately**, not "whatever's latest": the standalone Expo Go app (App
+  Store / Play Store) only supports SDK 54 right now. Bumping this without
+  checking Expo Go's currently-supported SDK first will build fine but crash
+  instantly the moment you open it in Expo Go.
 - Plain React Native `StyleSheet` + `src/theme/index.ts` for the brand system
-  (NativeWind was skipped — its SDK 57 setup uses new, unstable-feeling
-  tooling (`nativewind@preview`, `react-native-css`) that isn't worth the risk
-  for an MVP; StyleSheet gets the same visual result with zero extra risk)
+  (NativeWind was skipped — its newer-SDK setup uses tooling
+  (`nativewind@preview`, `react-native-css`) that isn't worth the risk for an
+  MVP; StyleSheet gets the same visual result with zero extra risk)
 - Supabase: Postgres + Auth + Storage + Row Level Security (`supabase/schema.sql`)
 
 ## First-time setup
@@ -52,14 +56,22 @@ wearable sync. Those layer on top of this once the core loop is proven.
 
 ## What's verified vs. not
 
-Verified in this sandbox (no live Supabase project available here — its
-network egress policy also blocks `api.expo.dev`, `*.supabase.co`, etc.):
+Verified in this sandbox (its network egress policy blocks `api.expo.dev`,
+`*.supabase.co`, etc., so nothing requiring live network access could be
+tested here):
 - TypeScript compiles clean (`npx tsc --noEmit`)
-- The Expo Router / Metro bundle builds with no errors on `web`
+- The Expo Router / Metro bundle builds with no errors on both `web` and
+  `android` platforms
 - `sign-in` / `sign-up` render correctly and navigate between each other
   (confirmed visually via a headless-browser screenshot)
+- The app correctly surfaces (rather than crashing on) a failed Supabase
+  request — confirmed by triggering a real sign-up against a live project's
+  credentials from this sandbox and watching it fail gracefully with
+  "Failed to fetch" (expected here, since the sandbox can't reach
+  `supabase.co` — not a sign of a real bug)
 
 **Not yet verified**: the actual data flow (create/join Pod → post a meal →
-see it in the feed → streaks update → reactions). That needs a real Supabase
-project — once you've done the setup steps above and the app can reach your
-project, run through that flow once for real before treating this as done.
+see it in the feed → streaks update → reactions). That needs to run
+somewhere with normal internet access — your own machine via `npx expo
+start` + Expo Go, or `npm run web`. Run through that flow once for real
+before treating this as done.
