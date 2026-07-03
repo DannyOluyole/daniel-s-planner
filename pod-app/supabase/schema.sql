@@ -16,18 +16,6 @@ create table if not exists public.profiles (
 
 alter table public.profiles enable row level security;
 
-drop policy if exists "profiles_select_podmates" on public.profiles;
-create policy "profiles_select_podmates" on public.profiles
-  for select using (
-    id = auth.uid()
-    or exists (
-      select 1
-      from public.pod_members mine
-      join public.pod_members theirs on theirs.pod_id = mine.pod_id
-      where mine.user_id = auth.uid() and theirs.user_id = profiles.id
-    )
-  );
-
 drop policy if exists "profiles_update_self" on public.profiles;
 create policy "profiles_update_self" on public.profiles
   for update using (id = auth.uid());
@@ -88,6 +76,18 @@ as $$
     where pod_id = p_pod_id and user_id = p_user_id
   );
 $$;
+
+-- profiles policy lives here (not up with the rest of the profiles block)
+-- because it depends on is_pod_member(), which needs pod_members to exist.
+drop policy if exists "profiles_select_podmates" on public.profiles;
+create policy "profiles_select_podmates" on public.profiles
+  for select using (
+    id = auth.uid()
+    or exists (
+      select 1 from public.pod_members pm
+      where pm.user_id = auth.uid() and public.is_pod_member(pm.pod_id, profiles.id)
+    )
+  );
 
 create or replace function public.enforce_pod_size()
 returns trigger
