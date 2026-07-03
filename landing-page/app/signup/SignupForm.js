@@ -14,12 +14,7 @@ const GOAL_OPTIONS = [
   "Just here to roast my friends' meals",
 ];
 const POD_SIZE_OPTIONS = ["Just me + 1 friend", "3–5 friends", "6–8 friends (full squad)"];
-const PRICING_OPTIONS = [
-  "Free only — I'm not paying for a tracker",
-  "$1–4/month",
-  "$5–9/month",
-  "$10+/month",
-];
+const PRICING_OPTIONS = ["$5–9/month", "$10–14/month", "$15+/month"];
 
 export default function SignupForm() {
   const searchParams = useSearchParams();
