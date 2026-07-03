@@ -13,6 +13,7 @@ import {
 } from "react-native";
 import { useAuth } from "../src/lib/AuthProvider";
 import { supabase } from "../src/lib/supabase";
+import { friendlyErrorMessage } from "../src/lib/errors";
 import { Button } from "../src/components/Button";
 import { TextField } from "../src/components/TextField";
 import { colors, spacing } from "../src/theme";
@@ -88,7 +89,7 @@ export default function LogMealScreen() {
       if (insertError) throw insertError;
       router.back();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Something went wrong. Try again.");
+      setError(friendlyErrorMessage(e));
     } finally {
       setLoading(false);
     }

@@ -3,6 +3,7 @@ import { useFocusEffect, useRouter } from "expo-router";
 import { FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from "react-native";
 import { useAuth } from "../../src/lib/AuthProvider";
 import { supabase } from "../../src/lib/supabase";
+import { friendlyErrorMessage } from "../../src/lib/errors";
 import { MealCard } from "../../src/components/MealCard";
 import { colors, radius, spacing } from "../../src/theme";
 import { computeGroupStreak, toLocalDateKey } from "../../src/lib/streak";
@@ -19,34 +20,39 @@ export default function FeedScreen() {
   const [memberIds, setMemberIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const loadFeed = useCallback(async () => {
     if (!pod) return;
+    try {
+      const since = new Date();
+      since.setDate(since.getDate() - FEED_WINDOW_DAYS);
 
-    const since = new Date();
-    since.setDate(since.getDate() - FEED_WINDOW_DAYS);
+      const [{ data: mealRows }, { data: memberRows }] = await Promise.all([
+        supabase
+          .from("meal_logs")
+          .select("*, profiles(id, display_name, avatar_color)")
+          .eq("pod_id", pod.id)
+          .eq("shared_to_pod", true)
+          .gte("logged_at", since.toISOString())
+          .order("logged_at", { ascending: false }),
+        supabase.from("pod_members").select("user_id").eq("pod_id", pod.id),
+      ]);
 
-    const [{ data: mealRows }, { data: memberRows }] = await Promise.all([
-      supabase
-        .from("meal_logs")
-        .select("*, profiles(id, display_name, avatar_color)")
-        .eq("pod_id", pod.id)
-        .eq("shared_to_pod", true)
-        .gte("logged_at", since.toISOString())
-        .order("logged_at", { ascending: false }),
-      supabase.from("pod_members").select("user_id").eq("pod_id", pod.id),
-    ]);
+      const mealList = (mealRows as MealLogWithAuthor[]) ?? [];
+      setMeals(mealList);
+      setMemberIds((memberRows ?? []).map((m) => m.user_id));
 
-    const mealList = (mealRows as MealLogWithAuthor[]) ?? [];
-    setMeals(mealList);
-    setMemberIds((memberRows ?? []).map((m) => m.user_id));
-
-    const mealIds = mealList.map((m) => m.id);
-    if (mealIds.length > 0) {
-      const { data: reactionRows } = await supabase.from("reactions").select("*").in("meal_log_id", mealIds);
-      setReactions((reactionRows as Reaction[]) ?? []);
-    } else {
-      setReactions([]);
+      const mealIds = mealList.map((m) => m.id);
+      if (mealIds.length > 0) {
+        const { data: reactionRows } = await supabase.from("reactions").select("*").in("meal_log_id", mealIds);
+        setReactions((reactionRows as Reaction[]) ?? []);
+      } else {
+        setReactions([]);
+      }
+      setError(null);
+    } catch (err) {
+      setError(friendlyErrorMessage(err));
     }
   }, [pod]);
 
@@ -66,12 +72,20 @@ export default function FeedScreen() {
   async function toggleReaction(mealId: string) {
     if (!session) return;
     const existing = reactions.find((r) => r.meal_log_id === mealId && r.user_id === session.user.id);
-    if (existing) {
-      await supabase.from("reactions").delete().eq("meal_log_id", mealId).eq("user_id", session.user.id);
-      setReactions((prev) => prev.filter((r) => !(r.meal_log_id === mealId && r.user_id === session.user.id)));
-    } else {
-      await supabase.from("reactions").insert({ meal_log_id: mealId, user_id: session.user.id, emoji: "🔥" });
-      setReactions((prev) => [...prev, { meal_log_id: mealId, user_id: session.user.id, emoji: "🔥", created_at: new Date().toISOString() }]);
+    try {
+      if (existing) {
+        await supabase.from("reactions").delete().eq("meal_log_id", mealId).eq("user_id", session.user.id);
+        setReactions((prev) => prev.filter((r) => !(r.meal_log_id === mealId && r.user_id === session.user.id)));
+      } else {
+        await supabase.from("reactions").insert({ meal_log_id: mealId, user_id: session.user.id, emoji: "🔥" });
+        setReactions((prev) => [
+          ...prev,
+          { meal_log_id: mealId, user_id: session.user.id, emoji: "🔥", created_at: new Date().toISOString() },
+        ]);
+      }
+    } catch {
+      // Reaction taps are low-stakes -- fail silently rather than
+      // interrupting the feed with an error banner over a 🔥 tap.
     }
   }
 
@@ -94,6 +108,12 @@ export default function FeedScreen() {
           <Text style={styles.streakCount}>{groupStreak}</Text>
         </View>
       </View>
+
+      {error && (
+        <View style={styles.errorBanner}>
+          <Text style={styles.errorBannerText}>{error}</Text>
+        </View>
+      )}
 
       <FlatList
         data={meals}
@@ -167,6 +187,18 @@ const styles = StyleSheet.create({
   streakCount: {
     fontWeight: "800",
     color: colors.ink,
+  },
+  errorBanner: {
+    marginHorizontal: spacing.lg,
+    marginBottom: spacing.sm,
+    backgroundColor: `${colors.ember}1A`,
+    borderRadius: radius.sm,
+    padding: spacing.sm + 2,
+  },
+  errorBannerText: {
+    color: colors.ember,
+    fontWeight: "600",
+    fontSize: 13,
   },
   list: {
     paddingHorizontal: spacing.lg,

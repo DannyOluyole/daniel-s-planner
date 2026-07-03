@@ -3,6 +3,7 @@ import { useFocusEffect } from "expo-router";
 import { StyleSheet, Text, View } from "react-native";
 import { useAuth } from "../../src/lib/AuthProvider";
 import { supabase } from "../../src/lib/supabase";
+import { friendlyErrorMessage } from "../../src/lib/errors";
 import { Button } from "../../src/components/Button";
 import { colors, radius, spacing } from "../../src/theme";
 import { computeStreak, toLocalDateKey } from "../../src/lib/streak";
@@ -11,23 +12,29 @@ export default function ProfileScreen() {
   const { session, profile, pod } = useAuth();
   const [streak, setStreak] = useState(0);
   const [totalLogs, setTotalLogs] = useState(0);
+  const [error, setError] = useState<string | null>(null);
 
   useFocusEffect(
     useCallback(() => {
       let cancelled = false;
       async function load() {
         if (!session) return;
-        const since = new Date();
-        since.setDate(since.getDate() - 35);
-        const { data, count } = await supabase
-          .from("meal_logs")
-          .select("logged_at", { count: "exact" })
-          .eq("user_id", session.user.id)
-          .gte("logged_at", since.toISOString());
-        if (cancelled) return;
-        const dateKeys = (data ?? []).map((r) => toLocalDateKey(r.logged_at));
-        setStreak(computeStreak(dateKeys));
-        setTotalLogs(count ?? 0);
+        try {
+          const since = new Date();
+          since.setDate(since.getDate() - 35);
+          const { data, count } = await supabase
+            .from("meal_logs")
+            .select("logged_at", { count: "exact" })
+            .eq("user_id", session.user.id)
+            .gte("logged_at", since.toISOString());
+          if (cancelled) return;
+          const dateKeys = (data ?? []).map((r) => toLocalDateKey(r.logged_at));
+          setStreak(computeStreak(dateKeys));
+          setTotalLogs(count ?? 0);
+          setError(null);
+        } catch (err) {
+          if (!cancelled) setError(friendlyErrorMessage(err));
+        }
       }
       load();
       return () => {
@@ -54,6 +61,8 @@ export default function ProfileScreen() {
           <Text style={styles.statLabel}>meals logged (35d)</Text>
         </View>
       </View>
+
+      {error && <Text style={styles.error}>{error}</Text>}
 
       <Button title="Sign out" variant="secondary" onPress={() => supabase.auth.signOut()} />
     </View>
@@ -112,5 +121,12 @@ const styles = StyleSheet.create({
   statLabel: {
     fontSize: 12,
     color: `${colors.ink}80`,
+  },
+  error: {
+    color: colors.ember,
+    fontWeight: "600",
+    fontSize: 13,
+    textAlign: "center",
+    marginBottom: spacing.sm,
   },
 });

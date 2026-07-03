@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link } from "expo-router";
 import { KeyboardAvoidingView, Platform, StyleSheet, Text, View } from "react-native";
 import { supabase } from "../src/lib/supabase";
+import { friendlyErrorMessage } from "../src/lib/errors";
 import { Button } from "../src/components/Button";
 import { TextField } from "../src/components/TextField";
 import { colors, spacing } from "../src/theme";
@@ -15,10 +16,15 @@ export default function SignInScreen() {
   async function handleSignIn() {
     setError(null);
     setLoading(true);
-    const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
-    setLoading(false);
-    if (signInError) setError(signInError.message);
-    // On success, AuthProvider's onAuthStateChange + AuthGate handle routing.
+    try {
+      const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+      if (signInError) setError(friendlyErrorMessage(signInError));
+      // On success, AuthProvider's onAuthStateChange + AuthGate handle routing.
+    } catch (err) {
+      setError(friendlyErrorMessage(err));
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (

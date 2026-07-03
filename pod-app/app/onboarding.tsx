@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { supabase } from "../src/lib/supabase";
+import { friendlyErrorMessage } from "../src/lib/errors";
 import { useAuth } from "../src/lib/AuthProvider";
 import { Button } from "../src/components/Button";
 import { TextField } from "../src/components/TextField";
@@ -20,63 +21,73 @@ export default function OnboardingScreen() {
     if (!session) return;
     setError(null);
     setLoading(true);
+    try {
+      const { data: pod, error: createError } = await supabase
+        .from("pods")
+        .insert({ name: podName.trim(), created_by: session.user.id })
+        .select()
+        .single();
 
-    const { data: pod, error: createError } = await supabase
-      .from("pods")
-      .insert({ name: podName.trim(), created_by: session.user.id })
-      .select()
-      .single();
+      if (createError || !pod) {
+        setError(createError ? friendlyErrorMessage(createError) : "Couldn't create your Pod. Try again.");
+        return;
+      }
 
-    if (createError || !pod) {
+      const { error: joinError } = await supabase
+        .from("pod_members")
+        .insert({ pod_id: pod.id, user_id: session.user.id });
+
+      if (joinError) {
+        setError(friendlyErrorMessage(joinError));
+        return;
+      }
+      await refreshPod();
+    } catch (err) {
+      setError(friendlyErrorMessage(err));
+    } finally {
       setLoading(false);
-      setError(createError?.message ?? "Couldn't create your Pod. Try again.");
-      return;
     }
-
-    const { error: joinError } = await supabase
-      .from("pod_members")
-      .insert({ pod_id: pod.id, user_id: session.user.id });
-
-    setLoading(false);
-    if (joinError) {
-      setError(joinError.message);
-      return;
-    }
-    await refreshPod();
   }
 
   async function handleJoin() {
     if (!session) return;
     setError(null);
     setLoading(true);
+    try {
+      const code = inviteCode.trim().toUpperCase();
+      const { data: pod, error: lookupError } = await supabase
+        .from("pods")
+        .select()
+        .eq("invite_code", code)
+        .maybeSingle();
 
-    const code = inviteCode.trim().toUpperCase();
-    const { data: pod, error: lookupError } = await supabase
-      .from("pods")
-      .select()
-      .eq("invite_code", code)
-      .maybeSingle();
+      if (lookupError) {
+        setError(friendlyErrorMessage(lookupError));
+        return;
+      }
+      if (!pod) {
+        setError("No Pod found with that code. Double-check it with whoever invited you.");
+        return;
+      }
 
-    if (lookupError || !pod) {
+      const { error: joinError } = await supabase
+        .from("pod_members")
+        .insert({ pod_id: pod.id, user_id: session.user.id });
+
+      if (joinError) {
+        setError(
+          joinError.message.includes("full")
+            ? "This Pod is already full (8 members max)."
+            : friendlyErrorMessage(joinError)
+        );
+        return;
+      }
+      await refreshPod();
+    } catch (err) {
+      setError(friendlyErrorMessage(err));
+    } finally {
       setLoading(false);
-      setError("No Pod found with that code. Double-check it with whoever invited you.");
-      return;
     }
-
-    const { error: joinError } = await supabase
-      .from("pod_members")
-      .insert({ pod_id: pod.id, user_id: session.user.id });
-
-    setLoading(false);
-    if (joinError) {
-      setError(
-        joinError.message.includes("full")
-          ? "This Pod is already full (8 members max)."
-          : joinError.message
-      );
-      return;
-    }
-    await refreshPod();
   }
 
   return (
