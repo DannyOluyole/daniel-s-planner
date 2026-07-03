@@ -10,16 +10,24 @@ wearable sync. Those layer on top of this once the core loop is proven.
 
 ## Stack
 
-- Expo SDK 54 + Expo Router (file-based navigation, see `app/`) — **pinned
-  deliberately**, not "whatever's latest": the standalone Expo Go app (App
-  Store / Play Store) only supports SDK 54 right now. Bumping this without
-  checking Expo Go's currently-supported SDK first will build fine but crash
-  instantly the moment you open it in Expo Go.
+- Expo SDK 57 + Expo Router (file-based navigation, see `app/`) — pinned to
+  match whatever SDK the installed Expo Go app currently supports (check via
+  the app's Profile tab). This drifts over time; see `AGENTS.md` before
+  bumping it.
 - Plain React Native `StyleSheet` + `src/theme/index.ts` for the brand system
-  (NativeWind was skipped — its newer-SDK setup uses tooling
+  (NativeWind was skipped — its SDK 57 setup uses tooling
   (`nativewind@preview`, `react-native-css`) that isn't worth the risk for an
   MVP; StyleSheet gets the same visual result with zero extra risk)
 - Supabase: Postgres + Auth + Storage + Row Level Security (`supabase/schema.sql`)
+
+**Native module versions are pinned exactly** to Expo's own
+`bundledNativeModules.json` for SDK 57 (`@react-native-async-storage/async-storage`
+`2.2.0`, `react-native-safe-area-context` `~5.7.0`, `react-native-screens`
+`4.25.2`, etc.) — installing "latest" for any package with native code will
+build and run fine on `web` but **crash instantly with no error message** in
+Expo Go, because Expo Go's binary has specific native module versions
+pre-compiled in. See `AGENTS.md` for how to re-verify this if you add or
+upgrade a native dependency.
 
 ## First-time setup
 
@@ -69,6 +77,9 @@ tested here):
   credentials from this sandbox and watching it fail gracefully with
   "Failed to fetch" (expected here, since the sandbox can't reach
   `supabase.co` — not a sign of a real bug)
+- Every native-module version matches Expo's `bundledNativeModules.json` for
+  SDK 57 exactly (cross-checked, not guessed) — this was the actual root
+  cause of an earlier "Expo Go closes instantly with no error" bug
 
 **Not yet verified**: the actual data flow (create/join Pod → post a meal →
 see it in the feed → streaks update → reactions). That needs to run
