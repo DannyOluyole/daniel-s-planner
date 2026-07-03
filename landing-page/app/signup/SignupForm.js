@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useSearchParams } from "next/navigation";
 
-const STEPS = ["gender", "age", "goal", "podSize", "email"];
+const STEPS = ["gender", "age", "goal", "podSize", "pricing", "email"];
 
 const GENDER_OPTIONS = ["Female", "Male", "Non-binary", "Prefer not to say"];
 const AGE_OPTIONS = ["13–17", "18–24", "25–34", "35–44", "45+"];
@@ -14,6 +14,12 @@ const GOAL_OPTIONS = [
   "Just here to roast my friends' meals",
 ];
 const POD_SIZE_OPTIONS = ["Just me + 1 friend", "3–5 friends", "6–8 friends (full squad)"];
+const PRICING_OPTIONS = [
+  "Free only — I'm not paying for a tracker",
+  "$1–4/month",
+  "$5–9/month",
+  "$10+/month",
+];
 
 export default function SignupForm() {
   const searchParams = useSearchParams();
@@ -25,6 +31,7 @@ export default function SignupForm() {
     ageRange: "",
     goal: "",
     podSize: "",
+    willingnessToPay: "",
     email: "",
   });
   const [status, setStatus] = useState("idle"); // idle | submitting | done | error
@@ -134,6 +141,16 @@ export default function SignupForm() {
             options={POD_SIZE_OPTIONS}
             onSelect={(v) => selectAndAdvance("podSize", v)}
             selected={answers.podSize}
+            onBack={goBack}
+          />
+        )}
+
+        {step === "pricing" && (
+          <Question
+            title="What would you pay per month for something like this?"
+            options={PRICING_OPTIONS}
+            onSelect={(v) => selectAndAdvance("willingnessToPay", v)}
+            selected={answers.willingnessToPay}
             onBack={goBack}
           />
         )}

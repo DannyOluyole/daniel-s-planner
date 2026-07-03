@@ -26,12 +26,15 @@ async function ensureTable(sql) {
       age_range TEXT,
       goal TEXT,
       pod_size TEXT,
+      willingness_to_pay TEXT,
       source TEXT,
       email TEXT NOT NULL,
       user_agent TEXT,
       referrer TEXT
     )
   `;
+  // ALTER for tables created before willingness_to_pay existed.
+  await sql`ALTER TABLE submissions ADD COLUMN IF NOT EXISTS willingness_to_pay TEXT`;
   tableEnsured = true;
 }
 
@@ -46,6 +49,7 @@ function toSubmission(row) {
     ageRange: row.age_range,
     goal: row.goal,
     podSize: row.pod_size,
+    willingnessToPay: row.willingness_to_pay,
     source: row.source,
     email: row.email,
     userAgent: row.user_agent,
@@ -63,13 +67,22 @@ export async function getSubmissions() {
 export async function appendSubmission(submission) {
   const sql = getSql();
   await ensureTable(sql);
-  const { gender, ageRange, goal, podSize, source, email, userAgent, referrer } =
-    submission;
+  const {
+    gender,
+    ageRange,
+    goal,
+    podSize,
+    willingnessToPay,
+    source,
+    email,
+    userAgent,
+    referrer,
+  } = submission;
   const rows = await sql`
     INSERT INTO submissions
-      (gender, age_range, goal, pod_size, source, email, user_agent, referrer)
+      (gender, age_range, goal, pod_size, willingness_to_pay, source, email, user_agent, referrer)
     VALUES
-      (${gender}, ${ageRange}, ${goal}, ${podSize}, ${source}, ${email}, ${userAgent}, ${referrer})
+      (${gender}, ${ageRange}, ${goal}, ${podSize}, ${willingnessToPay}, ${source}, ${email}, ${userAgent}, ${referrer})
     RETURNING *
   `;
   return toSubmission(rows[0]);

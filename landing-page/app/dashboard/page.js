@@ -24,6 +24,7 @@ export default async function DashboardPage() {
   const bySource = countBy(submissions, "source");
   const byGender = countBy(submissions, "gender");
   const byGoal = countBy(submissions, "goal");
+  const byWillingnessToPay = countBy(submissions, "willingnessToPay");
 
   return (
     <main className="min-h-screen px-4 py-10 sm:px-8">
@@ -39,10 +40,11 @@ export default async function DashboardPage() {
           <LogoutButton />
         </div>
 
-        <section className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <section className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <StatCard title="By traffic source" rows={bySource} />
           <StatCard title="By gender" rows={byGender} />
           <StatCard title="By goal" rows={byGoal} />
+          <StatCard title="By willingness to pay" rows={byWillingnessToPay} />
         </section>
 
         <section className="mt-10">
@@ -57,13 +59,14 @@ export default async function DashboardPage() {
                   <th className="px-4 py-3">Age range</th>
                   <th className="px-4 py-3">Goal</th>
                   <th className="px-4 py-3">Pod size</th>
+                  <th className="px-4 py-3">Would pay</th>
                   <th className="px-4 py-3">Source</th>
                 </tr>
               </thead>
               <tbody>
                 {sorted.length === 0 && (
                   <tr>
-                    <td colSpan={7} className="px-4 py-8 text-center text-pod-ink/50">
+                    <td colSpan={8} className="px-4 py-8 text-center text-pod-ink/50">
                       No submissions yet — share the signup link to start
                       collecting data.
                     </td>
@@ -79,6 +82,7 @@ export default async function DashboardPage() {
                     <td className="px-4 py-3">{s.ageRange || "—"}</td>
                     <td className="px-4 py-3">{s.goal || "—"}</td>
                     <td className="px-4 py-3">{s.podSize || "—"}</td>
+                    <td className="px-4 py-3">{s.willingnessToPay || "—"}</td>
                     <td className="px-4 py-3">{s.source || "—"}</td>
                   </tr>
                 ))}

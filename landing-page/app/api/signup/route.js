@@ -10,7 +10,7 @@ export async function POST(request) {
     return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
   }
 
-  const { gender, ageRange, goal, podSize, source, email } = body;
+  const { gender, ageRange, goal, podSize, willingnessToPay, source, email } = body;
 
   if (!email || !EMAIL_RE.test(email)) {
     return NextResponse.json(
@@ -24,6 +24,7 @@ export async function POST(request) {
     ageRange: ageRange ?? null,
     goal: goal ?? null,
     podSize: podSize ?? null,
+    willingnessToPay: willingnessToPay ?? null,
     source: source ?? null,
     email,
     userAgent: request.headers.get("user-agent") ?? null,
