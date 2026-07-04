@@ -30,6 +30,7 @@ export default function LogMealScreen() {
   const [caption, setCaption] = useState("");
   const [shareToPod, setShareToPod] = useState(true);
   const [photoUri, setPhotoUri] = useState<string | null>(null);
+  const [photoMimeType, setPhotoMimeType] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -47,17 +48,22 @@ export default function LogMealScreen() {
     });
     if (!result.canceled && result.assets[0]) {
       setPhotoUri(result.assets[0].uri);
+      setPhotoMimeType(result.assets[0].mimeType ?? null);
     }
   }
 
-  async function uploadPhoto(uri: string, userId: string): Promise<string | null> {
+  async function uploadPhoto(uri: string, mimeType: string | null, userId: string): Promise<string | null> {
     const response = await fetch(uri);
     const arrayBuffer = await response.arrayBuffer();
-    const ext = uri.split(".").pop()?.toLowerCase() || "jpg";
+    // Don't derive the extension from the URI: on web, picked images are
+    // `blob:` URLs with no file extension, so a naive string split produces
+    // garbage that Supabase Storage rejects as an invalid Content-Type header.
+    const contentType = mimeType || "image/jpeg";
+    const ext = contentType.split("/")[1]?.split(";")[0] || "jpg";
     const path = `${userId}/${Date.now()}.${ext}`;
     const { error: uploadError } = await supabase.storage
       .from("meal-photos")
-      .upload(path, arrayBuffer, { contentType: `image/${ext === "jpg" ? "jpeg" : ext}` });
+      .upload(path, arrayBuffer, { contentType });
     if (uploadError) throw uploadError;
     const { data } = supabase.storage.from("meal-photos").getPublicUrl(path);
     return data.publicUrl;
@@ -70,7 +76,7 @@ export default function LogMealScreen() {
     try {
       let photoUrl: string | null = null;
       if (photoUri) {
-        photoUrl = await uploadPhoto(photoUri, session.user.id);
+        photoUrl = await uploadPhoto(photoUri, photoMimeType, session.user.id);
       }
 
       const { error: insertError } = await supabase.from("meal_logs").insert({
