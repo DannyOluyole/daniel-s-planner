@@ -127,6 +127,74 @@ create policy "pod_members_insert_self" on public.pod_members
   for insert with check (user_id = auth.uid());
 
 -- ---------------------------------------------------------------------------
+-- create_pod / join_pod: SECURITY DEFINER RPCs. The app calls these instead
+-- of doing two separate client-side inserts (pods, then pod_members). That
+-- old two-step flow was vulnerable to an RLS/session edge case: the second
+-- insert (or the SELECT-after-INSERT round trip PostgREST does for
+-- `.select().single()`) could be evaluated under a slightly different auth
+-- context than expected, surfacing as "new row violates row-level security
+-- policy for table pods" even for a legitimately signed-in user. Running the
+-- whole thing as one SECURITY DEFINER transaction removes that ambiguity:
+-- auth.uid() is checked once, explicitly, and the pod + membership row are
+-- created atomically so there's never a pod without its creator as a member.
+-- ---------------------------------------------------------------------------
+create or replace function public.create_pod(p_name text)
+returns public.pods
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_pod public.pods;
+begin
+  if auth.uid() is null then
+    raise exception 'Not authenticated';
+  end if;
+  if trim(p_name) = '' then
+    raise exception 'Pod name is required';
+  end if;
+
+  insert into public.pods (name, created_by)
+  values (trim(p_name), auth.uid())
+  returning * into v_pod;
+
+  insert into public.pod_members (pod_id, user_id)
+  values (v_pod.id, auth.uid());
+
+  return v_pod;
+end;
+$$;
+
+grant execute on function public.create_pod(text) to authenticated;
+
+create or replace function public.join_pod(p_invite_code text)
+returns public.pods
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_pod public.pods;
+begin
+  if auth.uid() is null then
+    raise exception 'Not authenticated';
+  end if;
+
+  select * into v_pod from public.pods where invite_code = upper(trim(p_invite_code));
+  if v_pod.id is null then
+    raise exception 'No Pod found with that code';
+  end if;
+
+  insert into public.pod_members (pod_id, user_id)
+  values (v_pod.id, auth.uid());
+
+  return v_pod;
+end;
+$$;
+
+grant execute on function public.join_pod(text) to authenticated;
+
+-- ---------------------------------------------------------------------------
 -- meal_logs
 -- ---------------------------------------------------------------------------
 create table if not exists public.meal_logs (

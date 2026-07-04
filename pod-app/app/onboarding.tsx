@@ -22,23 +22,10 @@ export default function OnboardingScreen() {
     setError(null);
     setLoading(true);
     try {
-      const { data: pod, error: createError } = await supabase
-        .from("pods")
-        .insert({ name: podName.trim(), created_by: session.user.id })
-        .select()
-        .single();
+      const { error: createError } = await supabase.rpc("create_pod", { p_name: podName.trim() });
 
-      if (createError || !pod) {
-        setError(createError ? friendlyErrorMessage(createError) : "Couldn't create your Pod. Try again.");
-        return;
-      }
-
-      const { error: joinError } = await supabase
-        .from("pod_members")
-        .insert({ pod_id: pod.id, user_id: session.user.id });
-
-      if (joinError) {
-        setError(friendlyErrorMessage(joinError));
+      if (createError) {
+        setError(friendlyErrorMessage(createError));
         return;
       }
       await refreshPod();
@@ -55,31 +42,16 @@ export default function OnboardingScreen() {
     setLoading(true);
     try {
       const code = inviteCode.trim().toUpperCase();
-      const { data: pod, error: lookupError } = await supabase
-        .from("pods")
-        .select()
-        .eq("invite_code", code)
-        .maybeSingle();
-
-      if (lookupError) {
-        setError(friendlyErrorMessage(lookupError));
-        return;
-      }
-      if (!pod) {
-        setError("No Pod found with that code. Double-check it with whoever invited you.");
-        return;
-      }
-
-      const { error: joinError } = await supabase
-        .from("pod_members")
-        .insert({ pod_id: pod.id, user_id: session.user.id });
+      const { error: joinError } = await supabase.rpc("join_pod", { p_invite_code: code });
 
       if (joinError) {
-        setError(
-          joinError.message.includes("full")
-            ? "This Pod is already full (8 members max)."
-            : friendlyErrorMessage(joinError)
-        );
+        if (joinError.message.includes("No Pod found")) {
+          setError("No Pod found with that code. Double-check it with whoever invited you.");
+        } else if (joinError.message.includes("full")) {
+          setError("This Pod is already full (8 members max).");
+        } else {
+          setError(friendlyErrorMessage(joinError));
+        }
         return;
       }
       await refreshPod();
