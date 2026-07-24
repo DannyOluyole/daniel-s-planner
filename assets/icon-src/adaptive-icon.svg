@@ -1,0 +1,9 @@
+<svg viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <filter id="softBlur" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="22"/>
+    </filter>
+  </defs>
+  <circle cx="512" cy="512" r="228" fill="none" stroke="#7FE6A8" stroke-width="46" opacity="0.5" filter="url(#softBlur)"/>
+  <circle cx="512" cy="512" r="228" fill="none" stroke="#7FE6A8" stroke-width="32"/>
+</svg>

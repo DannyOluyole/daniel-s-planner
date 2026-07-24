@@ -1,0 +1,22 @@
+node_modules/
+.expo/
+dist/
+web-build/
+*.log
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+
+# Native build output (created by prebuild/EAS local builds)
+android/
+ios/
+
+# Environment files — contain real project keys
+.env
+.env.local
+.env.*.local
+
+# Editor/OS
+.vscode/
+.DS_Store
+*.orig.*

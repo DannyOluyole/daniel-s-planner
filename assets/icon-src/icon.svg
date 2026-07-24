@@ -1,0 +1,14 @@
+<svg viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bgGrad" x1="0" y1="0" x2="0.15" y2="1">
+      <stop offset="0%" stop-color="#123324"/>
+      <stop offset="100%" stop-color="#0D1210"/>
+    </linearGradient>
+    <filter id="softBlur" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="22"/>
+    </filter>
+  </defs>
+  <rect width="1024" height="1024" fill="url(#bgGrad)"/>
+  <circle cx="512" cy="512" r="228" fill="none" stroke="#7FE6A8" stroke-width="46" opacity="0.5" filter="url(#softBlur)"/>
+  <circle cx="512" cy="512" r="228" fill="none" stroke="#7FE6A8" stroke-width="32"/>
+</svg>

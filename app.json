@@ -1,0 +1,65 @@
+{
+  "expo": {
+    "name": "Checkpoint",
+    "slug": "checkpoint",
+    "scheme": "checkpoint",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "icon": "./assets/icon.png",
+    "splash": {
+      "backgroundColor": "#F7FAF8"
+    },
+    "ios": {
+      "bundleIdentifier": "com.checkpoint.app",
+      "supportsTablet": false
+    },
+    "android": {
+      "package": "com.checkpoint.app",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "monochromeImage": "./assets/adaptive-icon-monochrome.png",
+        "backgroundColor": "#123324"
+      }
+    },
+    "plugins": [
+      "expo-font",
+      [
+        "react-native-android-widget",
+        {
+          "widgets": [
+            {
+              "name": "CheckpointWidget",
+              "label": "Checkpoint — Safe to spend",
+              "minWidth": "110dp",
+              "minHeight": "110dp",
+              "description": "Shows what's safe to spend right now. Tap to open Decision Mode.",
+              "updatePeriodMillis": 1800000
+            },
+            {
+              "name": "UpcomingWidget",
+              "label": "Checkpoint — What's ahead",
+              "minWidth": "180dp",
+              "minHeight": "110dp",
+              "description": "Shows the next scheduled income or bill. Tap to open Future You.",
+              "updatePeriodMillis": 1800000
+            }
+          ]
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Checkpoint watches for the places you've added so it can offer a quiet check-in before you shop there.",
+          "isAndroidBackgroundLocationEnabled": true,
+          "isAndroidForegroundServiceEnabled": true
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "dbaec188-0130-4a40-a878-37e174e74ef0"
+      }
+    }
+  }
+}

@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Checkpoint</title>
+  <style>
+    body {
+      width: 260px;
+      margin: 0;
+      padding: 16px;
+      background: #14181f;
+      font-family: system-ui, -apple-system, sans-serif;
+      color: #F5F5F7;
+    }
+    h1 {
+      font-size: 13px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: #9A9CA5;
+      margin: 0 0 12px;
+      font-weight: 600;
+    }
+    p {
+      font-size: 12px;
+      color: #9A9CA5;
+      line-height: 1.5;
+      margin: 0 0 14px;
+    }
+    input {
+      width: 100%;
+      box-sizing: border-box;
+      background: #1B2029;
+      border: 1px solid #2C323D;
+      border-radius: 8px;
+      padding: 9px 10px;
+      color: #F5F5F7;
+      font-size: 13px;
+      margin-bottom: 8px;
+    }
+    button {
+      width: 100%;
+      background: #2F5D50;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 10px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 4px;
+    }
+    button.secondary {
+      background: transparent;
+      color: #9A9CA5;
+      border: 1px solid #2C323D;
+    }
+    #error {
+      color: #E0A458;
+      font-size: 12px;
+      margin-top: 8px;
+      display: none;
+    }
+    #signedIn { display: none; }
+  </style>
+</head>
+<body>
+  <h1>Checkpoint</h1>
+
+  <div id="signedOut">
+    <p>Sign in to get a real dollar-impact message before you check out, right here.</p>
+    <input id="email" type="email" placeholder="Email" autocomplete="username" />
+    <input id="password" type="password" placeholder="Password" autocomplete="current-password" />
+    <button id="signInBtn">Sign in</button>
+    <div id="error"></div>
+  </div>
+
+  <div id="signedIn">
+    <p id="signedInAs"></p>
+    <button class="secondary" id="signOutBtn">Sign out</button>
+  </div>
+
+  <script src="config.js"></script>
+  <script src="session.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>

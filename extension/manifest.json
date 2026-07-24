@@ -1,0 +1,47 @@
+{
+  "manifest_version": 3,
+  "name": "Checkpoint — Decision Mode",
+  "version": "0.3.0",
+  "description": "A quiet pause before you place an order — with a real dollar-impact check once you sign in.",
+  "permissions": ["storage"],
+  "host_permissions": ["https://bopakscxpdnyakgdqbvu.supabase.co/*"],
+  "action": {
+    "default_popup": "popup.html"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://*.amazon.com/*",
+        "https://*.amazon.ca/*",
+        "https://*.amazon.co.uk/*",
+        "https://*.bestbuy.com/*",
+        "https://*.bestbuy.ca/*",
+        "https://*.nike.com/*",
+        "https://*.apple.com/*",
+        "https://*.walmart.com/*",
+        "https://*.walmart.ca/*",
+        "https://*.ebay.com/*",
+        "https://*.etsy.com/*",
+        "https://*.target.com/*",
+        "https://*.costco.com/*",
+        "https://*.homedepot.com/*",
+        "https://*.lowes.com/*",
+        "https://*.wayfair.com/*",
+        "https://*.wayfair.ca/*",
+        "https://*.ikea.com/*",
+        "https://*.macys.com/*",
+        "https://*.kohls.com/*",
+        "https://*.sephora.com/*",
+        "https://*.ulta.com/*",
+        "https://*.nordstrom.com/*",
+        "https://*.gamestop.com/*",
+        "https://*.temu.com/*",
+        "https://*.shein.com/*",
+        "https://*.aliexpress.com/*",
+        "https://*.aliexpress.us/*"
+      ],
+      "js": ["config.js", "session.js", "checkoutMatcher.js", "orderAmount.js", "impact.js", "content.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}
