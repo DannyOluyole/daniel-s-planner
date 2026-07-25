@@ -22,7 +22,7 @@ export function WatchedPlacesScreen() {
       <BackHeader title={Copy.places.title} subtitle={Copy.places.subtitle} />
 
       <Text className={`text-xs mt-1 mb-4 ${dark ? "text-ink-faint" : "text-ink-faint"}`}>
-        {Copy.places.backgroundNote}
+        {Copy.places.foregroundNote}
       </Text>
 
       {places.length === 0 && !adding && (

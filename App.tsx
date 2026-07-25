@@ -12,7 +12,6 @@ import { OnboardingProvider, useOnboarding } from "@features/onboarding/Onboardi
 import { OnboardingScreen } from "@features/onboarding/OnboardingScreen";
 import { AuthScreen } from "@features/auth/AuthScreen";
 import { PortalScreen } from "@features/portal/PortalScreen";
-import { syncGeofences } from "@features/places/geofencing";
 
 // Without a handler, expo-notifications silently drops any notification
 // received while the app is in the foreground — this is documented default
@@ -75,14 +74,6 @@ function Root() {
     });
     return () => subscription.remove();
   }, []);
-
-  // Safety net: re-registers geofences on every fresh launch, in case the OS
-  // cleared them (e.g. after a reboot). No-ops immediately if the user has
-  // no watched places, so this never prompts for location permission on its
-  // own — only once they've actually added a place.
-  useEffect(() => {
-    if (user?.id) syncGeofences(user.id);
-  }, [user?.id]);
 
   const spinner = (
     <View

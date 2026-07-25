@@ -24,6 +24,7 @@ import { useCheckpoint } from "@shared/hooks/useCheckpoint";
 import { useSavingsGoals } from "@shared/hooks/useSavingsGoals";
 import { useBankConnectionStatus } from "@features/link-account/hooks/useBankConnectionStatus";
 import { useTransactions } from "@features/link-account/hooks/useTransactions";
+import { useNearbyPlace } from "@features/places/hooks/useNearbyPlace";
 import type { HomeScreenProps } from "@app/Navigation";
 
 function getGreeting(): string {
@@ -51,6 +52,7 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
   const { status: bankStatus, refresh: refreshBankStatus } = useBankConnectionStatus(userId);
   const { state: bankState, refresh: refreshBankState } = useCheckpoint(userId);
   const { transactions, refresh: refreshTransactions } = useTransactions(userId);
+  const { nearbyPlace, dismiss: dismissNearbyPlace } = useNearbyPlace(userId);
   const isBankLinked = bankStatus === "linked";
 
   useFocusEffect(
@@ -111,6 +113,35 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
         </View>
       ) : (
         <ScrollView showsVerticalScrollIndicator={false} className="mt-3">
+          {nearbyPlace && (
+            <View
+              className={`mb-4 rounded-xl2 border p-4 ${
+                dark ? "border-hairline-dark bg-surface-dark" : "border-hairline bg-surface"
+              }`}
+            >
+              <Text className={`text-base font-medium ${dark ? "text-ink-dark" : "text-ink"}`}>
+                {Copy.places.nearbyBannerTitle(nearbyPlace.name)}
+              </Text>
+              <Text className={`mt-1 text-sm ${dark ? "text-ink-faint" : "text-ink-soft"}`}>
+                {Copy.places.nearbyBannerBody}
+              </Text>
+              <View className="mt-3 flex-row gap-2">
+                <View className="flex-1">
+                  <Button
+                    label={Copy.places.nearbyBannerCta}
+                    onPress={() => {
+                      dismissNearbyPlace();
+                      navigation.navigate("NewDecision");
+                    }}
+                  />
+                </View>
+                <View className="flex-1">
+                  <Button label={Copy.places.nearbyBannerDismissCta} intent="ghost" onPress={dismissNearbyPlace} />
+                </View>
+              </View>
+            </View>
+          )}
+
           <AvailableCard availableCents={availableCents} />
 
           {safeSpendingDays.daysUntilPayday != null && (

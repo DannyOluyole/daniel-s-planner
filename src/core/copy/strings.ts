@@ -126,11 +126,13 @@ export const Copy = {
     removeCta: "Remove",
     radiusNote: (meters: number) => `${meters}m radius`,
     permissionDeniedNote:
-      "Location access is off for Checkpoint — enable \"Allow all the time\" in your device settings to use this.",
-    backgroundNote:
-      "Checking for nearby places uses your location in the background, and shows a persistent notification while it's on — that's an Android requirement, not a Checkpoint choice.",
-    arrivalNotificationTitle: (place: string) => `You're near ${place}`,
-    arrivalNotificationBody: "Want to Checkpoint before you shop today?",
+      "Location access is off for Checkpoint — enable location access in your device settings to use this.",
+    foregroundNote:
+      "Checkpoint only checks your location when you open the app — never in the background, no persistent notification.",
+    nearbyBannerTitle: (place: string) => `You're near ${place}`,
+    nearbyBannerBody: "Want to Checkpoint before you shop today?",
+    nearbyBannerCta: "Open Decision Mode",
+    nearbyBannerDismissCta: "Not now",
   },
 
   spendingWall: {

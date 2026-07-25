@@ -3,7 +3,7 @@ import { WatchedPlace, WatchedPlaceInput } from "@domain/entities/WatchedPlace";
 
 const DEFAULT_RADIUS_METERS = 150;
 
-/** In-memory stand-in for demo mode — no real geofencing without a device. */
+/** In-memory stand-in for demo mode — no real location checks without a device. */
 export class LocalPlacesRepository implements PlacesRepository {
   private places: WatchedPlace[] = [];
 

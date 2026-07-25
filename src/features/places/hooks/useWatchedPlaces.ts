@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { WatchedPlace, WatchedPlaceInput } from "@domain/entities/WatchedPlace";
 import { placesRepository } from "@data/repositories";
-import { syncGeofences } from "../geofencing";
 
 export function useWatchedPlaces(userId: string | null) {
   const [places, setPlaces] = useState<WatchedPlace[]>([]);
@@ -27,7 +26,6 @@ export function useWatchedPlaces(userId: string | null) {
       if (!userId) return;
       await placesRepository.addWatchedPlace(userId, input);
       await refresh();
-      await syncGeofences(userId);
     },
     [userId, refresh]
   );
@@ -37,7 +35,6 @@ export function useWatchedPlaces(userId: string | null) {
       if (!userId) return;
       await placesRepository.removeWatchedPlace(userId, id);
       await refresh();
-      await syncGeofences(userId);
     },
     [userId, refresh]
   );
