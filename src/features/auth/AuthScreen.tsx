@@ -23,7 +23,6 @@ export function AuthScreen() {
   const handleSubmit = async () => {
     setError(null);
     setLoading(true);
-    console.log(`[Auth] ${isSignIn ? "signIn" : "signUp"} starting for`, email.trim());
     try {
       const timeout = new Promise<{ error: string | null }>((resolve) =>
         setTimeout(() => resolve({ error: "Request timed out after 15s — check your connection." }), 15000)
@@ -32,10 +31,8 @@ export function AuthScreen() {
         ? signInWithPassword(email.trim(), password)
         : signUpWithPassword(email.trim(), password);
       const result = await Promise.race([request, timeout]);
-      console.log(`[Auth] ${isSignIn ? "signIn" : "signUp"} result`, result);
       if (result.error) setError(result.error);
     } catch (e) {
-      console.error(`[Auth] ${isSignIn ? "signIn" : "signUp"} threw`, e);
       setError((e as Error).message ?? "Something went wrong.");
     } finally {
       setLoading(false);

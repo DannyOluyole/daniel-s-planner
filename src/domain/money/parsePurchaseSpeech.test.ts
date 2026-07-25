@@ -140,4 +140,45 @@ describe("buildWallSpokenSummary", () => {
     expect(text).toContain("This leaves you short by $35.65 before Jul 23.");
     expect(text).toContain("Still want to continue?");
   });
+
+  it("reads the future-self note aloud when one exists", () => {
+    const text = buildWallSpokenSummary(
+      "Fancy dinner",
+      4500,
+      okVerdict,
+      "This purchase keeps you on track.",
+      90,
+      null,
+      "You're getting closer to buying my first house every week."
+    );
+    expect(text).toContain("You're getting closer to buying my first house every week.");
+  });
+
+  it("omits any future-self mention when there isn't one", () => {
+    const text = buildWallSpokenSummary(
+      "Fancy dinner",
+      4500,
+      okVerdict,
+      "This purchase keeps you on track.",
+      90,
+      null,
+      null
+    );
+    expect(text).not.toContain("undefined");
+    expect(text).not.toContain("null");
+  });
+
+  it("reads a pause-reason callback aloud when one exists", () => {
+    const text = buildWallSpokenSummary(
+      "Fancy dinner",
+      4500,
+      okVerdict,
+      "This purchase keeps you on track.",
+      90,
+      null,
+      null,
+      'Last time here, you said "Too expensive." — still feels that way?'
+    );
+    expect(text).toContain('Last time here, you said "Too expensive." — still feels that way?');
+  });
 });

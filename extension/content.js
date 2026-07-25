@@ -133,22 +133,27 @@ function showSignInHint() {
   if (hintEl) hintEl.style.display = "block";
 }
 
-async function tryPersonalize() {
+// The session and every authenticated fetch live only in the background
+// service worker (see background.js) — this content script, injected into
+// third-party checkout pages, only ever sends a plain "what's the impact of
+// a $X purchase" message and gets back a result, never the credentials
+// themselves.
+function tryPersonalize() {
   try {
-    const session = await getValidSession();
-    if (!session) {
-      showSignInHint();
-      return;
-    }
-
     const orderAmountCents = findOrderTotalCents();
     if (orderAmountCents == null) return; // couldn't confidently read a total — stays generic
 
-    const impact = await getPersonalizedImpact(session, orderAmountCents);
-    if (impact) applyPersonalizedImpact(impact);
+    chrome.runtime.sendMessage({ type: "GET_IMPACT", orderAmountCents }, (response) => {
+      if (chrome.runtime.lastError || !response) return;
+      if (response.signedOut) {
+        showSignInHint();
+        return;
+      }
+      if (response.impact) applyPersonalizedImpact(response.impact);
+    });
   } catch {
-    // Any failure here (network, expired refresh token, unexpected page
-    // structure) just leaves the generic prompt in place.
+    // Any failure here (unexpected page structure, extension context gone)
+    // just leaves the generic prompt in place.
   }
 }
 

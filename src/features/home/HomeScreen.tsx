@@ -16,6 +16,7 @@ import { topCategoryThisWeek } from "@domain/money/weeklyInsight";
 import { detectCategoryTrends } from "@domain/money/insightsEngine";
 import { buildFinancialTimeline, computeSafeSpendingDays } from "@domain/money/financialTimeline";
 import { computeFinancialConfidence } from "@domain/money/financialConfidence";
+import { detectRecurringCharges } from "@domain/money/recurringCharges";
 import { AvailableCard } from "./components/AvailableCard";
 import { FinancialConfidenceCard } from "./components/FinancialConfidenceCard";
 import { Timeline } from "./components/Timeline";
@@ -82,6 +83,9 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
     (c) => (summarizeCategoryImpact(activeCommitments, decisions, c.category, 0)?.overBy ?? 0) > 0
   );
   const confidence = computeFinancialConfidence(availableCents, goals, anyCategoryOverBudget, timeline.causesShortfall);
+  // Recurring-charge detection needs real bank history to mean anything —
+  // local/demo mode has no synced transactions to find a pattern in.
+  const recurringCharges = isBankLinked ? detectRecurringCharges(transactions).slice(0, 3) : [];
   const homeStatus = availableCents < 0
     ? Copy.home.statusOverAvailable
     : anyCategoryOverBudget
@@ -165,6 +169,23 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
               <Text className={`text-sm ${dark ? "text-ink-dark" : "text-ink"}`}>
                 {Copy.home.investingInYourself(money(investingSpend))}
               </Text>
+            </View>
+          )}
+
+          {recurringCharges.length > 0 && (
+            <View
+              className={`mt-3 rounded-xl2 border p-3 ${
+                dark ? "border-hairline-dark bg-surface-dark" : "border-hairline bg-surface"
+              }`}
+            >
+              <Text className={`text-caption uppercase tracking-wide ${dark ? "text-ink-faint" : "text-ink-faint"}`}>
+                {Copy.home.recurringChargesLabel}
+              </Text>
+              {recurringCharges.map((charge) => (
+                <Text key={charge.merchant} className={`mt-1 text-sm ${dark ? "text-ink-dark" : "text-ink"}`}>
+                  {Copy.home.recurringCharge(charge.merchant, money(charge.amountCents), charge.occurrences)}
+                </Text>
+              ))}
             </View>
           )}
 

@@ -1,4 +1,4 @@
-import { sumMoneyProtected, mostCommonPauseReason } from "./decisionJournal";
+import { sumMoneyProtected, mostCommonPauseReason, findRelevantPauseReason } from "./decisionJournal";
 import { SpendingDecision } from "@domain/entities/MoneyState";
 
 function makeDecision(overrides: Partial<SpendingDecision>): SpendingDecision {
@@ -53,5 +53,55 @@ describe("mostCommonPauseReason", () => {
       makeDecision({ outcome: "paused", pauseReason: "Didn't really need it." }),
     ];
     expect(mostCommonPauseReason(decisions)).toBe("Didn't really need it.");
+  });
+});
+
+describe("findRelevantPauseReason", () => {
+  it("returns null when there's no history for this merchant or category", () => {
+    const decisions = [makeDecision({ outcome: "paused", merchant: "Other Store", pauseReason: "Too expensive." })];
+    expect(findRelevantPauseReason(decisions, "New Store", "Shopping")).toBeNull();
+  });
+
+  it("matches on merchant, case-insensitively", () => {
+    const decisions = [
+      makeDecision({ outcome: "reconsidered", merchant: "ZARA", category: "Shopping", pauseReason: "Changed my mind." }),
+    ];
+    const match = findRelevantPauseReason(decisions, "zara", "Shopping");
+    expect(match).toEqual({ reason: "Changed my mind.", merchant: "ZARA", matchedOn: "merchant" });
+  });
+
+  it("falls back to category when no merchant matches", () => {
+    const decisions = [
+      makeDecision({ outcome: "paused", merchant: "Old Navy", category: "Shopping", pauseReason: "Too expensive." }),
+    ];
+    const match = findRelevantPauseReason(decisions, "Zara", "Shopping");
+    expect(match).toEqual({ reason: "Too expensive.", merchant: "Old Navy", matchedOn: "category" });
+  });
+
+  it("prefers a merchant match over a category match", () => {
+    const decisions = [
+      makeDecision({ outcome: "paused", merchant: "Old Navy", category: "Shopping", pauseReason: "Too expensive." }),
+      makeDecision({ outcome: "paused", merchant: "Zara", category: "Shopping", pauseReason: "Changed my mind." }),
+    ];
+    const match = findRelevantPauseReason(decisions, "Zara", "Shopping");
+    expect(match?.matchedOn).toBe("merchant");
+    expect(match?.reason).toBe("Changed my mind.");
+  });
+
+  it("ignores continued decisions and ones without a saved reason", () => {
+    const decisions = [
+      makeDecision({ outcome: "continued", merchant: "Zara", category: "Shopping" }),
+      makeDecision({ outcome: "paused", merchant: "Zara", category: "Shopping", pauseReason: undefined }),
+    ];
+    expect(findRelevantPauseReason(decisions, "Zara", "Shopping")).toBeNull();
+  });
+
+  it("returns the first (most recent) match when several exist", () => {
+    const decisions = [
+      makeDecision({ outcome: "paused", merchant: "Zara", category: "Shopping", pauseReason: "Too expensive." }),
+      makeDecision({ outcome: "reconsidered", merchant: "Zara", category: "Shopping", pauseReason: "Changed my mind." }),
+    ];
+    const match = findRelevantPauseReason(decisions, "Zara", "Shopping");
+    expect(match?.reason).toBe("Too expensive.");
   });
 });

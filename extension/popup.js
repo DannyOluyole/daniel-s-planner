@@ -1,3 +1,9 @@
+// Talks to the background service worker only — popup.js never touches the
+// Supabase session directly (see background.js for why).
+function sendMessage(message) {
+  return new Promise((resolve) => chrome.runtime.sendMessage(message, resolve));
+}
+
 const signedOutEl = document.getElementById("signedOut");
 const signedInEl = document.getElementById("signedIn");
 const signedInAsEl = document.getElementById("signedInAs");
@@ -9,7 +15,7 @@ function showError(message) {
 }
 
 async function render() {
-  const session = await getStoredSession();
+  const { session } = await sendMessage({ type: "GET_SESSION" });
   if (session) {
     signedOutEl.style.display = "none";
     signedInEl.style.display = "block";
@@ -28,16 +34,16 @@ document.getElementById("signInBtn").addEventListener("click", async () => {
     showError("Enter your email and password.");
     return;
   }
-  try {
-    await signIn(email, password);
-    await render();
-  } catch (e) {
-    showError(e.message || "Sign-in failed.");
+  const result = await sendMessage({ type: "SIGN_IN", email, password });
+  if (result.error) {
+    showError(result.error);
+    return;
   }
+  await render();
 });
 
 document.getElementById("signOutBtn").addEventListener("click", async () => {
-  await signOut();
+  await sendMessage({ type: "SIGN_OUT" });
   await render();
 });
 

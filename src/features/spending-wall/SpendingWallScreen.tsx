@@ -26,6 +26,7 @@ import { buildWallSpokenSummary } from "@domain/money/parsePurchaseSpeech";
 import { summarizeCategoryImpact } from "@domain/money/categoryImpact";
 import { buildDecisionNarrative } from "@domain/money/decisionNarrative";
 import { buildFinancialTimeline } from "@domain/money/financialTimeline";
+import { findRelevantPauseReason } from "@domain/money/decisionJournal";
 import { SafeToSpendMeter } from "./components/SafeToSpendMeter";
 import { AlignmentScore } from "./components/AlignmentScore";
 import { DecisionActions } from "./components/DecisionActions";
@@ -93,6 +94,12 @@ export function SpendingWallScreen({ route, navigation }: Props) {
   const narrative = verdict ? buildDecisionNarrative(verdict, amountCents, dippedGoal, timeline, vision) : null;
 
   const categoryImpact = summarizeCategoryImpact(commitments, decisions, category, amountCents);
+  const pauseReasonMatch = findRelevantPauseReason(decisions, merchant, category);
+  const pauseReasonCallbackText = pauseReasonMatch
+    ? pauseReasonMatch.matchedOn === "merchant"
+      ? Copy.pauseReasonCallback.merchantLabel(pauseReasonMatch.merchant, pauseReasonMatch.reason)
+      : Copy.pauseReasonCallback.categoryLabel(category ?? pauseReasonMatch.merchant, pauseReasonMatch.reason)
+    : null;
 
   const handleReadAloud = () => {
     if (speaking) {
@@ -100,7 +107,18 @@ export function SpendingWallScreen({ route, navigation }: Props) {
       return;
     }
     if (!verdict || !narrative) return;
-    speak(buildWallSpokenSummary(merchant, amountCents, verdict, narrative.headline, narrative.score, categoryImpact));
+    speak(
+      buildWallSpokenSummary(
+        merchant,
+        amountCents,
+        verdict,
+        narrative.headline,
+        narrative.score,
+        categoryImpact,
+        narrative.futureSelfNote,
+        pauseReasonCallbackText
+      )
+    );
   };
 
   useEffect(() => {
@@ -217,6 +235,14 @@ export function SpendingWallScreen({ route, navigation }: Props) {
                   Future You says: {narrative.futureSelfNote}
                 </Text>
               )}
+            </Card>
+          )}
+
+          {pauseReasonCallbackText && (
+            <Card raised className="mt-4 w-full">
+              <Text className={`text-sm text-center ${dark ? "text-ink-dark" : "text-ink"}`}>
+                {pauseReasonCallbackText}
+              </Text>
             </Card>
           )}
 

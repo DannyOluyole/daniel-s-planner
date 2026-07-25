@@ -32,3 +32,42 @@ export function mostCommonPauseReason(decisions: SpendingDecision[]): string | n
   }
   return best;
 }
+
+export interface PauseReasonMatch {
+  reason: string;
+  merchant: string;
+  matchedOn: "merchant" | "category";
+}
+
+/**
+ * Looks for the most recent paused/reconsidered decision with a saved
+ * reason that's relevant to what's being bought right now — an exact
+ * merchant match first (most specific), falling back to the category.
+ * Callers pass decisions already ordered newest-first (the convention
+ * getRecentDecisions returns), so the first match found is the most recent.
+ * Returns null when there's nothing relevant to bring back up.
+ */
+export function findRelevantPauseReason(
+  decisions: SpendingDecision[],
+  merchant: string,
+  category: string | undefined
+): PauseReasonMatch | null {
+  const normalizedMerchant = merchant.trim().toLowerCase();
+  const candidates = decisions.filter(
+    (d) => (d.outcome === "paused" || d.outcome === "reconsidered") && d.pauseReason
+  );
+
+  const merchantMatch = candidates.find((d) => d.merchant.trim().toLowerCase() === normalizedMerchant);
+  if (merchantMatch) {
+    return { reason: merchantMatch.pauseReason!, merchant: merchantMatch.merchant, matchedOn: "merchant" };
+  }
+
+  if (category) {
+    const categoryMatch = candidates.find((d) => d.category?.toLowerCase() === category.toLowerCase());
+    if (categoryMatch) {
+      return { reason: categoryMatch.pauseReason!, merchant: categoryMatch.merchant, matchedOn: "category" };
+    }
+  }
+
+  return null;
+}

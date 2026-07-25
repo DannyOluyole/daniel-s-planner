@@ -47,6 +47,13 @@ export class SupabasePlaidRepository implements BankLinkRepository {
     return data.status as BankConnectionStatus;
   }
 
+  async unlink(userId: string): Promise<void> {
+    const { error } = await supabase.functions.invoke("plaid-unlink", {
+      body: { userId },
+    });
+    if (error) throw error;
+  }
+
   async getTransactions(userId: string, limit = 25): Promise<Transaction[]> {
     const { data, error } = await supabase
       .from("plaid_transactions")

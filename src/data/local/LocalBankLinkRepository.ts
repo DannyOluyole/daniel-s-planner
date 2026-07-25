@@ -26,4 +26,8 @@ export class LocalBankLinkRepository implements BankLinkRepository {
   async getTransactions(): Promise<Transaction[]> {
     return [];
   }
+
+  async unlink(): Promise<void> {
+    // No-op in demo mode — there's nothing linked to revoke.
+  }
 }

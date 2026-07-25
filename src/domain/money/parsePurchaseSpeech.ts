@@ -228,7 +228,9 @@ export function buildWallSpokenSummary(
   verdict: WallVerdict,
   narrativeHeadline: string,
   narrativeScore: number,
-  categoryImpact?: CategoryBudgetImpact | null
+  categoryImpact?: CategoryBudgetImpact | null,
+  futureSelfNote?: string | null,
+  pauseReasonCallback?: string | null
 ): string {
   const amount = moneyForSpeech(amountCents);
   const after = moneyForSpeech(verdict.afterCents);
@@ -244,6 +246,8 @@ export function buildWallSpokenSummary(
   // plain confirmation.
   const isConcern = narrativeScore < 60 || (categoryImpact && categoryImpact.overBy > 0);
   const question = isConcern ? " Still want to continue?" : "";
+  const futureSelfPart = futureSelfNote ? ` ${futureSelfNote}` : "";
+  const pauseReasonPart = pauseReasonCallback ? ` ${pauseReasonCallback}` : "";
 
-  return `That's ${amount} for ${merchant}. Go ahead, and you'll have ${after} left. ${narrativeHeadline}${budgetPart}${question}`;
+  return `That's ${amount} for ${merchant}. Go ahead, and you'll have ${after} left. ${narrativeHeadline}${budgetPart}${futureSelfPart}${pauseReasonPart}${question}`;
 }

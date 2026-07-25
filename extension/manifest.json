@@ -5,6 +5,9 @@
   "description": "A quiet pause before you place an order — with a real dollar-impact check once you sign in.",
   "permissions": ["storage"],
   "host_permissions": ["https://bopakscxpdnyakgdqbvu.supabase.co/*"],
+  "background": {
+    "service_worker": "background.js"
+  },
   "action": {
     "default_popup": "popup.html"
   },
@@ -40,7 +43,7 @@
         "https://*.aliexpress.com/*",
         "https://*.aliexpress.us/*"
       ],
-      "js": ["config.js", "session.js", "checkoutMatcher.js", "orderAmount.js", "impact.js", "content.js"],
+      "js": ["checkoutMatcher.js", "orderAmount.js", "content.js"],
       "run_at": "document_idle"
     }
   ]

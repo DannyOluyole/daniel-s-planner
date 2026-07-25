@@ -21,5 +21,11 @@ export function useBankConnectionStatus(userId: string | null) {
     refresh();
   }, [refresh]);
 
-  return { status, loading, refresh };
+  const unlink = useCallback(async () => {
+    if (!userId) return;
+    await repository.unlink(userId);
+    await refresh();
+  }, [userId, refresh]);
+
+  return { status, loading, refresh, unlink };
 }

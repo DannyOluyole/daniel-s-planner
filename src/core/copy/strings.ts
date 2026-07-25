@@ -68,6 +68,9 @@ export const Copy = {
     trendUp: (category: string, percent: number) => `${category} is up ${percent}% over the last 30 days.`,
     trendDown: (category: string, percent: number) => `${category} is down ${Math.abs(percent)}% over the last 30 days.`,
     investingInYourself: (amount: string) => `You invested ${amount} in yourself this month.`,
+    recurringChargesLabel: "Still paying for these",
+    recurringCharge: (merchant: string, amount: string, months: number) =>
+      `${merchant} — ${amount}, ${months} months running`,
     confidenceLabel: "Financial Confidence",
     confidenceBillsCovered: "Bills covered",
     confidenceSavingsOnTrack: "Savings on track",
@@ -154,6 +157,13 @@ export const Copy = {
       "Is this replacing something?",
       "Is this part of your plan?",
     ],
+  },
+
+  pauseReasonCallback: {
+    merchantLabel: (merchant: string, reason: string) =>
+      `Last time at ${merchant}, you said "${reason}" — still feels that way?`,
+    categoryLabel: (category: string, reason: string) =>
+      `Last time you paused on ${category}, you said "${reason}" — still feels that way?`,
   },
 
   pauseReasonStep: {
@@ -252,6 +262,10 @@ export const Copy = {
     empty: "No decisions yet — they'll show up here after your first Checkpoint.",
     moneyProtectedLabel: (amount: string) => `${amount} protected by pausing or reconsidering`,
     topReasonLabel: (reason: string) => `Most common reason: "${reason}"`,
+    exportCta: "Export history",
+    exportingLabel: "Preparing export…",
+    exportUnsupported: "Exporting isn't available on this device.",
+    exportError: "That didn't go through. Try again.",
   },
 
   outcomeLabel: {
@@ -282,6 +296,9 @@ export const Copy = {
     unlinkedLabel: "Not connected yet",
     syncingLabel: "Bringing in your accounts…",
     errorFallback: "That didn't go through. Try again.",
+    unlinkCta: "Disconnect this bank",
+    unlinkingLabel: "Disconnecting…",
+    unlinkErrorFallback: "Couldn't disconnect — try again.",
   },
 } as const;
 

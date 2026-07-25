@@ -102,4 +102,10 @@ export const plaid = {
       count: 500,
     }) as Promise<TransactionsSyncPage>;
   },
+
+  removeItem(accessToken: string) {
+    return plaidFetch("/item/remove", {
+      access_token: accessToken,
+    }) as Promise<{ removed: boolean }>;
+  },
 };

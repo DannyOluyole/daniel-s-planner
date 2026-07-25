@@ -1,8 +1,9 @@
-import { corsHeaders } from "../_shared/cors.ts";
+import { corsHeadersFor } from "../_shared/cors.ts";
 import { plaid } from "../_shared/plaid.ts";
 import { requireUser } from "../_shared/supabase.ts";
 
 Deno.serve(async (req) => {
+  const corsHeaders = corsHeadersFor(req);
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }

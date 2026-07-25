@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { View, Text, ActivityIndicator } from "react-native";
 import { Screen } from "@shared/components/Screen";
 import { BackHeader } from "@shared/components/BackHeader";
@@ -31,8 +31,10 @@ export function LinkAccountScreen() {
   const dark = scheme === "dark";
   const { user } = useAuth();
   const { connect, phase, error } = usePlaidLink(user?.id ?? null);
-  const { status, refresh } = useBankConnectionStatus(user?.id ?? null);
+  const { status, refresh, unlink } = useBankConnectionStatus(user?.id ?? null);
   const { transactions, loading: transactionsLoading, refresh: refreshTransactions } = useTransactions(user?.id ?? null);
+  const [unlinking, setUnlinking] = useState(false);
+  const [unlinkError, setUnlinkError] = useState<string | null>(null);
 
   const isBusy = ["fetchingToken", "linking", "exchanging", "syncing"].includes(phase);
 
@@ -43,6 +45,19 @@ export function LinkAccountScreen() {
       refreshCheckpointWidget();
     }
   }, [phase, refresh, refreshTransactions]);
+
+  const handleUnlink = async () => {
+    setUnlinkError(null);
+    setUnlinking(true);
+    try {
+      await unlink();
+      refreshCheckpointWidget();
+    } catch {
+      setUnlinkError(Copy.linkAccount.unlinkErrorFallback);
+    } finally {
+      setUnlinking(false);
+    }
+  };
 
   return (
     <Screen>
@@ -77,6 +92,21 @@ export function LinkAccountScreen() {
           loading={isBusy}
           disabled={isBusy}
         />
+
+        {status === "linked" && (
+          <View className="mt-3">
+            <Button
+              label={unlinking ? Copy.linkAccount.unlinkingLabel : Copy.linkAccount.unlinkCta}
+              intent="ghost"
+              onPress={handleUnlink}
+              loading={unlinking}
+              disabled={unlinking}
+            />
+            {unlinkError && (
+              <Text className="mt-1 text-sm text-signal-caution">{unlinkError}</Text>
+            )}
+          </View>
+        )}
       </Card>
 
       {status === "linked" && (

@@ -84,25 +84,42 @@ async function syncTransactionsForItem(db: any, userId: string, item: { id: stri
 export async function syncMoneyStateForUser(db: any, userId: string) {
   const { data: items, error } = await db
     .from("plaid_items")
-    .select("id, access_token, cursor")
+    .select("id, cursor")
     .eq("user_id", userId)
     .eq("status", "linked");
 
   if (error) throw error;
   if (!items || items.length === 0) return;
 
+  // access_token lives in its own table with no client grants at all (see
+  // migration 0014) — this service-role client is the only thing that can
+  // ever read it, so it's fetched as a separate, explicit join rather than
+  // embedded in the plaid_items select above.
+  const { data: secrets, error: secretsError } = await db
+    .from("plaid_item_secrets")
+    .select("plaid_item_id, access_token")
+    .in("plaid_item_id", items.map((i: { id: string }) => i.id));
+  if (secretsError) throw secretsError;
+
+  const accessTokenByItemId = new Map(
+    (secrets ?? []).map((s: { plaid_item_id: string; access_token: string }) => [s.plaid_item_id, s.access_token])
+  );
+
   let availableCents = 0;
   let protectedCents = 0;
   let futureYouCents = 0;
 
   for (const item of items) {
-    const { accounts } = await plaid.getBalances(item.access_token);
+    const accessToken = accessTokenByItemId.get(item.id);
+    if (!accessToken) continue; // secret missing/already revoked — skip rather than fail the whole sync
+
+    const { accounts } = await plaid.getBalances(accessToken);
     const totals = computeMoneyState(accounts);
     availableCents += totals.availableCents;
     protectedCents += totals.protectedCents;
     futureYouCents += totals.futureYouCents;
 
-    await syncTransactionsForItem(db, userId, item);
+    await syncTransactionsForItem(db, userId, { ...item, access_token: accessToken });
   }
 
   const { error: upsertError } = await db.from("money_states").insert({

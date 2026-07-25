@@ -25,4 +25,7 @@ export interface BankLinkRepository {
   getConnectionStatus(userId: string): Promise<BankConnectionStatus>;
   /** Recent real transactions synced from the linked bank, newest first. */
   getTransactions(userId: string, limit?: number): Promise<Transaction[]>;
+  /** Revokes the connection at the aggregator and deletes the stored access
+   * token server-side — synced transaction history is kept. */
+  unlink(userId: string): Promise<void>;
 }
