@@ -8,6 +8,7 @@ import { Button } from "@shared/components/Button";
 import { Copy } from "@core/copy/strings";
 import { money } from "@domain/entities/MoneyState";
 import { useCheckpoint } from "@shared/hooks/useCheckpoint";
+import { useMoneyStateHistory } from "@shared/hooks/useMoneyStateHistory";
 import { useSavingsGoals } from "@shared/hooks/useSavingsGoals";
 import { useIncome } from "@shared/hooks/useIncome";
 import { useCommitments } from "@shared/hooks/useCommitments";
@@ -16,10 +17,9 @@ import { useFutureVision } from "@shared/hooks/useFutureVision";
 import { SavingsGoalForm } from "@features/onboarding/components/SavingsGoalForm";
 import { FutureVisionForm } from "@features/onboarding/components/FutureVisionForm";
 import { buildFinancialTimeline } from "@domain/money/financialTimeline";
+import { computeFutureYouProjection } from "@domain/money/futureYouProjection";
 import { UpcomingTimeline } from "./components/UpcomingTimeline";
 import { WhatIfCard } from "./components/WhatIfCard";
-
-const MONTHS = 12;
 
 /** null = not editing; "new" = adding a goal; a goal id = editing that goal. */
 type EditingTarget = string | "new" | null;
@@ -29,6 +29,7 @@ export function FutureYouScreen() {
   const dark = scheme === "dark";
   const { user } = useAuth();
   const { state } = useCheckpoint(user?.id ?? null);
+  const { history } = useMoneyStateHistory(user?.id ?? null);
   const { goals, addGoal, updateGoal, removeGoal } = useSavingsGoals(user?.id ?? null);
   const { income } = useIncome(user?.id ?? null);
   const { commitments } = useCommitments(user?.id ?? null);
@@ -36,8 +37,7 @@ export function FutureYouScreen() {
   const [editing, setEditing] = useState<EditingTarget>(null);
   const [editingVision, setEditingVision] = useState(false);
 
-  const monthlyContribution = state ? Math.round(state.futureYouCents / 6) : 0; // placeholder trend
-  const projection = state ? state.futureYouCents + monthlyContribution * MONTHS : 0;
+  const projection = computeFutureYouProjection(history);
   const timeline = state ? buildFinancialTimeline(state.availableCents, income, commitments, null) : null;
   const editingGoal = editing && editing !== "new" ? goals.find((g) => g.id === editing) : undefined;
 
@@ -48,11 +48,16 @@ export function FutureYouScreen() {
       <ScrollView showsVerticalScrollIndicator={false} className="mt-2">
         <Card raised className="mt-4">
           <Text className={`text-caption uppercase tracking-wide ${dark ? "text-ink-faint" : "text-ink-faint"}`}>
-            {Copy.futureYouScreen.projectionLabel}
+            {projection ? Copy.futureYouScreen.projectionLabel : Copy.home.futureYouLabel}
           </Text>
           <Text className={`mt-2 text-4xl font-semibold ${dark ? "text-ink-dark" : "text-ink"}`}>
-            {money(projection)}
+            {money(projection ? projection.projectedCents : state?.futureYouCents ?? 0)}
           </Text>
+          {!projection && (
+            <Text className={`mt-2 text-xs ${dark ? "text-ink-faint" : "text-ink-faint"}`}>
+              {Copy.futureYouScreen.notEnoughHistoryNote}
+            </Text>
+          )}
         </Card>
 
         <Card className="mt-4">

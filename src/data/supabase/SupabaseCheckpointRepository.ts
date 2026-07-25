@@ -99,6 +99,25 @@ export class SupabaseCheckpointRepository implements CheckpointRepository {
     };
   }
 
+  async getMoneyStateHistory(userId: string, sinceDaysAgo = 180): Promise<MoneyState[]> {
+    const since = new Date(Date.now() - sinceDaysAgo * 24 * 60 * 60 * 1000).toISOString();
+    const { data, error } = await supabase
+      .from("money_states")
+      .select("available_cents, protected_cents, future_you_cents, as_of")
+      .eq("user_id", userId)
+      .gte("as_of", since)
+      .order("as_of", { ascending: true });
+
+    if (error) throw error;
+
+    return (data ?? []).map((row) => ({
+      availableCents: row.available_cents,
+      protectedCents: row.protected_cents,
+      futureYouCents: row.future_you_cents,
+      asOf: row.as_of,
+    }));
+  }
+
   async recordDecision(
     userId: string,
     input: SpendingDecisionInput,

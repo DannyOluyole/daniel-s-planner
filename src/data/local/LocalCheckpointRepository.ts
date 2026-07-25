@@ -73,6 +73,13 @@ export class LocalCheckpointRepository implements CheckpointRepository {
     return { ...record.moneyState, protectedCents, availableCents, asOf: new Date().toISOString() };
   }
 
+  async getMoneyStateHistory(): Promise<MoneyState[]> {
+    // Demo mode derives everything live on every call — there's no
+    // persisted snapshot history to return, so Future You's projection
+    // correctly falls back to "not enough history yet" here.
+    return [];
+  }
+
   async recordDecision(
     userId: string,
     input: SpendingDecisionInput,

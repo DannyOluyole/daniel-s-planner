@@ -15,6 +15,11 @@ import { Income, IncomeInput } from "@domain/entities/Income";
  */
 export interface CheckpointRepository {
   getMoneyState(userId: string): Promise<MoneyState>;
+  /** Historical money_states snapshots within the last `sinceDaysAgo` days,
+   * oldest first — the real data behind Future You's 12-month projection
+   * (see domain/money/futureYouProjection.ts). Local/demo mode has no
+   * persisted history to return, so it always resolves to an empty array. */
+  getMoneyStateHistory(userId: string, sinceDaysAgo?: number): Promise<MoneyState[]>;
   /**
    * Records the outcome of a Checkpoint. When `outcome` is `"continued"`,
    * implementations also debit `availableCents` by `input.amountCents` —

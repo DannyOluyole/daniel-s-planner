@@ -211,6 +211,7 @@ export const Copy = {
     title: "Future You",
     subtitle: "What today's decisions are building.",
     projectionLabel: "At this pace, in 12 months",
+    notEnoughHistoryNote: "Check back after a few months of activity to see a real trend here.",
     visionSectionTitle: "Your Future Self",
     visionEmpty: "You haven't set one yet — what does financial freedom look like to you?",
     addVisionCta: "Add",
