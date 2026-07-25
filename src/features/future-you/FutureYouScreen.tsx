@@ -12,7 +12,9 @@ import { useSavingsGoals } from "@shared/hooks/useSavingsGoals";
 import { useIncome } from "@shared/hooks/useIncome";
 import { useCommitments } from "@shared/hooks/useCommitments";
 import { useAuth } from "@core/auth/AuthContext";
+import { useFutureVision } from "@shared/hooks/useFutureVision";
 import { SavingsGoalForm } from "@features/onboarding/components/SavingsGoalForm";
+import { FutureVisionForm } from "@features/onboarding/components/FutureVisionForm";
 import { buildFinancialTimeline } from "@domain/money/financialTimeline";
 import { UpcomingTimeline } from "./components/UpcomingTimeline";
 
@@ -29,7 +31,9 @@ export function FutureYouScreen() {
   const { goals, addGoal, updateGoal, removeGoal } = useSavingsGoals(user?.id ?? null);
   const { income } = useIncome(user?.id ?? null);
   const { commitments } = useCommitments(user?.id ?? null);
+  const { vision, setVision } = useFutureVision(user?.id ?? null);
   const [editing, setEditing] = useState<EditingTarget>(null);
+  const [editingVision, setEditingVision] = useState(false);
 
   const monthlyContribution = state ? Math.round(state.futureYouCents / 6) : 0; // placeholder trend
   const projection = state ? state.futureYouCents + monthlyContribution * MONTHS : 0;
@@ -48,6 +52,39 @@ export function FutureYouScreen() {
           <Text className={`mt-2 text-4xl font-semibold ${dark ? "text-ink-dark" : "text-ink"}`}>
             {money(projection)}
           </Text>
+        </Card>
+
+        <Card className="mt-4">
+          {editingVision ? (
+            <FutureVisionForm
+              initialText={vision ?? undefined}
+              submitLabel={Copy.futureVisionStep.saveCta}
+              skipLabel="Cancel"
+              onSubmit={async (text) => {
+                await setVision(text);
+                setEditingVision(false);
+              }}
+              onSkip={() => setEditingVision(false)}
+            />
+          ) : (
+            <>
+              <Text className={`text-headline mb-1 ${dark ? "text-ink-dark" : "text-ink"}`}>
+                {Copy.futureYouScreen.visionSectionTitle}
+              </Text>
+              <Text
+                className={`text-base mb-3 ${
+                  vision ? (dark ? "text-ink-dark" : "text-ink") : dark ? "text-ink-faint" : "text-ink-soft"
+                }`}
+              >
+                {vision ?? Copy.futureYouScreen.visionEmpty}
+              </Text>
+              <Button
+                label={vision ? Copy.futureVisionStep.editCta : Copy.futureYouScreen.addVisionCta}
+                intent="quiet"
+                onPress={() => setEditingVision(true)}
+              />
+            </>
+          )}
         </Card>
 
         <Card className="mt-4">

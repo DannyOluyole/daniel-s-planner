@@ -1,5 +1,7 @@
 import "react-native-url-polyfill/auto";
+import { Platform } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as SecureStore from "expo-secure-store";
 import { createClient } from "@supabase/supabase-js";
 
 // Populate via app.config.ts / EAS secrets — never hardcode in source.
@@ -20,6 +22,17 @@ if (!supabaseConfigured) {
   );
 }
 
+// The session (including a long-lived refresh token to the user's real
+// financial data) belongs in Keychain/Keystore, not AsyncStorage's plain
+// on-disk file — SecureStore backs onto both natively. It has no web
+// implementation at all, so the web preview target keeps using AsyncStorage
+// (matching what native itself used before this change).
+const secureStorageAdapter = {
+  getItem: (key: string) => SecureStore.getItemAsync(key),
+  setItem: (key: string, value: string) => SecureStore.setItemAsync(key, value),
+  removeItem: (key: string) => SecureStore.deleteItemAsync(key),
+};
+
 // In demo mode the client is never actually used (LocalCheckpointRepository
 // and the synthesized demo session bypass it), but supabase-js throws on an
 // empty URL at construction — give it inert placeholders so the module can
@@ -29,7 +42,7 @@ export const supabase = createClient(
   supabaseAnonKey || "demo-anon-key-not-used",
   {
   auth: {
-    storage: AsyncStorage,
+    storage: Platform.OS === "web" ? AsyncStorage : secureStorageAdapter,
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: false,

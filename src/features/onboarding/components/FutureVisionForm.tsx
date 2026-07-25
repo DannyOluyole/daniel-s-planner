@@ -7,6 +7,9 @@ import { Copy } from "@core/copy/strings";
 interface Props {
   initialText?: string;
   submitLabel?: string;
+  /** Overrides the skip button's label — e.g. "Cancel" when editing an
+   * existing vision rather than skipping it during onboarding. */
+  skipLabel?: string;
   onSubmit: (text: string) => Promise<void> | void;
   onSkip?: () => void;
 }
@@ -17,7 +20,7 @@ interface Props {
  * again from Future You (editing later). Deliberately free text, not a
  * dollar target — this is meant to be a reason, not a number.
  */
-export function FutureVisionForm({ initialText, submitLabel, onSubmit, onSkip }: Props) {
+export function FutureVisionForm({ initialText, submitLabel, skipLabel, onSubmit, onSkip }: Props) {
   const { scheme } = useTheme();
   const dark = scheme === "dark";
   const [text, setText] = useState(initialText ?? "");
@@ -63,7 +66,7 @@ export function FutureVisionForm({ initialText, submitLabel, onSubmit, onSkip }:
           loading={saving}
           disabled={!canSubmit}
         />
-        {onSkip && <Button label={Copy.futureVisionStep.skipCta} intent="ghost" onPress={onSkip} />}
+        {onSkip && <Button label={skipLabel ?? Copy.futureVisionStep.skipCta} intent="ghost" onPress={onSkip} />}
       </View>
     </View>
   );
