@@ -99,6 +99,7 @@ export const Copy = {
     timeLabel: "Time",
     fridayNotificationTitle: "A moment to check in",
     fridayNotificationBody: "Take a quiet look at where you stand before you head out.",
+    moneyProtectedLine: (amount: string) => `You protected ${amount} by pausing or reconsidering this week.`,
     webUnsupportedNote: "Check-ins arrive as notifications, which need the iOS or Android app.",
     permissionDeniedNote: "Notifications are off for Checkpoint — enable them in your device settings first.",
   },
@@ -176,6 +177,8 @@ export const Copy = {
       "Too expensive.",
       "Changed my mind.",
     ],
+    somethingElseCta: "Something else…",
+    somethingElsePlaceholder: "What's the real reason?",
     skipCta: "Skip",
     confirmCta: "Done",
   },
@@ -288,6 +291,16 @@ export const Copy = {
     signUpCta: "Create account",
     switchToSignUp: "New here? Create an account",
     switchToSignIn: "Already have an account? Sign in",
+  },
+
+  deleteAccount: {
+    cta: "Delete account",
+    confirmTitle: "Delete your account?",
+    confirmBody: "This permanently removes your account and everything in it — decisions, goals, income, bills, and any linked bank connection. There's no undo.",
+    confirmCta: "Yes, delete everything",
+    cancelCta: "Cancel",
+    deletingLabel: "Deleting…",
+    errorFallback: "That didn't go through. Try again.",
   },
 
   linkAccount: {

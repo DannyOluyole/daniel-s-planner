@@ -1,7 +1,5 @@
 import React, { useState } from "react";
 import { View, Text, FlatList, ActivityIndicator, Platform } from "react-native";
-import * as FileSystem from "expo-file-system";
-import * as Sharing from "expo-sharing";
 import { Screen } from "@shared/components/Screen";
 import { BackHeader } from "@shared/components/BackHeader";
 import { Card } from "@shared/components/Card";
@@ -34,6 +32,15 @@ export function DecisionsScreen() {
     setExportError(null);
     setExporting(true);
     try {
+      // Lazy require, not a top-level import — expo-file-system/expo-sharing
+      // call requireNativeModule() as soon as they're imported, which throws
+      // synchronously in a runtime missing that native binding (e.g. Expo Go
+      // without a matching SDK build). Screens get eagerly required by the
+      // navigator, so a static import here would crash the whole app at
+      // boot, long before this try/catch ever got a chance to run.
+      const FileSystem = require("expo-file-system");
+      const Sharing = require("expo-sharing");
+
       const canShare = await Sharing.isAvailableAsync();
       if (!canShare) {
         setExportError(Copy.decisionsScreen.exportUnsupported);

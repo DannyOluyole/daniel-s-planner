@@ -10,6 +10,9 @@ interface AuthContextValue {
   signInWithPassword: (email: string, password: string) => Promise<{ error: string | null }>;
   signUpWithPassword: (email: string, password: string) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
+  /** Permanently deletes the signed-in user's account and all their data
+   * (cascades server-side — see migration 0015), then signs out locally. */
+  deleteAccount: () => Promise<{ error: string | null }>;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -60,6 +63,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await supabase.auth.signOut();
   };
 
+  const deleteAccount = async (): Promise<{ error: string | null }> => {
+    if (!supabaseConfigured || !session?.user) return { error: null }; // nothing to delete in demo mode
+    try {
+      const { error } = await supabase.functions.invoke("delete-account", {
+        body: { userId: session.user.id },
+      });
+      if (error) return { error: error.message };
+      await supabase.auth.signOut();
+      return { error: null };
+    } catch (e) {
+      return { error: (e as Error).message ?? "Something went wrong." };
+    }
+  };
+
   const value = useMemo(
     () => ({
       session,
@@ -68,6 +85,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       signInWithPassword,
       signUpWithPassword,
       signOut,
+      deleteAccount,
     }),
     [session, loading]
   );

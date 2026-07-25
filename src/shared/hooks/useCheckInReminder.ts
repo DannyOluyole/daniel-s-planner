@@ -3,9 +3,10 @@ import { Platform } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Notifications from "expo-notifications";
 import { Copy } from "@core/copy/strings";
-import { bankLinkRepository } from "@data/repositories";
+import { bankLinkRepository, checkpointRepository } from "@data/repositories";
 import { money } from "@domain/entities/MoneyState";
 import { humanizeCategory } from "@domain/money/humanizeCategory";
+import { sumMoneyProtected } from "@domain/money/decisionJournal";
 import {
   highestSpendingWeekday,
   topCategoryThisWeekFromTransactions,
@@ -42,12 +43,23 @@ function notificationId(day: number): string {
  * and the historically busiest spending day — falling back to a generic
  * line otherwise (no bank linked yet, or too little history for any signal).
  */
+const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+
 async function buildReminderBody(userId: string): Promise<string> {
   try {
-    const transactions = await bankLinkRepository.getTransactions(userId, HISTORY_LIMIT);
+    const [transactions, decisions] = await Promise.all([
+      bankLinkRepository.getTransactions(userId, HISTORY_LIMIT),
+      checkpointRepository.getRecentDecisions(userId, HISTORY_LIMIT),
+    ]);
     const topCategory = topCategoryThisWeekFromTransactions(transactions);
     const topTrend = detectCategoryTrendsFromTransactions(transactions)[0] ?? null;
     const busiestDay = highestSpendingWeekday(transactions);
+    // Decision Journal reads from local decisions, not synced transactions —
+    // a separate data source from the three facts above, so it's fetched
+    // and filtered to the same trailing week independently.
+    const weekAgo = Date.now() - WEEK_MS;
+    const recentDecisions = decisions.filter((d) => new Date(d.decidedAt).getTime() >= weekAgo);
+    const moneyProtectedCents = sumMoneyProtected(recentDecisions);
 
     const parts: string[] = [];
     if (topCategory) {
@@ -61,6 +73,9 @@ async function buildReminderBody(userId: string): Promise<string> {
           ? `${label} is up ${topTrend.percentChange}% over the last 30 days.`
           : `${label} is down ${Math.abs(topTrend.percentChange)}% over the last 30 days.`
       );
+    }
+    if (moneyProtectedCents > 0) {
+      parts.push(Copy.reminders.moneyProtectedLine(money(moneyProtectedCents)));
     }
     if (busiestDay) {
       parts.push(`${busiestDay}s tend to be your highest-spending day.`);

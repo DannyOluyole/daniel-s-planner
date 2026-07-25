@@ -46,11 +46,26 @@ function formatDayList(days: number[]): string {
 export function SettingsScreen({ navigation }: Props) {
   const { scheme } = useTheme();
   const { replay } = useOnboarding();
-  const { user, signOut } = useAuth();
+  const { user, signOut, deleteAccount } = useAuth();
   const reminder = useCheckInReminder(user?.id ?? null);
   const bigPurchase = useBigPurchaseThreshold();
   const [thresholdInput, setThresholdInput] = useState<string | null>(null);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const dark = scheme === "dark";
+
+  const handleDeleteAccount = async () => {
+    setDeleteError(null);
+    setDeleting(true);
+    const { error } = await deleteAccount();
+    if (error) {
+      setDeleteError(Copy.deleteAccount.errorFallback);
+      setDeleting(false);
+    }
+    // On success, AuthContext's session goes null and App.tsx swaps to
+    // AuthScreen on its own — nothing left to do here.
+  };
 
   const displayedThreshold = thresholdInput ?? String(bigPurchase.thresholdCents / 100);
   const commitThreshold = () => {
@@ -73,7 +88,40 @@ export function SettingsScreen({ navigation }: Props) {
         <Text className={`text-sm mb-4 ${dark ? "text-ink-faint" : "text-ink-soft"}`}>
           {user?.email ?? "Signed in"}
         </Text>
-        <Button label="Sign out" intent="quiet" onPress={signOut} />
+        {confirmingDelete ? (
+          <View>
+            <Text className="text-sm text-signal-caution mb-4">
+              {Copy.deleteAccount.confirmBody}
+            </Text>
+            {deleteError && (
+              <Text className="text-sm text-signal-caution mb-3">{deleteError}</Text>
+            )}
+            <View className="gap-3">
+              <Button
+                label={deleting ? Copy.deleteAccount.deletingLabel : Copy.deleteAccount.confirmCta}
+                intent="quiet"
+                loading={deleting}
+                disabled={deleting}
+                onPress={handleDeleteAccount}
+              />
+              <Button
+                label={Copy.deleteAccount.cancelCta}
+                intent="ghost"
+                disabled={deleting}
+                onPress={() => setConfirmingDelete(false)}
+              />
+            </View>
+          </View>
+        ) : (
+          <View className="gap-3">
+            <Button label="Sign out" intent="quiet" onPress={signOut} />
+            <Button
+              label={Copy.deleteAccount.cta}
+              intent="ghost"
+              onPress={() => setConfirmingDelete(true)}
+            />
+          </View>
+        )}
       </Card>
 
       <Card className="mt-4">
