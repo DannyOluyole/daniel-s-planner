@@ -29,6 +29,9 @@ export interface CheckpointRepository {
     pauseReason?: string
   ): Promise<SpendingDecision>;
   getRecentDecisions(userId: string, limit?: number): Promise<SpendingDecision[]>;
+  /** "Decision Memory" — marks (or unmarks) a past decision as one the user
+   * regretted, settable any time after the fact. */
+  setDecisionRegretted(userId: string, decisionId: string, regretted: boolean): Promise<void>;
   /** Returns every goal including removed ones (removedAt set) — callers
    * filter to active goals themselves, same convention as getCommitments. */
   getSavingsGoals(userId: string): Promise<SavingsGoal[]>;

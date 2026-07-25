@@ -9,6 +9,7 @@ import { Copy } from "@core/copy/strings";
 import { money } from "@domain/entities/MoneyState";
 import { sumMoneyProtected, mostCommonPauseReason } from "@domain/money/decisionJournal";
 import { decisionsToCsv } from "@domain/money/decisionExport";
+import { buildMonthlyReplay, buildMonthlyReplayLines } from "@domain/money/monthlyReplay";
 import { useDecisions } from "@shared/hooks/useDecisions";
 import { useAuth } from "@core/auth/AuthContext";
 import { DecisionRow } from "./components/DecisionRow";
@@ -17,12 +18,14 @@ export function DecisionsScreen() {
   const { scheme } = useTheme();
   const dark = scheme === "dark";
   const { user } = useAuth();
-  const { decisions, loading } = useDecisions(user?.id ?? null, 200);
+  const { decisions, loading, toggleRegret } = useDecisions(user?.id ?? null, 200);
   const [exporting, setExporting] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
 
   const moneyProtectedCents = sumMoneyProtected(decisions);
   const topReason = mostCommonPauseReason(decisions);
+  const replay = buildMonthlyReplay(decisions);
+  const replayLines = buildMonthlyReplayLines(replay);
 
   const handleExport = async () => {
     if (Platform.OS === "web") {
@@ -87,22 +90,36 @@ export function DecisionsScreen() {
           <FlatList
             data={decisions}
             keyExtractor={(item) => item.id}
-            renderItem={({ item }) => <DecisionRow decision={item} />}
+            renderItem={({ item }) => <DecisionRow decision={item} onToggleRegret={toggleRegret} />}
             showsVerticalScrollIndicator={false}
             className="mt-2"
             ListHeaderComponent={
-              moneyProtectedCents > 0 ? (
-                <Card raised className="mb-4">
-                  <Text className={`text-base font-semibold ${dark ? "text-ink-dark" : "text-ink"}`}>
-                    {Copy.decisionsScreen.moneyProtectedLabel(money(moneyProtectedCents))}
-                  </Text>
-                  {topReason && (
-                    <Text className={`mt-1 text-xs ${dark ? "text-ink-faint" : "text-ink-faint"}`}>
-                      {Copy.decisionsScreen.topReasonLabel(topReason)}
+              <View>
+                {replay.totalDecisions > 0 && (
+                  <Card raised className="mb-4">
+                    <Text className={`text-base font-semibold mb-1 ${dark ? "text-ink-dark" : "text-ink"}`}>
+                      {Copy.decisionsScreen.replayTitle(replay.monthLabel)}
                     </Text>
-                  )}
-                </Card>
-              ) : null
+                    {replayLines.map((line) => (
+                      <Text key={line} className={`mt-1 text-sm ${dark ? "text-ink-faint" : "text-ink-soft"}`}>
+                        {line}
+                      </Text>
+                    ))}
+                  </Card>
+                )}
+                {moneyProtectedCents > 0 && (
+                  <Card raised className="mb-4">
+                    <Text className={`text-base font-semibold ${dark ? "text-ink-dark" : "text-ink"}`}>
+                      {Copy.decisionsScreen.moneyProtectedLabel(money(moneyProtectedCents))}
+                    </Text>
+                    {topReason && (
+                      <Text className={`mt-1 text-xs ${dark ? "text-ink-faint" : "text-ink-faint"}`}>
+                        {Copy.decisionsScreen.topReasonLabel(topReason)}
+                      </Text>
+                    )}
+                  </Card>
+                )}
+              </View>
             }
           />
         </>

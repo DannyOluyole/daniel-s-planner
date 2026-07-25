@@ -17,7 +17,7 @@ describe("decisionsToCsv", () => {
   it("writes a header row plus one row per decision", () => {
     const csv = decisionsToCsv([makeDecision({})]);
     const lines = csv.split("\n");
-    expect(lines[0]).toBe("Date,Merchant,Category,Outcome,Amount,Reason");
+    expect(lines[0]).toBe("Date,Merchant,Category,Intent,Outcome,Amount,Reason");
     expect(lines).toHaveLength(2);
   });
 
@@ -32,10 +32,15 @@ describe("decisionsToCsv", () => {
     expect(csv).not.toContain("12:00:00");
   });
 
-  it("leaves category and reason blank when absent", () => {
-    const csv = decisionsToCsv([makeDecision({ category: undefined, pauseReason: undefined })]);
+  it("leaves category, intent, and reason blank when absent", () => {
+    const csv = decisionsToCsv([makeDecision({ category: undefined, intent: undefined, pauseReason: undefined })]);
     const row = csv.split("\n")[1];
-    expect(row).toBe("2026-07-01,Store,,continued,12.50,");
+    expect(row).toBe("2026-07-01,Store,,,continued,12.50,");
+  });
+
+  it("includes the intent when present", () => {
+    const csv = decisionsToCsv([makeDecision({ intent: "Gift" })]);
+    expect(csv).toContain("Gift");
   });
 
   it("includes the pause reason when present", () => {
@@ -56,7 +61,7 @@ describe("decisionsToCsv", () => {
   });
 
   it("returns just the header for an empty list", () => {
-    expect(decisionsToCsv([])).toBe("Date,Merchant,Category,Outcome,Amount,Reason");
+    expect(decisionsToCsv([])).toBe("Date,Merchant,Category,Intent,Outcome,Amount,Reason");
   });
 });
 

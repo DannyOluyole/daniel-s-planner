@@ -17,8 +17,10 @@ import { detectCategoryTrends } from "@domain/money/insightsEngine";
 import { buildFinancialTimeline, computeSafeSpendingDays } from "@domain/money/financialTimeline";
 import { computeFinancialConfidence } from "@domain/money/financialConfidence";
 import { detectRecurringCharges } from "@domain/money/recurringCharges";
+import { buildDollarJobSegments } from "@domain/money/dollarJobs";
 import { AvailableCard } from "./components/AvailableCard";
 import { FinancialConfidenceCard } from "./components/FinancialConfidenceCard";
+import { DollarJobsBar } from "./components/DollarJobsBar";
 import { Timeline } from "./components/Timeline";
 import { useCheckpoint } from "@shared/hooks/useCheckpoint";
 import { useSavingsGoals } from "@shared/hooks/useSavingsGoals";
@@ -88,6 +90,7 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
   // Recurring-charge detection needs real bank history to mean anything —
   // local/demo mode has no synced transactions to find a pattern in.
   const recurringCharges = isBankLinked ? detectRecurringCharges(transactions).slice(0, 3) : [];
+  const dollarJobSegments = buildDollarJobSegments(activeCommitments, availableCents);
   const homeStatus = availableCents < 0
     ? Copy.home.statusOverAvailable
     : anyCategoryOverBudget
@@ -188,6 +191,19 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
               </Text>
             </View>
           </View>
+
+          {dollarJobSegments.length > 0 && (
+            <>
+              <Text
+                className={`mt-5 mb-1 text-caption uppercase tracking-wide ${
+                  dark ? "text-ink-faint" : "text-ink-faint"
+                }`}
+              >
+                {Copy.home.dollarJobsTitle}
+              </Text>
+              <DollarJobsBar segments={dollarJobSegments} />
+            </>
+          )}
 
           <FinancialConfidenceCard score={confidence.score} label={confidence.label} checks={confidence.checks} />
 

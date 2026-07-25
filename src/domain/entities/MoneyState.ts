@@ -14,10 +14,28 @@ export interface MoneyState {
   asOf: string;
 }
 
+/**
+ * The user's own stated reason for a purchase, captured before the amount
+ * (see NewDecisionScreen) — distinct from `Intent` in parsePurchaseSpeech.ts,
+ * which groups categories (Investing in myself / Lifestyle /
+ * Responsibilities) rather than recording what the user actually said.
+ */
+export type PurchaseIntent = "Need" | "Want" | "Gift" | "Work" | "Replacement" | "Celebration";
+
+export const PURCHASE_INTENTS: PurchaseIntent[] = [
+  "Need",
+  "Want",
+  "Gift",
+  "Work",
+  "Replacement",
+  "Celebration",
+];
+
 export interface SpendingDecisionInput {
   amountCents: number;
   merchant: string;
   category?: string;
+  intent?: PurchaseIntent;
 }
 
 export type DecisionOutcome = "continued" | "paused" | "reconsidered";
@@ -27,12 +45,17 @@ export interface SpendingDecision {
   amountCents: number;
   merchant: string;
   category?: string;
+  intent?: PurchaseIntent;
   outcome: DecisionOutcome;
   /** How long the user actually sat on the Checkpoint screen, in ms. */
   pauseDurationMs: number;
   /** Optional "why" behind a paused/reconsidered decision — never asked of
    * a "continued" purchase, since there's nothing to explain. */
   pauseReason?: string;
+  /** Set after the fact (never at the time of the decision) when the user
+   * marks a past "continued" purchase as one they regretted — "Decision
+   * Memory" gently surfaces this the next time a similar purchase comes up. */
+  regretted?: boolean;
   decidedAt: string;
 }
 

@@ -1,11 +1,14 @@
 import React from "react";
-import { View, Text } from "react-native";
+import { View, Text, Pressable } from "react-native";
 import { useTheme } from "@core/theme/ThemeContext";
 import { Copy } from "@core/copy/strings";
 import { money, SpendingDecision } from "@domain/entities/MoneyState";
 
 interface Props {
   decision: SpendingDecision;
+  /** Only ever called for "continued" decisions — see the render guard
+   * below. Toggles the current regretted state. */
+  onToggleRegret?: (decision: SpendingDecision) => void;
 }
 
 const outcomeDotColor: Record<SpendingDecision["outcome"], string> = {
@@ -19,7 +22,7 @@ function formatDate(iso: string): string {
   return d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
 }
 
-export function DecisionRow({ decision }: Props) {
+export function DecisionRow({ decision, onToggleRegret }: Props) {
   const { scheme } = useTheme();
   const dark = scheme === "dark";
 
@@ -40,6 +43,7 @@ export function DecisionRow({ decision }: Props) {
           </Text>
           <Text className={`text-xs mt-0.5 ${dark ? "text-ink-faint" : "text-ink-faint"}`}>
             {Copy.outcomeLabel[decision.outcome]} · {formatDate(decision.decidedAt)}
+            {decision.intent ? ` · ${decision.intent}` : ""}
           </Text>
           {decision.pauseReason && (
             <Text
@@ -48,6 +52,19 @@ export function DecisionRow({ decision }: Props) {
             >
               "{decision.pauseReason}"
             </Text>
+          )}
+          {/* Regret only makes sense for a purchase actually gone through
+              with — pausing/reconsidering already has its own reason. */}
+          {decision.outcome === "continued" && onToggleRegret && (
+            <Pressable onPress={() => onToggleRegret(decision)} hitSlop={6} className="mt-1 self-start">
+              <Text
+                className={`text-xs font-medium ${
+                  decision.regretted ? "text-signal-caution" : dark ? "text-ink-faint" : "text-ink-faint"
+                }`}
+              >
+                {decision.regretted ? `${Copy.decisionsScreen.regrettedLabel} · ${Copy.decisionsScreen.unmarkRegrettedCta}` : Copy.decisionsScreen.markRegrettedCta}
+              </Text>
+            </Pressable>
           )}
         </View>
       </View>

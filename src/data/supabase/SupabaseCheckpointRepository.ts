@@ -113,6 +113,7 @@ export class SupabaseCheckpointRepository implements CheckpointRepository {
         amount_cents: input.amountCents,
         merchant: input.merchant,
         category: input.category ?? null,
+        intent: input.intent ?? null,
         outcome,
         pause_duration_ms: pauseDurationMs,
         pause_reason: pauseReason ?? null,
@@ -144,9 +145,11 @@ export class SupabaseCheckpointRepository implements CheckpointRepository {
       amountCents: data.amount_cents,
       merchant: data.merchant,
       category: data.category ?? undefined,
+      intent: data.intent ?? undefined,
       outcome: data.outcome,
       pauseDurationMs: data.pause_duration_ms,
       pauseReason: data.pause_reason ?? undefined,
+      regretted: data.regretted ?? false,
       decidedAt: data.decided_at,
     };
   }
@@ -169,11 +172,22 @@ export class SupabaseCheckpointRepository implements CheckpointRepository {
       amountCents: row.amount_cents,
       merchant: row.merchant,
       category: row.category ?? undefined,
+      intent: row.intent ?? undefined,
       outcome: row.outcome,
       pauseDurationMs: row.pause_duration_ms,
       pauseReason: row.pause_reason ?? undefined,
+      regretted: row.regretted ?? false,
       decidedAt: row.decided_at,
     }));
+  }
+
+  async setDecisionRegretted(userId: string, decisionId: string, regretted: boolean): Promise<void> {
+    const { error } = await supabase
+      .from("spending_decisions")
+      .update({ regretted })
+      .eq("id", decisionId)
+      .eq("user_id", userId);
+    if (error) throw error;
   }
 
   async getSavingsGoals(userId: string): Promise<SavingsGoal[]> {

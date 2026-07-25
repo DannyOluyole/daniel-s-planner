@@ -86,6 +86,7 @@ export class LocalCheckpointRepository implements CheckpointRepository {
       amountCents: input.amountCents,
       merchant: input.merchant,
       category: input.category,
+      intent: input.intent,
       outcome,
       pauseDurationMs,
       pauseReason,
@@ -101,6 +102,11 @@ export class LocalCheckpointRepository implements CheckpointRepository {
 
   async getRecentDecisions(userId: string, limit = 20): Promise<SpendingDecision[]> {
     return this.recordFor(userId).decisions.slice(0, limit);
+  }
+
+  async setDecisionRegretted(userId: string, decisionId: string, regretted: boolean): Promise<void> {
+    const record = this.recordFor(userId);
+    record.decisions = record.decisions.map((d) => (d.id === decisionId ? { ...d, regretted } : d));
   }
 
   async getSavingsGoals(userId: string): Promise<SavingsGoal[]> {

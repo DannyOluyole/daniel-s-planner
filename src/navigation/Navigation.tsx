@@ -27,6 +27,7 @@ import { SettingsScreen } from "@features/settings/SettingsScreen";
 import { DecisionsScreen } from "@features/decisions/DecisionsScreen";
 import { LinkAccountScreen } from "@features/link-account/LinkAccountScreen";
 import { WatchedPlacesScreen } from "@features/places/WatchedPlacesScreen";
+import type { PurchaseIntent } from "@domain/entities/MoneyState";
 
 // The four destinations someone actually returns to, always reachable in one
 // tap. Everything else (the decision flow, drilling into managing income and
@@ -62,6 +63,7 @@ export type RootStackParamList = {
     amountCents: number;
     merchant: string;
     category?: string;
+    intent?: PurchaseIntent;
   };
   // Editing income/bills/goals is upkeep, not something glanced at daily —
   // pulled off Home's main scroll so Home can stay a quick daily read.

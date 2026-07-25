@@ -71,3 +71,41 @@ export function findRelevantPauseReason(
 
   return null;
 }
+
+export interface RegretMatch {
+  merchant: string;
+  matchedOn: "merchant" | "category";
+}
+
+/**
+ * "Decision Memory" — looks for the most recent *completed* purchase the
+ * user later marked as regretted, relevant to what's being bought right
+ * now. Same merchant-first-then-category matching as
+ * findRelevantPauseReason, but over a completely different signal: this
+ * only considers "continued" decisions (you can't regret a purchase you
+ * never went through with) that were flagged after the fact via
+ * setDecisionRegretted. Returns null when there's nothing to gently
+ * remember.
+ */
+export function findRegrettedPurchaseWarning(
+  decisions: SpendingDecision[],
+  merchant: string,
+  category: string | undefined
+): RegretMatch | null {
+  const normalizedMerchant = merchant.trim().toLowerCase();
+  const candidates = decisions.filter((d) => d.outcome === "continued" && d.regretted);
+
+  const merchantMatch = candidates.find((d) => d.merchant.trim().toLowerCase() === normalizedMerchant);
+  if (merchantMatch) {
+    return { merchant: merchantMatch.merchant, matchedOn: "merchant" };
+  }
+
+  if (category) {
+    const categoryMatch = candidates.find((d) => d.category?.toLowerCase() === category.toLowerCase());
+    if (categoryMatch) {
+      return { merchant: categoryMatch.merchant, matchedOn: "category" };
+    }
+  }
+
+  return null;
+}

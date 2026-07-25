@@ -26,7 +26,8 @@ import { buildWallSpokenSummary } from "@domain/money/parsePurchaseSpeech";
 import { summarizeCategoryImpact } from "@domain/money/categoryImpact";
 import { buildDecisionNarrative } from "@domain/money/decisionNarrative";
 import { buildFinancialTimeline } from "@domain/money/financialTimeline";
-import { findRelevantPauseReason } from "@domain/money/decisionJournal";
+import { findRelevantPauseReason, findRegrettedPurchaseWarning } from "@domain/money/decisionJournal";
+import { determineFrictionTier, FRICTION_PAUSE_MS } from "@domain/money/frictionTier";
 import { SafeToSpendMeter } from "./components/SafeToSpendMeter";
 import { AlignmentScore } from "./components/AlignmentScore";
 import { DecisionActions } from "./components/DecisionActions";
@@ -39,15 +40,8 @@ import { refreshCheckpointWidget } from "@features/widget/widgetTaskHandler";
 
 type Props = NativeStackScreenProps<RootStackParamList, "SpendingWall">;
 
-// The deliberate beat before "Continue" unlocks. Long enough to interrupt
-// autopilot, short enough not to feel punitive.
-const MIN_PAUSE_MS = 2200;
-// A longer beat for Big Purchase Mode — there are more questions worth
-// actually reading here, not just a longer wait for its own sake.
-const BIG_PURCHASE_MIN_PAUSE_MS = 4500;
-
 export function SpendingWallScreen({ route, navigation }: Props) {
-  const { amountCents, merchant, category } = route.params;
+  const { amountCents, merchant, category, intent } = route.params;
   const { scheme } = useTheme();
   const dark = scheme === "dark";
   const { user } = useAuth();
@@ -58,7 +52,8 @@ export function SpendingWallScreen({ route, navigation }: Props) {
   const { decisions } = useDecisions(user?.id ?? null, 200);
   const { speak, stop: stopSpeaking, speaking } = useVoiceOutput();
   const { enabled: bigPurchaseEnabled, thresholdCents: bigPurchaseThresholdCents } = useBigPurchaseThreshold();
-  const isBigPurchase = bigPurchaseEnabled && amountCents >= bigPurchaseThresholdCents;
+  const frictionTier = determineFrictionTier(amountCents, bigPurchaseEnabled, bigPurchaseThresholdCents);
+  const isBigPurchase = frictionTier !== "normal";
   const { vision } = useFutureVision(user?.id ?? null);
 
   const [continueEnabled, setContinueEnabled] = useState(false);
@@ -91,7 +86,15 @@ export function SpendingWallScreen({ route, navigation }: Props) {
   const timeline = state
     ? buildFinancialTimeline(state.availableCents, income, commitments, { name: merchant, amountCents })
     : null;
-  const narrative = verdict ? buildDecisionNarrative(verdict, amountCents, dippedGoal, timeline, vision) : null;
+  // Built without the hypothetical purchase — computeDaysUntilSafeToSpend
+  // (inside buildDecisionNarrative) needs this to answer "wait N days",
+  // trying the purchase against every future day rather than just today.
+  const baselineTimeline = state
+    ? buildFinancialTimeline(state.availableCents, income, commitments, null)
+    : null;
+  const narrative = verdict
+    ? buildDecisionNarrative(verdict, amountCents, dippedGoal, timeline, vision, baselineTimeline)
+    : null;
 
   const categoryImpact = summarizeCategoryImpact(commitments, decisions, category, amountCents);
   const pauseReasonMatch = findRelevantPauseReason(decisions, merchant, category);
@@ -99,6 +102,12 @@ export function SpendingWallScreen({ route, navigation }: Props) {
     ? pauseReasonMatch.matchedOn === "merchant"
       ? Copy.pauseReasonCallback.merchantLabel(pauseReasonMatch.merchant, pauseReasonMatch.reason)
       : Copy.pauseReasonCallback.categoryLabel(category ?? pauseReasonMatch.merchant, pauseReasonMatch.reason)
+    : null;
+  const regretMatch = findRegrettedPurchaseWarning(decisions, merchant, category);
+  const regretCallbackText = regretMatch
+    ? regretMatch.matchedOn === "merchant"
+      ? Copy.decisionMemoryCallback.merchantLabel(regretMatch.merchant)
+      : Copy.decisionMemoryCallback.categoryLabel(category ?? regretMatch.merchant)
     : null;
 
   const handleReadAloud = () => {
@@ -122,12 +131,9 @@ export function SpendingWallScreen({ route, navigation }: Props) {
   };
 
   useEffect(() => {
-    const timer = setTimeout(
-      () => setContinueEnabled(true),
-      isBigPurchase ? BIG_PURCHASE_MIN_PAUSE_MS : MIN_PAUSE_MS
-    );
+    const timer = setTimeout(() => setContinueEnabled(true), FRICTION_PAUSE_MS[frictionTier]);
     return () => clearTimeout(timer);
-  }, [isBigPurchase]);
+  }, [frictionTier]);
 
   const handleDecide = async (outcome: DecisionOutcome, pauseReason?: string) => {
     if (lifted) return; // already mid-decision — ignore a second tap during the lift beat
@@ -147,7 +153,7 @@ export function SpendingWallScreen({ route, navigation }: Props) {
         setTimeout(() => reject(new Error("That's taking too long — check your connection and try again.")), 15000)
       );
       await Promise.race([
-        recordDecision({ amountCents, merchant, category }, outcome, pauseDurationMs, pauseReason),
+        recordDecision({ amountCents, merchant, category, intent }, outcome, pauseDurationMs, pauseReason),
         timeout,
       ]);
       refreshCheckpointWidget();
@@ -246,6 +252,14 @@ export function SpendingWallScreen({ route, navigation }: Props) {
             </Card>
           )}
 
+          {regretCallbackText && (
+            <Card raised className="mt-4 w-full">
+              <Text className={`text-sm text-center ${dark ? "text-ink-dark" : "text-ink"}`}>
+                {regretCallbackText}
+              </Text>
+            </Card>
+          )}
+
           {isBigPurchase && (
             <Card raised className="mt-4 w-full">
               <Text className={`text-sm font-medium mb-2 ${dark ? "text-ink-dark" : "text-ink"}`}>
@@ -319,7 +333,7 @@ export function SpendingWallScreen({ route, navigation }: Props) {
                     dark ? "text-ink-faint" : "text-ink-faint"
                   }`}
                 >
-                  {Copy.spendingWall.pauseHint}
+                  {frictionTier === "reflection" ? Copy.spendingWall.reflectionPauseHint : Copy.spendingWall.pauseHint}
                 </Text>
               )}
               {decideError && (

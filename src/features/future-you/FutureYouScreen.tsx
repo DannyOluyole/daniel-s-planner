@@ -17,6 +17,7 @@ import { SavingsGoalForm } from "@features/onboarding/components/SavingsGoalForm
 import { FutureVisionForm } from "@features/onboarding/components/FutureVisionForm";
 import { buildFinancialTimeline } from "@domain/money/financialTimeline";
 import { UpcomingTimeline } from "./components/UpcomingTimeline";
+import { WhatIfCard } from "./components/WhatIfCard";
 
 const MONTHS = 12;
 
@@ -147,6 +148,12 @@ export function FutureYouScreen() {
         </Card>
 
         {timeline && <UpcomingTimeline timeline={timeline} />}
+
+        {state && (
+          <Card className="mt-4">
+            <WhatIfCard availableCents={state.availableCents} income={income} commitments={commitments} />
+          </Card>
+        )}
         <View className="mb-4" />
       </ScrollView>
     </Screen>

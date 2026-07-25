@@ -20,7 +20,7 @@ const warnVerdict: WallVerdict = { beforeCents: 41200, afterCents: 16200, dipsIn
 describe("buildDecisionNarrative", () => {
   it("reads on-track with a high score when there's nothing to warn about", () => {
     const result = buildDecisionNarrative(okVerdict, 4500, null);
-    expect(result.headline).toBe("This purchase keeps you on track.");
+    expect(result.headline).toBe("Your future self can comfortably absorb this purchase.");
     expect(result.score).toBeGreaterThanOrEqual(80);
     expect(result.scoreLabel).toBe("Excellent decision");
   });
@@ -54,6 +54,46 @@ describe("buildDecisionNarrative", () => {
     const result = buildDecisionNarrative(warnVerdict, 25000, goal, timeline);
     expect(result.headline).toBe("This leaves you short by $35.65 before Jul 23.");
     expect(result.score).toBeLessThanOrEqual(25);
+  });
+
+  it("names an explicit wait-N-days figure when a baseline timeline is provided", () => {
+    const timeline: FinancialTimeline = {
+      events: [],
+      runningBalances: [],
+      lowestBalanceCents: -3565,
+      lowestBalanceDate: "2026-07-23",
+      causesShortfall: true,
+    };
+    // A baseline (no hypothetical purchase) whose only event — a paycheck —
+    // lands 5 days after "now" and comfortably covers the purchase from
+    // then on. computeDaysUntilSafeToSpend's own math is unit-tested in
+    // financialTimeline.test.ts; this just confirms the headline picks up
+    // whatever it returns, using an explicit "now" so the test is
+    // deterministic rather than depending on the real wall-clock date.
+    const now = new Date(2026, 6, 18); // Jul 18
+    const baseline: FinancialTimeline = {
+      events: [{ date: "2026-07-23", label: "Paycheck", amountCents: 200000, kind: "income" }],
+      runningBalances: [200000],
+      lowestBalanceCents: 0,
+      lowestBalanceDate: null,
+      causesShortfall: false,
+    };
+    const result = buildDecisionNarrative(warnVerdict, 25000, null, timeline, null, baseline, now);
+    expect(result.headline).toBe(
+      "Your future self would prefer you wait 5 days — this dips $35.65 into money you need by Jul 23."
+    );
+  });
+
+  it("falls back to the dollar-shortfall headline when no baseline timeline is given", () => {
+    const timeline: FinancialTimeline = {
+      events: [],
+      runningBalances: [],
+      lowestBalanceCents: -3565,
+      lowestBalanceDate: "2026-07-23",
+      causesShortfall: true,
+    };
+    const result = buildDecisionNarrative(warnVerdict, 25000, null, timeline);
+    expect(result.headline).toBe("This leaves you short by $35.65 before Jul 23.");
   });
 
   it("has no futureSelfNote when no vision was ever set", () => {

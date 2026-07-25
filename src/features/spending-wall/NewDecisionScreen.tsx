@@ -6,12 +6,14 @@ import { useTheme } from "@core/theme/ThemeContext";
 import { Copy } from "@core/copy/strings";
 import { useVoiceInput } from "@shared/hooks/useVoiceInput";
 import { CATEGORIES, parsePurchaseSpeech } from "@domain/money/parsePurchaseSpeech";
+import { PURCHASE_INTENTS, PurchaseIntent } from "@domain/entities/MoneyState";
 import { QuickAmountKeypad } from "./components/QuickAmountKeypad";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import type { RootStackParamList } from "@app/Navigation";
 import type { Category } from "@domain/money/parsePurchaseSpeech";
 
 type Props = NativeStackScreenProps<RootStackParamList, "NewDecision">;
+type Step = "intent" | "details";
 
 /**
  * The real entry point into a Checkpoint — amount + category, then straight
@@ -23,6 +25,8 @@ type Props = NativeStackScreenProps<RootStackParamList, "NewDecision">;
 export function NewDecisionScreen({ navigation }: Props) {
   const { scheme } = useTheme();
   const dark = scheme === "dark";
+  const [step, setStep] = useState<Step>("intent");
+  const [intent, setIntent] = useState<PurchaseIntent | undefined>(undefined);
   const [merchant, setMerchant] = useState("");
   const [showMerchantInput, setShowMerchantInput] = useState(false);
   const [category, setCategory] = useState<Category>(CATEGORIES[0]);
@@ -58,8 +62,44 @@ export function NewDecisionScreen({ navigation }: Props) {
       amountCents,
       merchant: merchant.trim() || category,
       category,
+      intent,
     });
   };
+
+  // Asked before the amount, deliberately — knowing *why* first (a gift, a
+  // replacement, a celebration) reframes how the amount itself gets read,
+  // rather than just tacking a label onto a number after the fact.
+  if (step === "intent") {
+    return (
+      <Screen>
+        <View className="flex-1 justify-center px-2">
+          <Text className={`text-title font-semibold mb-1 ${dark ? "text-ink-dark" : "text-ink"}`}>
+            {Copy.purchaseIntentStep.title}
+          </Text>
+          <Text className={`text-base mb-6 ${dark ? "text-ink-faint" : "text-ink-soft"}`}>
+            {Copy.purchaseIntentStep.subtitle}
+          </Text>
+          <View className="flex-row flex-wrap gap-2">
+            {PURCHASE_INTENTS.map((i) => (
+              <Pressable
+                key={i}
+                onPress={() => {
+                  setIntent(i);
+                  setStep("details");
+                }}
+                className={`rounded-full border px-4 py-3 ${dark ? "border-hairline-dark" : "border-hairline"}`}
+              >
+                <Text className={`text-sm ${dark ? "text-ink-dark" : "text-ink"}`}>{i}</Text>
+              </Pressable>
+            ))}
+          </View>
+          <View className="mt-6">
+            <Button label={Copy.purchaseIntentStep.skipCta} intent="ghost" onPress={() => setStep("details")} />
+          </View>
+        </View>
+      </Screen>
+    );
+  }
 
   return (
     <Screen>

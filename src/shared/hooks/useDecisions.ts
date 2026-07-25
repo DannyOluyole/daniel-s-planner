@@ -25,5 +25,14 @@ export function useDecisions(userId: string | null, limit = 20) {
     refresh();
   }, [refresh]);
 
-  return { decisions, loading, error, refresh };
+  const toggleRegret = useCallback(
+    async (decision: SpendingDecision) => {
+      if (!userId) return;
+      await repository.setDecisionRegretted(userId, decision.id, !decision.regretted);
+      await refresh();
+    },
+    [userId, refresh]
+  );
+
+  return { decisions, loading, error, refresh, toggleRegret };
 }

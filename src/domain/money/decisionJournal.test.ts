@@ -1,4 +1,9 @@
-import { sumMoneyProtected, mostCommonPauseReason, findRelevantPauseReason } from "./decisionJournal";
+import {
+  sumMoneyProtected,
+  mostCommonPauseReason,
+  findRelevantPauseReason,
+  findRegrettedPurchaseWarning,
+} from "./decisionJournal";
 import { SpendingDecision } from "@domain/entities/MoneyState";
 
 function makeDecision(overrides: Partial<SpendingDecision>): SpendingDecision {
@@ -103,5 +108,46 @@ describe("findRelevantPauseReason", () => {
     ];
     const match = findRelevantPauseReason(decisions, "Zara", "Shopping");
     expect(match?.reason).toBe("Too expensive.");
+  });
+});
+
+describe("findRegrettedPurchaseWarning", () => {
+  it("returns null when nothing regretted matches", () => {
+    const decisions = [makeDecision({ outcome: "continued", merchant: "Nike", regretted: false })];
+    expect(findRegrettedPurchaseWarning(decisions, "Nike", "Shopping")).toBeNull();
+  });
+
+  it("matches a regretted continued purchase by merchant", () => {
+    const decisions = [
+      makeDecision({ outcome: "continued", merchant: "Nike", category: "Shopping", regretted: true }),
+    ];
+    expect(findRegrettedPurchaseWarning(decisions, "nike", "Shopping")).toEqual({
+      merchant: "Nike",
+      matchedOn: "merchant",
+    });
+  });
+
+  it("falls back to category when no merchant matches", () => {
+    const decisions = [
+      makeDecision({ outcome: "continued", merchant: "Foot Locker", category: "Shopping", regretted: true }),
+    ];
+    expect(findRegrettedPurchaseWarning(decisions, "Nike", "Shopping")).toEqual({
+      merchant: "Foot Locker",
+      matchedOn: "category",
+    });
+  });
+
+  it("ignores paused/reconsidered decisions even if regretted is somehow set", () => {
+    const decisions = [
+      makeDecision({ outcome: "paused", merchant: "Nike", category: "Shopping", regretted: true }),
+    ];
+    expect(findRegrettedPurchaseWarning(decisions, "Nike", "Shopping")).toBeNull();
+  });
+
+  it("ignores continued decisions that were never marked regretted", () => {
+    const decisions = [
+      makeDecision({ outcome: "continued", merchant: "Nike", category: "Shopping", regretted: false }),
+    ];
+    expect(findRegrettedPurchaseWarning(decisions, "Nike", "Shopping")).toBeNull();
   });
 });

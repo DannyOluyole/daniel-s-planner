@@ -1,4 +1,4 @@
-import { buildFinancialTimeline, computeSafeSpendingDays } from "./financialTimeline";
+import { buildFinancialTimeline, computeSafeSpendingDays, computeDaysUntilSafeToSpend } from "./financialTimeline";
 import { Income } from "@domain/entities/Income";
 import { Commitment } from "@domain/entities/Commitment";
 
@@ -200,5 +200,32 @@ describe("computeSafeSpendingDays", () => {
     const timeline = buildFinancialTimeline(50000, income, [], null, NOW, 45);
     const result = computeSafeSpendingDays(50000, timeline, NOW);
     expect(result.daysUntilPayday).toBe(1);
+  });
+});
+
+describe("computeDaysUntilSafeToSpend", () => {
+  it("returns 0 when the whole horizon already comfortably covers the purchase", () => {
+    const timeline = buildFinancialTimeline(100000, [], [], null, NOW, 45);
+    expect(computeDaysUntilSafeToSpend(timeline, 5000, NOW)).toBe(0);
+  });
+
+  it("returns the number of days until the point where the purchase stops causing a dip", () => {
+    // A bill on the 12th dips the balance low, but the paycheck on the 20th
+    // covers it — "wait until payday" is exactly 10 days from Jul 10.
+    const income = [makeIncome({ dayOfMonth: 20, amountCents: 200000 })];
+    const commitments = [makeCommitment({ dayOfMonth: 12, amountCents: 15000 })];
+    const baseline = buildFinancialTimeline(20000, income, commitments, null, NOW, 45);
+    expect(computeDaysUntilSafeToSpend(baseline, 18000, NOW)).toBe(10);
+  });
+
+  it("returns null when the purchase never becomes safe within the horizon", () => {
+    const income = [makeIncome({ dayOfMonth: 20, amountCents: 200000 })];
+    const baseline = buildFinancialTimeline(100000, income, [], null, NOW, 15);
+    expect(computeDaysUntilSafeToSpend(baseline, 5000000, NOW)).toBeNull();
+  });
+
+  it("returns null for an empty timeline that still isn't safe", () => {
+    const baseline = buildFinancialTimeline(1000, [], [], null, NOW, 45);
+    expect(computeDaysUntilSafeToSpend(baseline, 5000, NOW)).toBeNull();
   });
 });

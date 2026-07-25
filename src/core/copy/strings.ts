@@ -68,6 +68,7 @@ export const Copy = {
     trendUp: (category: string, percent: number) => `${category} is up ${percent}% over the last 30 days.`,
     trendDown: (category: string, percent: number) => `${category} is down ${Math.abs(percent)}% over the last 30 days.`,
     investingInYourself: (amount: string) => `You invested ${amount} in yourself this month.`,
+    dollarJobsTitle: "Where it's going",
     recurringChargesLabel: "Still paying for these",
     recurringCharge: (merchant: string, amount: string, months: number) =>
       `${merchant} — ${amount}, ${months} months running`,
@@ -143,6 +144,7 @@ export const Copy = {
     futureYouNote: (amount: string) =>
       `Future You will have ${amount} less set aside.`,
     pauseHint: "Take a breath. This screen won't rush you.",
+    reflectionPauseHint: "This one's worth sitting with a little longer.",
     continueLabel: "Continue",
     pauseLabel: "Pause",
     reconsiderLabel: "Not right now",
@@ -185,6 +187,12 @@ export const Copy = {
     confirmCta: "Done",
   },
 
+  purchaseIntentStep: {
+    title: "Why?",
+    subtitle: "What's this purchase for?",
+    skipCta: "Skip",
+  },
+
   newDecision: {
     title: "Enter Decision Mode",
     subtitle: "What are you about to buy?",
@@ -218,6 +226,15 @@ export const Copy = {
     aheadEmpty: "Nothing scheduled yet — add income or a bill with a day of the month to see it here.",
     aheadLowPoint: (amount: string, date: string) => `Lowest point: ${amount} on ${date}`,
     aheadShortfallWarning: (amount: string, date: string) => `This dips ${amount} below zero on ${date}.`,
+  },
+
+  whatIfEngine: {
+    title: "What if?",
+    subtitle: "See how a change to your monthly spending or saving would play out.",
+    amountPlaceholder: "$ amount a month",
+    saveMoreCta: "Save more",
+    spendMoreCta: "Spend more",
+    seeCta: "See what happens",
   },
 
   commitmentsScreen: {
@@ -268,12 +285,23 @@ export const Copy = {
     title: "Decisions",
     subtitle: "Every Checkpoint, and how it went.",
     empty: "No decisions yet — they'll show up here after your first Checkpoint.",
+    replayTitle: (month: string) => `Your ${month}, so far`,
     moneyProtectedLabel: (amount: string) => `${amount} protected by pausing or reconsidering`,
     topReasonLabel: (reason: string) => `Most common reason: "${reason}"`,
     exportCta: "Export history",
     exportingLabel: "Preparing export…",
     exportUnsupported: "Exporting isn't available on this device.",
     exportError: "That didn't go through. Try again.",
+    markRegrettedCta: "Mark as regretted",
+    regrettedLabel: "Regretted",
+    unmarkRegrettedCta: "Unmark",
+  },
+
+  decisionMemoryCallback: {
+    merchantLabel: (merchant: string) =>
+      `Last time you bought from ${merchant}, you told us you regretted it. Not to stop you — just to help you remember.`,
+    categoryLabel: (category: string) =>
+      `Last time you bought ${category.toLowerCase()}, you told us you regretted it. Not to stop you — just to help you remember.`,
   },
 
   outcomeLabel: {

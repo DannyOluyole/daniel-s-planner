@@ -12,12 +12,13 @@ function escapeCsvField(value: string): string {
  * by a person, not re-parsed by the app itself.
  */
 export function decisionsToCsv(decisions: SpendingDecision[]): string {
-  const header = "Date,Merchant,Category,Outcome,Amount,Reason";
+  const header = "Date,Merchant,Category,Intent,Outcome,Amount,Reason";
   const rows = decisions.map((d) =>
     [
       d.decidedAt.slice(0, 10),
       escapeCsvField(d.merchant),
       escapeCsvField(d.category ?? ""),
+      d.intent ?? "",
       d.outcome,
       (d.amountCents / 100).toFixed(2),
       escapeCsvField(d.pauseReason ?? ""),

@@ -185,6 +185,54 @@ export function buildFinancialTimeline(
   return { events, runningBalances, lowestBalanceCents, lowestBalanceDate, causesShortfall };
 }
 
+function parseDateKey(dateKey: string): Date {
+  const [y, m, d] = dateKey.split("-").map(Number);
+  return new Date(y, m - 1, d);
+}
+
+/**
+ * The concrete answer behind "your future self would prefer you wait N
+ * days" — how many days from now until this purchase would no longer risk
+ * a shortfall anywhere in the horizon, rather than just naming the date it
+ * currently causes one. Pass a timeline built WITHOUT the hypothetical
+ * purchase (hypotheticalPurchase: null) — this function does its own
+ * what-if math against every possible day, not just today. Returns 0 if
+ * it's already safe today, or null if it never becomes safe within the
+ * timeline's own horizon.
+ */
+export function computeDaysUntilSafeToSpend(
+  baselineTimeline: FinancialTimeline,
+  amountCents: number,
+  now: Date = new Date()
+): number | null {
+  // Safe right now if the whole horizon's lowest point already covers it —
+  // checked against the overall floor, not just today's balance, since a
+  // later dip could still bite even if today looks fine.
+  if (baselineTimeline.lowestBalanceCents >= amountCents) return 0;
+
+  const n = baselineTimeline.runningBalances.length;
+  if (n === 0) return null;
+
+  // Suffix minimum: "would buying on day i still leave every later day
+  // non-negative" needs the worst point from day i to the end of the
+  // horizon, not just the balance immediately after day i's event.
+  const suffixMin: number[] = new Array(n);
+  let min = Infinity;
+  for (let i = n - 1; i >= 0; i--) {
+    min = Math.min(min, baselineTimeline.runningBalances[i]);
+    suffixMin[i] = min;
+  }
+
+  const todayDateOnly = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  for (let i = 0; i < n; i++) {
+    if (suffixMin[i] >= amountCents) {
+      const eventDate = parseDateKey(baselineTimeline.events[i].date);
+      return Math.max(0, Math.round((eventDate.getTime() - todayDateOnly.getTime()) / DAY_MS));
+    }
+  }
+  return null;
+}
+
 export interface SafeSpendingDays {
   /** Null when there's no scheduled income within the timeline's horizon —
    * nothing to count down to. */

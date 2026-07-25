@@ -1,7 +1,7 @@
 import { WallVerdict } from "./applyPurchase";
 import { SavingsGoal } from "@domain/entities/SavingsGoal";
 import { money } from "@domain/entities/MoneyState";
-import { FinancialTimeline } from "./financialTimeline";
+import { FinancialTimeline, computeDaysUntilSafeToSpend } from "./financialTimeline";
 
 export interface DecisionNarrative {
   /** The story, not the balance — what this purchase actually does. */
@@ -64,7 +64,16 @@ export function buildDecisionNarrative(
   amountCents: number,
   goal: SavingsGoal | null,
   timeline?: FinancialTimeline | null,
-  futureVision?: string | null
+  futureVision?: string | null,
+  // A timeline built WITHOUT this hypothetical purchase (see
+  // financialTimeline.ts's computeDaysUntilSafeToSpend) — lets the shortfall
+  // branch below name a concrete "wait N days" instead of only a date.
+  baselineTimeline?: FinancialTimeline | null,
+  // Threaded through explicitly rather than left to computeDaysUntilSafeToSpend's
+  // own new Date() default — this keeps the day count consistent with
+  // whatever "now" the caller already used to build timeline/baselineTimeline,
+  // and makes the whole thing deterministic for tests.
+  now: Date = new Date()
 ): DecisionNarrative {
   const usageRatio = amountCents / Math.max(verdict.beforeCents, 1);
   let score = Math.round(100 - usageRatio * 50);
@@ -75,9 +84,17 @@ export function buildDecisionNarrative(
     // problem than dipping into a savings goal — it takes priority over the
     // goal-dip messaging below even when both are true.
     const shortBy = Math.abs(timeline.lowestBalanceCents);
-    headline = timeline.lowestBalanceDate
-      ? `This leaves you short by ${money(shortBy)} before ${formatShortfallDate(timeline.lowestBalanceDate)}.`
-      : `This leaves you short by ${money(shortBy)} before your next paycheck.`;
+    const waitDays = baselineTimeline ? computeDaysUntilSafeToSpend(baselineTimeline, amountCents, now) : null;
+    if (waitDays != null && waitDays > 0) {
+      const whenPhrase = timeline.lowestBalanceDate ? ` by ${formatShortfallDate(timeline.lowestBalanceDate)}` : "";
+      headline = `Your future self would prefer you wait ${waitDays} ${
+        waitDays === 1 ? "day" : "days"
+      } — this dips ${money(shortBy)} into money you need${whenPhrase}.`;
+    } else {
+      headline = timeline.lowestBalanceDate
+        ? `This leaves you short by ${money(shortBy)} before ${formatShortfallDate(timeline.lowestBalanceDate)}.`
+        : `This leaves you short by ${money(shortBy)} before your next paycheck.`;
+    }
     score = Math.min(score, 25);
   } else if (verdict.tone === "warn") {
     const goalName = goal?.name ?? "your savings goal";
@@ -90,7 +107,7 @@ export function buildDecisionNarrative(
     const dipRatio = goal ? verdict.dipsIntoGoalBy / Math.max(goal.targetCents, 1) : 0.5;
     score -= Math.round(20 + dipRatio * 50);
   } else {
-    headline = "This purchase keeps you on track.";
+    headline = "Your future self can comfortably absorb this purchase.";
   }
 
   score = Math.max(3, Math.min(99, score));
