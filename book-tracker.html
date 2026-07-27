@@ -419,6 +419,16 @@
     }
     .template-table th:nth-child(13), .template-table td:nth-child(13){ min-width: 150px; }
     .reread-cell{ display:flex; align-items:center; gap: 0.5rem; }
+
+    button.badge-reread { cursor: pointer; font-family: 'IBM Plex Mono', monospace; }
+    button.badge-reread:hover { background: var(--gold-light); color: white; }
+    .reread-history-empty { text-align: center; color: var(--gray-med); padding: 1rem 0; }
+    .reread-history-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0.6rem 0.25rem; border-bottom: 1px solid var(--gray-xlight);
+      font-family: 'IBM Plex Mono', monospace; font-size: 0.9rem;
+    }
+    .reread-history-row:last-child { border-bottom: none; }
     .template-table th{
       background: #FFF8E7;
       color: var(--navy);
@@ -829,6 +839,19 @@
     </div>
   </div>
 
+  <!-- RE-READ HISTORY MODAL -->
+  <div id="rereadHistoryOverlay" class="overlay" onclick="if(event.target===this) closeRereadHistory()">
+    <div class="modal" style="max-width:420px;">
+      <div class="modal-header" id="rereadHistoryTitle">Re-read History</div>
+      <div class="modal-body">
+        <div id="rereadHistoryBody"></div>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-ghost btn-sm" onclick="closeRereadHistory()">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script>
     const STORAGE_KEY = 'booktracker-books';
     const SYNC_CONFIG_KEY = 'booktracker-sync-config';
@@ -1230,7 +1253,7 @@
         return (
           '<div class="book-item" data-id="' + (b.id || '') + '">' +
             '<div class="book-info">' +
-              '<div class="book-title">' + escapeHtml(b.title || 'Untitled') + (b.rereadCount ? ' <span class="badge badge-reread">🔁 Re-read ' + b.rereadCount + '×</span>' : '') + '</div>' +
+              '<div class="book-title">' + escapeHtml(b.title || 'Untitled') + (b.rereadCount ? ' <button type="button" class="badge badge-reread" onclick="openRereadHistory(\'' + (b.id || '') + '\')" title="View re-read history">🔁 Re-read ' + b.rereadCount + '×</button>' : '') + '</div>' +
               '<div class="book-author">' + escapeHtml(b.author || '') + '</div>' +
               '<div class="progress-bar"><div class="' + progressClass + '" style="width:' + pct + '%"></div></div>' +
             '</div>' +
@@ -1409,6 +1432,49 @@
       renderBookList();
       if (document.getElementById('view-stats') && document.getElementById('view-stats').classList.contains('active')) renderStats();
       showToast('🔁 Marked as re-read (' + b.rereadCount + '×)');
+    }
+
+    function openRereadHistory(bookId) {
+      var b = books.filter(function(x) { return String(x.id) === String(bookId); })[0];
+      if (!b) return;
+      document.getElementById('rereadHistoryTitle').textContent = 'Re-read History — ' + (b.title || 'Untitled');
+      renderRereadHistoryBody(bookId);
+      document.getElementById('rereadHistoryOverlay').classList.add('open');
+    }
+
+    function closeRereadHistory() {
+      document.getElementById('rereadHistoryOverlay').classList.remove('open');
+    }
+
+    function renderRereadHistoryBody(bookId) {
+      var body = document.getElementById('rereadHistoryBody');
+      var b = books.filter(function(x) { return String(x.id) === String(bookId); })[0];
+      if (!body || !b) return;
+      var dates = Array.isArray(b.rereadDates) ? b.rereadDates : [];
+      if (!dates.length) {
+        body.innerHTML = '<p class="reread-history-empty">No re-reads logged yet.</p>';
+        return;
+      }
+      body.innerHTML = dates.map(function(d, idx) {
+        return (
+          '<div class="reread-history-row">' +
+            '<span>' + (idx + 1) + '. ' + escapeHtml(d || 'Unknown date') + '</span>' +
+            '<button type="button" class="btn btn-ghost btn-sm" onclick="removeRereadDate(\'' + escapeHtml(bookId) + '\', ' + idx + ')">Remove</button>' +
+          '</div>'
+        );
+      }).join('');
+    }
+
+    function removeRereadDate(bookId, idx) {
+      var b = books.filter(function(x) { return String(x.id) === String(bookId); })[0];
+      if (!b || !Array.isArray(b.rereadDates)) return;
+      b.rereadDates.splice(idx, 1);
+      b.rereadCount = b.rereadDates.length;
+      saveBooks();
+      renderRereadHistoryBody(bookId);
+      renderBookList();
+      if (document.getElementById('view-stats') && document.getElementById('view-stats').classList.contains('active')) renderStats();
+      showToast('Removed');
     }
 
     function exportBookAsPdf(bookId) {
@@ -1857,7 +1923,7 @@
             '<td><span class="genre-pill">' + escapeHtml(normalizeGenre(b.genre)) + '</span></td>' +
             '<td>' + escapeHtml(b.audience || '') + '</td>' +
             '<td><div class="reread-cell">' +
-              '<span class="badge badge-reread" style="margin-left:0;">' + (parseInt(b.rereadCount, 10) || 0) + '×</span>' +
+              '<button type="button" class="badge badge-reread" style="margin-left:0;" data-reread-history="' + escapeHtml(b.id) + '" title="View re-read history">' + (parseInt(b.rereadCount, 10) || 0) + '×</button>' +
               (b.status === 'completed' ? '<button type="button" class="btn btn-ghost btn-sm" data-reread="' + escapeHtml(b.id) + '" title="Log another read-through">+1</button>' : '') +
             '</div></td>' +
           '</tr>'
@@ -1869,6 +1935,8 @@
         var target = e.target;
         if (!target) return;
         if (target.closest && target.closest('.rating-stars')) return;
+        var historyBtn = target.closest ? target.closest('[data-reread-history]') : null;
+        if (historyBtn) { e.preventDefault(); e.stopPropagation(); openRereadHistory(historyBtn.getAttribute('data-reread-history')); return; }
         var rereadBtn = target.closest ? target.closest('button[data-reread]') : null;
         if (rereadBtn) { e.preventDefault(); e.stopPropagation(); markReread(rereadBtn.getAttribute('data-reread')); return; }
         var tr = target.closest ? target.closest('tr[data-edit]') : null;
