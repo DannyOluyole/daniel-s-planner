@@ -452,6 +452,16 @@
       font-family: 'IBM Plex Mono', monospace; font-size: 0.9rem;
     }
     .reread-history-row:last-child { border-bottom: none; }
+
+    .confetti-piece {
+      position: fixed; top: -12px; width: 8px; height: 14px; z-index: 3000;
+      opacity: 0.9; border-radius: 2px; pointer-events: none;
+      animation-name: confetti-fall; animation-timing-function: linear; animation-fill-mode: forwards;
+    }
+    @keyframes confetti-fall {
+      0% { transform: translateY(0) rotate(0deg); opacity: 1; }
+      100% { transform: translateY(105vh) rotate(540deg); opacity: 0.3; }
+    }
     .template-table th{
       background: #FFF8E7;
       color: var(--navy);
@@ -599,6 +609,7 @@
       <button type="button" class="btn btn-ghost btn-sm" onclick="openCloudSyncModal()" id="cloudSyncBtn" title="Cloud Sync">☁ Sync</button>
       <button type="button" class="btn btn-gold btn-sm" onclick="exportBooks()">⬇ Export</button>
       <button type="button" class="btn btn-gold btn-sm" onclick="importBooks()">⬆ Import</button>
+      <button type="button" class="btn btn-gold btn-sm" onclick="exportBooksCsv()" title="Export reading template as CSV">⬇ CSV</button>
     </div>
   </nav>
 
@@ -615,7 +626,7 @@
     <div class="page-content">
       <div class="library-toolbar">
         <div class="library-filters">
-          <input type="text" id="libSearch" placeholder="Search title or author…" oninput="renderBookList()" />
+          <input type="text" id="libSearch" placeholder="Search title, author, notes…" oninput="renderBookList()" />
           <select id="libStatusFilter" onchange="renderBookList()">
             <option value="all">All statuses</option>
             <option value="reading">Reading</option>
@@ -670,6 +681,9 @@
       <p>Summary of your reading progress</p>
     </div>
     <div class="page-content">
+      <div style="display:flex; justify-content:flex-end; margin-bottom:1rem;">
+        <button type="button" class="btn btn-gold btn-sm" onclick="openYearRecap()">🎉 Year in Books</button>
+      </div>
       <div class="template-grid">
         <div class="template-kpi-stack">
           <div class="kpi-tile">
@@ -754,7 +768,11 @@
         </div>
         <div class="form-row">
           <label for="bookAuthor">Author</label>
-          <input type="text" id="bookAuthor" placeholder="Author name" />
+          <div style="display:flex; gap:0.5rem;">
+            <input type="text" id="bookAuthor" placeholder="Author name" style="flex:1;" />
+            <button type="button" class="btn btn-ghost btn-sm" id="fetchInfoBtn" onclick="fetchBookInfo()" style="white-space:nowrap;">🔍 Auto-fetch</button>
+          </div>
+          <div style="margin-top:0.35rem; font-size:0.8rem; color:var(--gray-med);">Fills in the cover image and a link to the book from Title + Author.</div>
         </div>
         <div class="form-row">
           <label for="bookRecommendedBy">Recommended by (optional)</label>
@@ -763,6 +781,10 @@
         <div class="form-row">
           <label for="bookCoverUrl">Cover image URL (optional)</label>
           <input type="url" id="bookCoverUrl" placeholder="https://…" />
+        </div>
+        <div class="form-row">
+          <label for="bookLinkUrl">Book link (optional)</label>
+          <input type="url" id="bookLinkUrl" placeholder="https://… (where to find this book)" />
         </div>
         <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
           <div>
@@ -968,6 +990,7 @@
               if (b.rereadCount == null) b.rereadCount = 0;
               if (!Array.isArray(b.rereadDates)) b.rereadDates = [];
               if (b.coverUrl == null) b.coverUrl = '';
+              if (b.linkUrl == null) b.linkUrl = '';
             });
             saveBooks();
             renderBookList();
@@ -1127,6 +1150,7 @@
             if (b.rereadCount == null) b.rereadCount = 0;
             if (!Array.isArray(b.rereadDates)) b.rereadDates = [];
             if (b.coverUrl == null) b.coverUrl = '';
+            if (b.linkUrl == null) b.linkUrl = '';
           });
           localStorage.setItem(STORAGE_KEY, JSON.stringify(makeBooksPayload()));
           renderBookList();
@@ -1238,6 +1262,7 @@
           if (b.rereadCount == null) b.rereadCount = 0;
           if (!Array.isArray(b.rereadDates)) b.rereadDates = [];
           if (b.coverUrl == null) b.coverUrl = '';
+          if (b.linkUrl == null) b.linkUrl = '';
         });
       } catch (e) {
         books = [];
@@ -1321,7 +1346,8 @@
         if (statusFilter !== 'all' && b.status !== statusFilter) return false;
         if (genreFilter !== 'all' && normalizeGenre(b.genre) !== genreFilter) return false;
         if (search) {
-          var hay = ((b.title || '') + ' ' + (b.author || '')).toLowerCase();
+          var chaptersText = Array.isArray(b.chapters) ? b.chapters.map(function(c) { return c.notes || ''; }).join(' ') : '';
+          var hay = [b.title, b.author, b.notes, b.audience, b.recommendedBy, chaptersText].filter(Boolean).join(' ').toLowerCase();
           if (hay.indexOf(search) === -1) return false;
         }
         return true;
@@ -1376,6 +1402,7 @@
               '<div><span class="badge ' + badgeClass + '">' + (b.status === 'reading' ? 'Reading' : b.status === 'completed' ? 'Completed' : 'Want to read') + '</span></div>' +
             '</div>' +
             '<div class="book-actions">' +
+              (b.linkUrl ? '<a href="' + escapeHtml(b.linkUrl) + '" target="_blank" rel="noopener" class="btn btn-ghost btn-sm">🔗 View Book</a>' : '') +
               (b.pdfUrl ? '<a href="' + escapeHtml(b.pdfUrl) + '" target="_blank" rel="noopener" class="btn btn-ghost btn-sm">Open PDF</a>' : '') +
               '<button type="button" class="btn btn-gold btn-sm" onclick="exportBookAsPdf(\'' + (b.id || '') + '\')">Save as PDF</button>' +
               '<button type="button" class="btn btn-teal btn-sm" onclick="setCurrentPage(\'' + (b.id || '') + '\')">Update page</button>' +
@@ -1402,6 +1429,7 @@
       document.getElementById('bookAuthor').value = '';
       document.getElementById('bookRecommendedBy').value = '';
       document.getElementById('bookCoverUrl').value = '';
+      document.getElementById('bookLinkUrl').value = '';
       document.getElementById('bookStartDate').value = '';
       document.getElementById('bookEndDate').value = '';
       document.getElementById('bookCurrent').value = '';
@@ -1419,6 +1447,7 @@
           document.getElementById('bookAuthor').value = b.author || '';
           document.getElementById('bookRecommendedBy').value = b.recommendedBy || '';
           document.getElementById('bookCoverUrl').value = b.coverUrl || '';
+          document.getElementById('bookLinkUrl').value = b.linkUrl || '';
           document.getElementById('bookStartDate').value = b.startDate || '';
           document.getElementById('bookEndDate').value = b.endDate || '';
           document.getElementById('bookCurrent').value = b.currentPage != null ? b.currentPage : '';
@@ -1444,6 +1473,7 @@
       var author = (document.getElementById('bookAuthor').value || '').trim();
       var recommendedBy = (document.getElementById('bookRecommendedBy').value || '').trim();
       var coverUrl = (document.getElementById('bookCoverUrl').value || '').trim();
+      var linkUrl = (document.getElementById('bookLinkUrl').value || '').trim();
       var startDate = (document.getElementById('bookStartDate').value || '').trim();
       var endDate = (document.getElementById('bookEndDate').value || '').trim();
       var current = document.getElementById('bookCurrent').value;
@@ -1461,16 +1491,19 @@
       if (status === 'completed') currentNum = totalNum;
       if (status === 'completed' && !endDate) endDate = isoToday();
 
+      var justCompleted = false;
       if (id) {
         var idx = books.findIndex(function(b) { return String(b.id) === String(id); });
         if (idx >= 0) {
           var existing = books[idx];
+          justCompleted = status === 'completed' && existing.status !== 'completed';
           books[idx] = {
             id: existing.id,
             title: title,
             author: author,
             recommendedBy: recommendedBy,
             coverUrl: coverUrl,
+            linkUrl: linkUrl,
             startDate: startDate,
             endDate: endDate,
             currentPage: currentNum,
@@ -1487,12 +1520,14 @@
           };
         }
       } else {
+        justCompleted = status === 'completed';
         books.push({
           id: Date.now().toString(),
           title: title,
           author: author,
           recommendedBy: recommendedBy,
           coverUrl: coverUrl,
+          linkUrl: linkUrl,
           startDate: startDate,
           endDate: endDate,
           currentPage: currentNum,
@@ -1512,7 +1547,55 @@
       closeBookForm();
       renderBookList();
       if (document.getElementById('view-stats') && document.getElementById('view-stats').classList.contains('active')) renderStats();
-      showToast('Saved');
+      if (justCompleted) celebrateCompletion(title); else showToast('Saved');
+    }
+
+    async function fetchBookInfo() {
+      var title = (document.getElementById('bookTitle').value || '').trim();
+      var author = (document.getElementById('bookAuthor').value || '').trim();
+      if (!title) { showToast('Enter a title first'); return; }
+      var btn = document.getElementById('fetchInfoBtn');
+      if (btn) { btn.disabled = true; btn.textContent = 'Fetching…'; }
+      try {
+        var q = 'intitle:' + encodeURIComponent(title) + (author ? '+inauthor:' + encodeURIComponent(author) : '');
+        var url = 'https://www.googleapis.com/books/v1/volumes?q=' + q + '&maxResults=1';
+        var r = await fetchWithRetry(url, {}, { attempts: 2, timeoutMs: 8000 });
+        if (!r.ok) throw new Error('Lookup failed (' + r.status + ')');
+        var data = await r.json();
+        var item = data && Array.isArray(data.items) ? data.items[0] : null;
+        if (!item) { showToast('No match found'); return; }
+        var info = item.volumeInfo || {};
+        var thumb = info.imageLinks && (info.imageLinks.thumbnail || info.imageLinks.smallThumbnail);
+        if (thumb) {
+          thumb = thumb.replace(/^http:\/\//, 'https://');
+          document.getElementById('bookCoverUrl').value = thumb;
+        }
+        var link = info.infoLink || info.previewLink || info.canonicalVolumeLink || '';
+        if (link) document.getElementById('bookLinkUrl').value = link;
+        if (!thumb && !link) { showToast('No cover or link found'); return; }
+        showToast('✅ Fetched book info');
+      } catch (e) {
+        showToast('Fetch failed: ' + (e && e.message ? e.message : 'network error'));
+      } finally {
+        if (btn) { btn.disabled = false; btn.textContent = '🔍 Auto-fetch'; }
+      }
+    }
+
+    function celebrateCompletion(title) {
+      var colors = ['#B8860B', '#007A7A', '#20B2AA', '#C49A2B', '#2E7D32', '#1C2E4A'];
+      var count = 28;
+      for (var i = 0; i < count; i++) {
+        var piece = document.createElement('div');
+        piece.className = 'confetti-piece';
+        piece.style.left = Math.round(Math.random() * 100) + 'vw';
+        piece.style.background = colors[i % colors.length];
+        var duration = (1.6 + Math.random() * 1.2).toFixed(2);
+        piece.style.animationDuration = duration + 's';
+        piece.style.animationDelay = (Math.random() * 0.3).toFixed(2) + 's';
+        document.body.appendChild(piece);
+        (function(p) { setTimeout(function() { p.remove(); }, 3200); })(piece);
+      }
+      showToast('🎉 Congrats on finishing "' + title + '"!');
     }
 
     function editBook(id) {
@@ -1528,6 +1611,7 @@
       if (v === null) return;
       var num = parseInt(v, 10);
       if (!isNaN(num) && num >= 0) {
+        var wasCompleted = b.status === 'completed';
         b.currentPage = Math.min(total, num);
         if (b.currentPage >= total) {
           b.status = 'completed';
@@ -1536,7 +1620,7 @@
         saveBooks();
         renderBookList();
         if (document.getElementById('view-stats') && document.getElementById('view-stats').classList.contains('active')) renderStats();
-        showToast('Updated');
+        if (b.status === 'completed' && !wasCompleted) celebrateCompletion(b.title); else showToast('Updated');
       }
     }
 
@@ -1625,6 +1709,74 @@
       w.document.close();
       w.focus();
       setTimeout(function() { w.print(); }, 300);
+    }
+
+    function openYearRecap() {
+      var year = new Date().getFullYear();
+      var finishedThisYear = books.filter(function(b) {
+        return b.status === 'completed' && b.endDate && b.endDate.slice(0, 4) === String(year);
+      });
+      var pages = finishedThisYear.reduce(function(sum, b) { return sum + (parseInt(b.totalPages, 10) || 0); }, 0);
+      var rereadsThisYear = books.reduce(function(sum, b) {
+        var dates = Array.isArray(b.rereadDates) ? b.rereadDates : [];
+        return sum + dates.filter(function(d) { return d && d.slice(0, 4) === String(year); }).length;
+      }, 0);
+      var genreCounts = {};
+      finishedThisYear.forEach(function(b) { var g = normalizeGenre(b.genre); genreCounts[g] = (genreCounts[g] || 0) + 1; });
+      var topGenre = Object.keys(genreCounts).sort(function(a, b) { return genreCounts[b] - genreCounts[a]; })[0] || '—';
+      var avgRating = finishedThisYear.length
+        ? (finishedThisYear.reduce(function(s, b) { return s + (parseInt(b.rating, 10) || 0); }, 0) / finishedThisYear.length)
+        : 0;
+
+      var listHtml = finishedThisYear.length
+        ? '<ol>' + finishedThisYear.map(function(b) { return '<li>' + escapeHtml(b.title || 'Untitled') + (b.author ? ' — ' + escapeHtml(b.author) : '') + '</li>'; }).join('') + '</ol>'
+        : '<p><em>No books finished yet this year.</em></p>';
+
+      var html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>My ' + year + ' in Books</title>' +
+        '<style>body{font-family:Georgia,serif;max-width:640px;margin:2rem auto;padding:0 1.5rem;line-height:1.6;color:#1C2E4A;background:#FFFEF5;} h1{font-size:2.2rem;border-bottom:3px solid #B8860B;padding-bottom:0.5rem;} .stat{display:inline-block;margin:0.5rem 1.5rem 0.5rem 0;} .stat b{display:block;font-size:2rem;color:#005F5F;} ol{padding-left:1.25rem;}</style>' +
+        '</head><body>' +
+        '<h1>📚 My ' + year + ' in Books</h1>' +
+        '<div class="stat"><b>' + finishedThisYear.length + '</b>Books Finished</div>' +
+        '<div class="stat"><b>' + pages.toLocaleString() + '</b>Pages Read</div>' +
+        '<div class="stat"><b>' + rereadsThisYear + '</b>Re-reads</div>' +
+        '<div class="stat"><b>' + (avgRating ? avgRating.toFixed(1) : '—') + '</b>Avg Rating</div>' +
+        '<p><strong>Top genre:</strong> ' + escapeHtml(topGenre) + '</p>' +
+        '<h2>Books finished in ' + year + '</h2>' + listHtml +
+        '</body></html>';
+      var w = window.open('', '_blank');
+      w.document.write(html);
+      w.document.close();
+      w.focus();
+    }
+
+    function csvEscape(v) {
+      var s = (v == null) ? '' : String(v);
+      if (/[",\n]/.test(s)) s = '"' + s.replace(/"/g, '""') + '"';
+      return s;
+    }
+
+    function exportBooksCsv() {
+      try {
+        var headers = ['Title', 'Author', 'Recommended By', 'Start Date', 'End Date', 'Current Page', 'Total Pages', 'Status', 'Rating', 'Genre', 'Who Should Read', 'Re-reads'];
+        var rows = books.map(function(b) {
+          return [
+            b.title || '', b.author || '', b.recommendedBy || '', b.startDate || '', b.endDate || '',
+            parseInt(b.currentPage, 10) || 0, parseInt(b.totalPages, 10) || 0,
+            statusLabel(b).text, b.rating || 0, normalizeGenre(b.genre), b.audience || '', b.rereadCount || 0
+          ].map(csvEscape).join(',');
+        });
+        var csv = headers.map(csvEscape).join(',') + '\n' + rows.join('\n');
+        var blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement('a');
+        a.href = url;
+        a.download = 'book-tracker-' + new Date().toISOString().slice(0, 10) + '.csv';
+        a.click();
+        URL.revokeObjectURL(url);
+        showToast('✅ CSV exported');
+      } catch (e) {
+        showToast('CSV export failed');
+      }
     }
 
     function deleteBook(id) {
