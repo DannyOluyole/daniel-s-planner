@@ -222,6 +222,18 @@
     .page-content { padding: 2rem 2.5rem; max-width: 1200px; margin: 0 auto; }
     #view-stats .page-content { max-width: 2100px; }
 
+    .library-toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1rem;
+      flex-wrap: wrap;
+      margin-bottom: 1.5rem;
+    }
+    .library-filters { display: flex; gap: 0.6rem; flex-wrap: wrap; align-items: center; }
+    .library-filters input[type="text"] { width: 220px; }
+    .library-filters select { width: auto; padding: 0.7rem 0.8rem; }
+
     .badge {
       display: inline-block;
       padding: 0.2rem 0.6rem;
@@ -250,6 +262,17 @@
     .book-item .book-info { min-width: 0; }
     .book-item .book-title { font-weight: 700; font-size: 1.1rem; color: var(--navy); margin-bottom: 0.2rem; }
     .book-item .book-author { font-size: 0.9rem; color: var(--gray-med); }
+    .book-cover-row { display: flex; gap: 0.85rem; align-items: flex-start; margin-bottom: 0.4rem; }
+    .book-cover-text { min-width: 0; flex: 1; }
+    .book-cover, .book-cover-placeholder, .book-cover-wrap { width: 46px; height: 66px; border-radius: 6px; flex-shrink: 0; }
+    .book-cover { object-fit: cover; box-shadow: 0 2px 8px rgba(0,0,0,0.18); }
+    .book-cover-wrap { position: relative; }
+    .book-cover-wrap .book-cover, .book-cover-wrap .book-cover-placeholder { position: absolute; inset: 0; }
+    .book-cover-placeholder {
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'Playfair Display', serif; font-weight: 900; font-size: 1.3rem;
+      color: white; background: linear-gradient(135deg, var(--teal) 0%, var(--teal-dark) 100%);
+    }
     .book-item .book-progress-wrap { min-width: 120px; text-align: right; }
     .book-item .progress-bar {
       height: 8px;
@@ -590,7 +613,26 @@
       <p class="hero-quote">"Readers are Leaders"</p>
     </div>
     <div class="page-content">
-      <div style="display: flex; justify-content: flex-end; margin-bottom: 1.5rem;">
+      <div class="library-toolbar">
+        <div class="library-filters">
+          <input type="text" id="libSearch" placeholder="Search title or author…" oninput="renderBookList()" />
+          <select id="libStatusFilter" onchange="renderBookList()">
+            <option value="all">All statuses</option>
+            <option value="reading">Reading</option>
+            <option value="completed">Completed</option>
+            <option value="want">Want to read</option>
+          </select>
+          <select id="libGenreFilter" onchange="renderBookList()">
+            <option value="all">All genres</option>
+          </select>
+          <select id="libSort" onchange="renderBookList()">
+            <option value="default">Sort: default</option>
+            <option value="title">Title A–Z</option>
+            <option value="rating">Rating (high–low)</option>
+            <option value="progress">Progress (high–low)</option>
+            <option value="recent">Recently added</option>
+          </select>
+        </div>
         <button type="button" class="btn btn-teal btn-sm" onclick="openBookForm()">+ Add Book</button>
       </div>
       <div class="card">
@@ -717,6 +759,10 @@
         <div class="form-row">
           <label for="bookRecommendedBy">Recommended by (optional)</label>
           <input type="text" id="bookRecommendedBy" placeholder="e.g. a friend, a creator, a mentor" />
+        </div>
+        <div class="form-row">
+          <label for="bookCoverUrl">Cover image URL (optional)</label>
+          <input type="url" id="bookCoverUrl" placeholder="https://…" />
         </div>
         <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
           <div>
@@ -921,6 +967,7 @@
               if (!Array.isArray(b.chapters)) b.chapters = [];
               if (b.rereadCount == null) b.rereadCount = 0;
               if (!Array.isArray(b.rereadDates)) b.rereadDates = [];
+              if (b.coverUrl == null) b.coverUrl = '';
             });
             saveBooks();
             renderBookList();
@@ -1079,6 +1126,7 @@
             if (!Array.isArray(b.chapters)) b.chapters = [];
             if (b.rereadCount == null) b.rereadCount = 0;
             if (!Array.isArray(b.rereadDates)) b.rereadDates = [];
+            if (b.coverUrl == null) b.coverUrl = '';
           });
           localStorage.setItem(STORAGE_KEY, JSON.stringify(makeBooksPayload()));
           renderBookList();
@@ -1189,6 +1237,7 @@
           if (b.audience == null) b.audience = '';
           if (b.rereadCount == null) b.rereadCount = 0;
           if (!Array.isArray(b.rereadDates)) b.rereadDates = [];
+          if (b.coverUrl == null) b.coverUrl = '';
         });
       } catch (e) {
         books = [];
@@ -1227,25 +1276,85 @@
       if (name === 'stats') renderStats();
     }
 
+    function bookProgressPct(b) {
+      if (b.status === 'completed') return 100;
+      var total = Math.max(1, parseInt(b.totalPages, 10) || 0);
+      var current = Math.min(total, Math.max(0, parseInt(b.currentPage, 10) || 0));
+      return total ? Math.round((current / total) * 100) : 0;
+    }
+
+    function fillLibraryGenreFilter() {
+      var sel = document.getElementById('libGenreFilter');
+      if (!sel) return;
+      var current = sel.value || 'all';
+      var genres = Array.from(new Set(books.map(function(b) { return normalizeGenre(b.genre); }))).sort();
+      sel.innerHTML = '<option value="all">All genres</option>' +
+        genres.map(function(g) { return '<option value="' + escapeHtml(g) + '">' + escapeHtml(g) + '</option>'; }).join('');
+      sel.value = (current === 'all' || genres.indexOf(current) >= 0) ? current : 'all';
+    }
+
+    function bookCoverHtml(b) {
+      var letter = escapeHtml((b.title || '?').trim().charAt(0).toUpperCase() || '?');
+      if (b.coverUrl) {
+        return (
+          '<div class="book-cover-wrap">' +
+            '<div class="book-cover-placeholder">' + letter + '</div>' +
+            '<img class="book-cover" src="' + escapeHtml(b.coverUrl) + '" alt="" onerror="this.style.display=\'none\'" />' +
+          '</div>'
+        );
+      }
+      return '<div class="book-cover-placeholder">' + letter + '</div>';
+    }
+
     function renderBookList() {
       var list = document.getElementById('bookList');
       if (!list) return;
 
-      var reading = books.filter(function(b) { return b.status === 'reading'; });
-      var completed = books.filter(function(b) { return b.status === 'completed'; });
-      var want = books.filter(function(b) { return b.status === 'want'; });
-      var ordered = reading.concat(completed).concat(want);
+      fillLibraryGenreFilter();
+
+      var search = ((document.getElementById('libSearch') || {}).value || '').trim().toLowerCase();
+      var statusFilter = (document.getElementById('libStatusFilter') || {}).value || 'all';
+      var genreFilter = (document.getElementById('libGenreFilter') || {}).value || 'all';
+      var sortMode = (document.getElementById('libSort') || {}).value || 'default';
+
+      var filtered = books.filter(function(b) {
+        if (statusFilter !== 'all' && b.status !== statusFilter) return false;
+        if (genreFilter !== 'all' && normalizeGenre(b.genre) !== genreFilter) return false;
+        if (search) {
+          var hay = ((b.title || '') + ' ' + (b.author || '')).toLowerCase();
+          if (hay.indexOf(search) === -1) return false;
+        }
+        return true;
+      });
+
+      var ordered;
+      if (sortMode === 'title') {
+        ordered = filtered.slice().sort(function(a, b) { return String(a.title || '').localeCompare(String(b.title || '')); });
+      } else if (sortMode === 'rating') {
+        ordered = filtered.slice().sort(function(a, b) { return (b.rating || 0) - (a.rating || 0); });
+      } else if (sortMode === 'progress') {
+        ordered = filtered.slice().sort(function(a, b) { return bookProgressPct(b) - bookProgressPct(a); });
+      } else if (sortMode === 'recent') {
+        ordered = filtered.slice().sort(function(a, b) { return (parseInt(b.id, 10) || 0) - (parseInt(a.id, 10) || 0); });
+      } else {
+        var reading = filtered.filter(function(b) { return b.status === 'reading'; });
+        var completed = filtered.filter(function(b) { return b.status === 'completed'; });
+        var want = filtered.filter(function(b) { return b.status === 'want'; });
+        ordered = reading.concat(completed).concat(want);
+      }
 
       if (ordered.length === 0) {
-        list.innerHTML = '<p class="book-list-empty" style="text-align:center; color: var(--gray-med); padding: 2rem;">No books yet. Click &quot;Add Book&quot; to start.</p>';
+        list.innerHTML = '<p class="book-list-empty" style="text-align:center; color: var(--gray-med); padding: 2rem;">' +
+          (books.length === 0 ? 'No books yet. Click &quot;Add Book&quot; to start.' : 'No books match your filters.') +
+          '</p>';
         return;
       }
 
       list.innerHTML = ordered.map(function(b) {
         var total = Math.max(1, parseInt(b.totalPages, 10) || 0);
         var current = Math.min(total, Math.max(0, parseInt(b.currentPage, 10) || 0));
-        var pct = total ? Math.round((current / total) * 100) : 0;
-        if (b.status === 'completed') { current = total; pct = 100; }
+        var pct = bookProgressPct(b);
+        if (b.status === 'completed') current = total;
         var badgeClass = 'badge-reading';
         if (b.status === 'completed') badgeClass = 'badge-completed';
         if (b.status === 'want') badgeClass = 'badge-want';
@@ -1253,8 +1362,13 @@
         return (
           '<div class="book-item" data-id="' + (b.id || '') + '">' +
             '<div class="book-info">' +
-              '<div class="book-title">' + escapeHtml(b.title || 'Untitled') + (b.rereadCount ? ' <button type="button" class="badge badge-reread" onclick="openRereadHistory(\'' + (b.id || '') + '\')" title="View re-read history">🔁 Re-read ' + b.rereadCount + '×</button>' : '') + '</div>' +
-              '<div class="book-author">' + escapeHtml(b.author || '') + '</div>' +
+              '<div class="book-cover-row">' +
+                bookCoverHtml(b) +
+                '<div class="book-cover-text">' +
+                  '<div class="book-title">' + escapeHtml(b.title || 'Untitled') + (b.rereadCount ? ' <button type="button" class="badge badge-reread" onclick="openRereadHistory(\'' + (b.id || '') + '\')" title="View re-read history">🔁 Re-read ' + b.rereadCount + '×</button>' : '') + '</div>' +
+                  '<div class="book-author">' + escapeHtml(b.author || '') + '</div>' +
+                '</div>' +
+              '</div>' +
               '<div class="progress-bar"><div class="' + progressClass + '" style="width:' + pct + '%"></div></div>' +
             '</div>' +
             '<div class="book-progress-wrap">' +
@@ -1287,6 +1401,7 @@
       document.getElementById('bookTitle').value = '';
       document.getElementById('bookAuthor').value = '';
       document.getElementById('bookRecommendedBy').value = '';
+      document.getElementById('bookCoverUrl').value = '';
       document.getElementById('bookStartDate').value = '';
       document.getElementById('bookEndDate').value = '';
       document.getElementById('bookCurrent').value = '';
@@ -1303,6 +1418,7 @@
           document.getElementById('bookTitle').value = b.title || '';
           document.getElementById('bookAuthor').value = b.author || '';
           document.getElementById('bookRecommendedBy').value = b.recommendedBy || '';
+          document.getElementById('bookCoverUrl').value = b.coverUrl || '';
           document.getElementById('bookStartDate').value = b.startDate || '';
           document.getElementById('bookEndDate').value = b.endDate || '';
           document.getElementById('bookCurrent').value = b.currentPage != null ? b.currentPage : '';
@@ -1327,6 +1443,7 @@
       var title = (document.getElementById('bookTitle').value || '').trim();
       var author = (document.getElementById('bookAuthor').value || '').trim();
       var recommendedBy = (document.getElementById('bookRecommendedBy').value || '').trim();
+      var coverUrl = (document.getElementById('bookCoverUrl').value || '').trim();
       var startDate = (document.getElementById('bookStartDate').value || '').trim();
       var endDate = (document.getElementById('bookEndDate').value || '').trim();
       var current = document.getElementById('bookCurrent').value;
@@ -1353,6 +1470,7 @@
             title: title,
             author: author,
             recommendedBy: recommendedBy,
+            coverUrl: coverUrl,
             startDate: startDate,
             endDate: endDate,
             currentPage: currentNum,
@@ -1374,6 +1492,7 @@
           title: title,
           author: author,
           recommendedBy: recommendedBy,
+          coverUrl: coverUrl,
           startDate: startDate,
           endDate: endDate,
           currentPage: currentNum,
