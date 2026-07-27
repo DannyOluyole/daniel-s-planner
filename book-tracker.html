@@ -234,6 +234,7 @@
     .badge-reading { background: #E3F2FD; color: var(--teal-dark); border: 1.5px solid var(--teal); }
     .badge-want { background: #FFF8E1; color: #F57F17; border: 1.5px solid var(--gold); }
     .badge-completed { background: #E8F5E9; color: var(--green); border: 1.5px solid var(--green); }
+    .badge-reread { background: var(--gold-xlight); color: var(--gold); border: 1.5px solid var(--gold-light); margin-left: 0.5rem; vertical-align: middle; }
 
     .book-item {
       display: grid;
@@ -416,6 +417,8 @@
       min-width: 310px;
       white-space: normal;
     }
+    .template-table th:nth-child(13), .template-table td:nth-child(13){ min-width: 150px; }
+    .reread-cell{ display:flex; align-items:center; gap: 0.5rem; }
     .template-table th{
       background: #FFF8E7;
       color: var(--navy);
@@ -625,6 +628,10 @@
             <div class="kpi-label">Total Pages Read</div>
             <div class="kpi-value" id="tplPagesRead">0</div>
           </div>
+          <div class="kpi-tile">
+            <div class="kpi-label">Total Re-reads</div>
+            <div class="kpi-value" id="tplRereadCount">0</div>
+          </div>
           <div class="template-muted">
             Tip: if a book is marked “Finished” and has no End Date, the tracker will use today’s date so charts can work.
           </div>
@@ -673,6 +680,7 @@
                 <th>Rating</th>
                 <th>Genre</th>
                 <th>Who should read this book?</th>
+                <th>Re-reads</th>
               </tr>
             </thead>
             <tbody id="tplTableBody"></tbody>
@@ -886,7 +894,11 @@
             const arr = Array.isArray(parsed) ? parsed : (Array.isArray(parsed.books) ? parsed.books : null);
             if (!arr) throw new Error('Invalid');
             books = arr;
-            books.forEach(function(b) { if (!Array.isArray(b.chapters)) b.chapters = []; });
+            books.forEach(function(b) {
+              if (!Array.isArray(b.chapters)) b.chapters = [];
+              if (b.rereadCount == null) b.rereadCount = 0;
+              if (!Array.isArray(b.rereadDates)) b.rereadDates = [];
+            });
             saveBooks();
             renderBookList();
             fillNotesBookSelect();
@@ -1040,7 +1052,11 @@
         if (remoteBooks && Array.isArray(remoteBooks) && (!localMs || remoteMs > localMs)) {
           books = remoteBooks;
           _booksSavedAtMs = remoteMs || Date.now();
-          books.forEach(function(b) { if (!Array.isArray(b.chapters)) b.chapters = []; });
+          books.forEach(function(b) {
+            if (!Array.isArray(b.chapters)) b.chapters = [];
+            if (b.rereadCount == null) b.rereadCount = 0;
+            if (!Array.isArray(b.rereadDates)) b.rereadDates = [];
+          });
           localStorage.setItem(STORAGE_KEY, JSON.stringify(makeBooksPayload()));
           renderBookList();
           fillNotesBookSelect();
@@ -1148,6 +1164,8 @@
           if (b.endDate == null) b.endDate = '';
           if (b.rating == null) b.rating = 0;
           if (b.audience == null) b.audience = '';
+          if (b.rereadCount == null) b.rereadCount = 0;
+          if (!Array.isArray(b.rereadDates)) b.rereadDates = [];
         });
       } catch (e) {
         books = [];
@@ -1212,7 +1230,7 @@
         return (
           '<div class="book-item" data-id="' + (b.id || '') + '">' +
             '<div class="book-info">' +
-              '<div class="book-title">' + escapeHtml(b.title || 'Untitled') + '</div>' +
+              '<div class="book-title">' + escapeHtml(b.title || 'Untitled') + (b.rereadCount ? ' <span class="badge badge-reread">🔁 Re-read ' + b.rereadCount + '×</span>' : '') + '</div>' +
               '<div class="book-author">' + escapeHtml(b.author || '') + '</div>' +
               '<div class="progress-bar"><div class="' + progressClass + '" style="width:' + pct + '%"></div></div>' +
             '</div>' +
@@ -1224,6 +1242,7 @@
               (b.pdfUrl ? '<a href="' + escapeHtml(b.pdfUrl) + '" target="_blank" rel="noopener" class="btn btn-ghost btn-sm">Open PDF</a>' : '') +
               '<button type="button" class="btn btn-gold btn-sm" onclick="exportBookAsPdf(\'' + (b.id || '') + '\')">Save as PDF</button>' +
               '<button type="button" class="btn btn-teal btn-sm" onclick="setCurrentPage(\'' + (b.id || '') + '\')">Update page</button>' +
+              (b.status === 'completed' ? '<button type="button" class="btn btn-ghost btn-sm" onclick="markReread(\'' + (b.id || '') + '\')" title="Log another read-through">🔁 Re-read</button>' : '') +
               '<button type="button" class="btn btn-ghost btn-sm" onclick="editBook(\'' + (b.id || '') + '\')">Edit</button>' +
               '<button type="button" class="btn btn-red btn-sm" onclick="deleteBook(\'' + (b.id || '') + '\')">Delete</button>' +
             '</div>' +
@@ -1321,7 +1340,9 @@
             audience: audience,
             notes: notes,
             pdfUrl: pdfUrl,
-            chapters: existing.chapters || []
+            chapters: existing.chapters || [],
+            rereadCount: existing.rereadCount || 0,
+            rereadDates: Array.isArray(existing.rereadDates) ? existing.rereadDates : []
           };
         }
       } else {
@@ -1340,7 +1361,9 @@
           audience: audience,
           notes: notes,
           pdfUrl: pdfUrl,
-          chapters: []
+          chapters: [],
+          rereadCount: 0,
+          rereadDates: []
         });
       }
       saveBooks();
@@ -1375,6 +1398,19 @@
       }
     }
 
+    function markReread(id) {
+      var b = books.filter(function(x) { return String(x.id) === String(id); })[0];
+      if (!b) return;
+      if (b.status !== 'completed') { showToast('Mark as Completed first'); return; }
+      b.rereadCount = (b.rereadCount || 0) + 1;
+      if (!Array.isArray(b.rereadDates)) b.rereadDates = [];
+      b.rereadDates.push(isoToday());
+      saveBooks();
+      renderBookList();
+      if (document.getElementById('view-stats') && document.getElementById('view-stats').classList.contains('active')) renderStats();
+      showToast('🔁 Marked as re-read (' + b.rereadCount + '×)');
+    }
+
     function exportBookAsPdf(bookId) {
       var book = books.filter(function(b) { return b.id === bookId; })[0];
       if (!book) { showToast('Book not found'); return; }
@@ -1386,6 +1422,7 @@
       parts.push('<h1>' + escapeHtml(book.title || 'Untitled') + '</h1>');
       parts.push('<p><strong>Author:</strong> ' + escapeHtml(book.author || '—') + '</p>');
       parts.push('<p><strong>Progress:</strong> ' + current + ' / ' + total + ' pages &nbsp;|&nbsp; <strong>Status:</strong> ' + (book.status === 'reading' ? 'Reading' : book.status === 'completed' ? 'Completed' : 'Want to read') + '</p>');
+      if (book.rereadCount) parts.push('<p><strong>Re-read:</strong> ' + book.rereadCount + ' time(s)</p>');
       if (book.notes) parts.push('<h2>Notes</h2><p>' + escapeHtml(book.notes).replace(/\n/g, '<br>') + '</p>');
       if (chapters.length) {
         parts.push('<h2>Chapter notes &amp; insights</h2>');
@@ -1528,8 +1565,11 @@
         return sum + (b.status === 'completed' ? (parseInt(b.totalPages, 10) || 0) : cur);
       }, 0);
 
+      var rereads = books.reduce(function(sum, b) { return sum + (parseInt(b.rereadCount, 10) || 0); }, 0);
+
       var el = document.getElementById('tplBooksFinished'); if (el) el.textContent = String(finished);
       el = document.getElementById('tplPagesRead'); if (el) el.textContent = pages.toLocaleString();
+      el = document.getElementById('tplRereadCount'); if (el) el.textContent = String(rereads);
 
       // Charts + table
       var year = new Date().getFullYear();
@@ -1785,7 +1825,7 @@
       if (!body) return;
 
       if (!books.length) {
-        body.innerHTML = '<tr><td colspan="12" class="template-muted" style="padding: 1rem;">No books yet. Add a book to populate the template.</td></tr>';
+        body.innerHTML = '<tr><td colspan="13" class="template-muted" style="padding: 1rem;">No books yet. Add a book to populate the template.</td></tr>';
         return;
       }
 
@@ -1816,6 +1856,10 @@
             '<td>' + ratingStarsHtml(b.id, b.rating) + '</td>' +
             '<td><span class="genre-pill">' + escapeHtml(normalizeGenre(b.genre)) + '</span></td>' +
             '<td>' + escapeHtml(b.audience || '') + '</td>' +
+            '<td><div class="reread-cell">' +
+              '<span class="badge badge-reread" style="margin-left:0;">' + (parseInt(b.rereadCount, 10) || 0) + '×</span>' +
+              (b.status === 'completed' ? '<button type="button" class="btn btn-ghost btn-sm" data-reread="' + escapeHtml(b.id) + '" title="Log another read-through">+1</button>' : '') +
+            '</div></td>' +
           '</tr>'
         );
       }).join('');
@@ -1825,6 +1869,8 @@
         var target = e.target;
         if (!target) return;
         if (target.closest && target.closest('.rating-stars')) return;
+        var rereadBtn = target.closest ? target.closest('button[data-reread]') : null;
+        if (rereadBtn) { e.preventDefault(); e.stopPropagation(); markReread(rereadBtn.getAttribute('data-reread')); return; }
         var tr = target.closest ? target.closest('tr[data-edit]') : null;
         if (!tr) return;
         var id = tr.getAttribute('data-edit');
