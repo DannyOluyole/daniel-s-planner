@@ -465,6 +465,7 @@
       white-space: normal;
     }
     .template-table th:nth-child(13), .template-table td:nth-child(13){ min-width: 150px; }
+    .template-table th:nth-child(14), .template-table td:nth-child(14){ min-width: 110px; text-align: right; }
     .reread-cell{ display:flex; align-items:center; gap: 0.5rem; }
 
     button.badge-reread { cursor: pointer; font-family: 'IBM Plex Mono', monospace; }
@@ -751,6 +752,10 @@
             <div class="kpi-label">Total Re-reads</div>
             <div class="kpi-value" id="tplRereadCount">0</div>
           </div>
+          <div class="kpi-tile pages">
+            <div class="kpi-label">Total Spent</div>
+            <div class="kpi-value" id="tplTotalSpent">0</div>
+          </div>
           <div class="template-muted">
             Tip: if a book is marked “Finished” and has no End Date, the tracker will use today’s date so charts can work.
           </div>
@@ -800,6 +805,7 @@
                 <th>Genre</th>
                 <th>Who should read this book?</th>
                 <th>Re-reads</th>
+                <th>Price Paid</th>
               </tr>
             </thead>
             <tbody id="tplTableBody"></tbody>
@@ -830,6 +836,10 @@
         <div class="form-row">
           <label for="bookRecommendedBy">Recommended by (optional)</label>
           <input type="text" id="bookRecommendedBy" placeholder="e.g. a friend, a creator, a mentor" />
+        </div>
+        <div class="form-row">
+          <label for="bookPrice">Price paid (optional)</label>
+          <input type="number" id="bookPrice" min="0" step="0.01" placeholder="e.g. 14.99" />
         </div>
         <div class="form-row">
           <label for="bookCoverUrl">Cover image URL (optional)</label>
@@ -1140,6 +1150,7 @@
               if (!Array.isArray(b.rereadDates)) b.rereadDates = [];
               if (b.coverUrl == null) b.coverUrl = '';
               if (b.linkUrl == null) b.linkUrl = '';
+              if (b.pricePaid == null) b.pricePaid = 0;
             });
             saveBooks();
             renderBookList();
@@ -1300,6 +1311,7 @@
             if (!Array.isArray(b.rereadDates)) b.rereadDates = [];
             if (b.coverUrl == null) b.coverUrl = '';
             if (b.linkUrl == null) b.linkUrl = '';
+            if (b.pricePaid == null) b.pricePaid = 0;
           });
           localStorage.setItem(STORAGE_KEY, JSON.stringify(makeBooksPayload()));
           renderBookList();
@@ -1412,6 +1424,7 @@
           if (!Array.isArray(b.rereadDates)) b.rereadDates = [];
           if (b.coverUrl == null) b.coverUrl = '';
           if (b.linkUrl == null) b.linkUrl = '';
+          if (b.pricePaid == null) b.pricePaid = 0;
         });
       } catch (e) {
         books = [];
@@ -1577,6 +1590,7 @@
       document.getElementById('bookTitle').value = '';
       document.getElementById('bookAuthor').value = '';
       document.getElementById('bookRecommendedBy').value = '';
+      document.getElementById('bookPrice').value = '';
       document.getElementById('bookCoverUrl').value = '';
       document.getElementById('bookLinkUrl').value = '';
       document.getElementById('bookStartDate').value = '';
@@ -1595,6 +1609,7 @@
           document.getElementById('bookTitle').value = b.title || '';
           document.getElementById('bookAuthor').value = b.author || '';
           document.getElementById('bookRecommendedBy').value = b.recommendedBy || '';
+          document.getElementById('bookPrice').value = b.pricePaid != null && b.pricePaid !== 0 ? b.pricePaid : '';
           document.getElementById('bookCoverUrl').value = b.coverUrl || '';
           document.getElementById('bookLinkUrl').value = b.linkUrl || '';
           document.getElementById('bookStartDate').value = b.startDate || '';
@@ -1621,6 +1636,7 @@
       var title = (document.getElementById('bookTitle').value || '').trim();
       var author = (document.getElementById('bookAuthor').value || '').trim();
       var recommendedBy = (document.getElementById('bookRecommendedBy').value || '').trim();
+      var pricePaid = parseFloat(document.getElementById('bookPrice').value) || 0;
       var coverUrl = (document.getElementById('bookCoverUrl').value || '').trim();
       var linkUrl = (document.getElementById('bookLinkUrl').value || '').trim();
       var startDate = (document.getElementById('bookStartDate').value || '').trim();
@@ -1651,6 +1667,7 @@
             title: title,
             author: author,
             recommendedBy: recommendedBy,
+            pricePaid: pricePaid,
             coverUrl: coverUrl,
             linkUrl: linkUrl,
             startDate: startDate,
@@ -1675,6 +1692,7 @@
           title: title,
           author: author,
           recommendedBy: recommendedBy,
+          pricePaid: pricePaid,
           coverUrl: coverUrl,
           linkUrl: linkUrl,
           startDate: startDate,
@@ -1841,6 +1859,7 @@
       parts.push('<p><strong>Author:</strong> ' + escapeHtml(book.author || '—') + '</p>');
       parts.push('<p><strong>Progress:</strong> ' + current + ' / ' + total + ' pages &nbsp;|&nbsp; <strong>Status:</strong> ' + (book.status === 'reading' ? 'Reading' : book.status === 'completed' ? 'Completed' : 'Want to read') + '</p>');
       if (book.rereadCount) parts.push('<p><strong>Re-read:</strong> ' + book.rereadCount + ' time(s)</p>');
+      if (parseFloat(book.pricePaid)) parts.push('<p><strong>Price paid:</strong> ' + parseFloat(book.pricePaid).toFixed(2) + '</p>');
       if (book.notes) parts.push('<h2>Notes</h2><p>' + escapeHtml(book.notes).replace(/\n/g, '<br>') + '</p>');
       if (chapters.length) {
         parts.push('<h2>Chapter notes &amp; insights</h2>');
@@ -1906,12 +1925,13 @@
 
     function exportBooksCsv() {
       try {
-        var headers = ['Title', 'Author', 'Recommended By', 'Start Date', 'End Date', 'Current Page', 'Total Pages', 'Status', 'Rating', 'Genre', 'Who Should Read', 'Re-reads'];
+        var headers = ['Title', 'Author', 'Recommended By', 'Start Date', 'End Date', 'Current Page', 'Total Pages', 'Status', 'Rating', 'Genre', 'Who Should Read', 'Re-reads', 'Price Paid'];
         var rows = books.map(function(b) {
           return [
             b.title || '', b.author || '', b.recommendedBy || '', b.startDate || '', b.endDate || '',
             parseInt(b.currentPage, 10) || 0, parseInt(b.totalPages, 10) || 0,
-            statusLabel(b).text, b.rating || 0, normalizeGenre(b.genre), b.audience || '', b.rereadCount || 0
+            statusLabel(b).text, b.rating || 0, normalizeGenre(b.genre), b.audience || '', b.rereadCount || 0,
+            (parseFloat(b.pricePaid) || 0).toFixed(2)
           ].map(csvEscape).join(',');
         });
         var csv = headers.map(csvEscape).join(',') + '\n' + rows.join('\n');
@@ -2061,10 +2081,12 @@
       }, 0);
 
       var rereads = books.reduce(function(sum, b) { return sum + (parseInt(b.rereadCount, 10) || 0); }, 0);
+      var totalSpent = books.reduce(function(sum, b) { return sum + (parseFloat(b.pricePaid) || 0); }, 0);
 
       var el = document.getElementById('tplBooksFinished'); if (el) el.textContent = String(finished);
       el = document.getElementById('tplPagesRead'); if (el) el.textContent = pages.toLocaleString();
       el = document.getElementById('tplRereadCount'); if (el) el.textContent = String(rereads);
+      el = document.getElementById('tplTotalSpent'); if (el) el.textContent = totalSpent.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
       // Charts + table
       var year = new Date().getFullYear();
@@ -2320,7 +2342,7 @@
       if (!body) return;
 
       if (!books.length) {
-        body.innerHTML = '<tr><td colspan="13" class="template-muted" style="padding: 1rem;">No books yet. Add a book to populate the template.</td></tr>';
+        body.innerHTML = '<tr><td colspan="14" class="template-muted" style="padding: 1rem;">No books yet. Add a book to populate the template.</td></tr>';
         return;
       }
 
@@ -2355,6 +2377,7 @@
               '<button type="button" class="badge badge-reread" style="margin-left:0;" data-reread-history="' + escapeHtml(b.id) + '" title="View re-read history">' + (parseInt(b.rereadCount, 10) || 0) + '×</button>' +
               (b.status === 'completed' ? '<button type="button" class="btn btn-ghost btn-sm" data-reread="' + escapeHtml(b.id) + '" title="Log another read-through">+1</button>' : '') +
             '</div></td>' +
+            '<td>' + (parseFloat(b.pricePaid) ? (parseFloat(b.pricePaid)).toFixed(2) : '—') + '</td>' +
           '</tr>'
         );
       }).join('');
