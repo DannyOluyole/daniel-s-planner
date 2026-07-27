@@ -5,6 +5,22 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Book Tracker — Reading Progress</title>
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&family=IBM+Plex+Sans:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="manifest" href="book-tracker-manifest.json">
+  <meta name="theme-color" content="#1C2E4A">
+  <link rel="apple-touch-icon" href="icons/book-tracker-180.png">
+  <link rel="icon" href="icons/book-tracker-192.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Books">
+  <script>
+    (function() {
+      try {
+        if (localStorage.getItem('booktracker-pin-hash') && sessionStorage.getItem('booktracker-unlocked') !== '1') {
+          document.documentElement.classList.add('pin-locked');
+        }
+      } catch (e) {}
+    })();
+  </script>
   <style>
     *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -103,8 +119,16 @@
       transform: translateY(100px); opacity: 0;
       transition: all 0.35s cubic-bezier(0.34,1.56,0.64,1);
       z-index: 2000;
+      display: flex; align-items: center; gap: 1rem;
     }
     .toast.show { transform: translateY(0); opacity: 1; }
+    .toast-action {
+      background: var(--gold); color: white; border: none; border-radius: 6px;
+      padding: 0.35rem 0.8rem; font-weight: 700; font-size: 0.85rem; cursor: pointer;
+      text-transform: uppercase; letter-spacing: 0.04em; white-space: nowrap;
+      font-family: 'IBM Plex Sans', sans-serif;
+    }
+    .toast-action:hover { background: var(--gold-med); }
 
     #autosaveIndicator {
       position: fixed; bottom: 2rem; left: 2rem;
@@ -541,6 +565,22 @@
       padding: 2rem;
     }
     .overlay.open { display: flex; }
+
+    html.pin-locked body { visibility: hidden; }
+    #pinLockOverlay {
+      display: none; position: fixed; inset: 0; z-index: 5000;
+      background: linear-gradient(135deg, var(--navy) 0%, var(--teal-dark) 100%);
+      align-items: center; justify-content: center; visibility: hidden;
+    }
+    html.pin-locked #pinLockOverlay { display: flex; visibility: visible; }
+    .pin-lock-box {
+      background: white; border-radius: 14px; padding: 2rem 2.5rem;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.4); text-align: center; max-width: 320px; width: 100%;
+    }
+    .pin-lock-box .pin-lock-title { font-family: 'Playfair Display', serif; font-size: 1.5rem; font-weight: 900; color: var(--navy); margin-bottom: 1rem; }
+    .pin-lock-box input { text-align: center; letter-spacing: 0.3em; font-size: 1.2rem; margin-bottom: 0.85rem; }
+    .pin-lock-box .pin-lock-error { color: var(--red); font-size: 0.85rem; margin-top: 0.6rem; min-height: 1.1em; }
+
     .overlay .modal {
       background: white;
       border-radius: 14px;
@@ -599,6 +639,15 @@
   </style>
 </head>
 <body>
+  <div id="pinLockOverlay">
+    <div class="pin-lock-box">
+      <div class="pin-lock-title">🔒 Enter PIN</div>
+      <input type="password" id="pinLockInput" inputmode="numeric" placeholder="PIN" maxlength="12" data-no-autocorrect="1" autocorrect="off" autocapitalize="none" spellcheck="false" onkeydown="if(event.key==='Enter') attemptUnlock()" />
+      <button type="button" class="btn btn-teal btn-sm" onclick="attemptUnlock()" style="width:100%;">Unlock</button>
+      <div id="pinLockError" class="pin-lock-error"></div>
+    </div>
+  </div>
+
   <nav class="top-nav">
     <div class="nav-brand" onclick="showView('library')">📚 Book Tracker</div>
     <div class="nav-tab active" id="nav-library" onclick="showView('library')">My Library</div>
@@ -610,11 +659,15 @@
       <button type="button" class="btn btn-gold btn-sm" onclick="exportBooks()">⬇ Export</button>
       <button type="button" class="btn btn-gold btn-sm" onclick="importBooks()">⬆ Import</button>
       <button type="button" class="btn btn-gold btn-sm" onclick="exportBooksCsv()" title="Export reading template as CSV">⬇ CSV</button>
+      <button type="button" class="btn btn-ghost btn-sm" onclick="openPinSettings()" title="Privacy PIN">🔒 PIN</button>
     </div>
   </nav>
 
   <div id="autosaveIndicator">✓ Saved</div>
-  <div id="toast" class="toast" aria-live="polite"></div>
+  <div id="toast" class="toast" aria-live="polite">
+    <span id="toastMsg"></span>
+    <button type="button" id="toastActionBtn" class="toast-action" style="display:none;"></button>
+  </div>
 
   <!-- VIEW: LIBRARY -->
   <div class="view active" id="view-library">
@@ -920,11 +973,33 @@
     </div>
   </div>
 
+  <!-- PRIVACY PIN SETTINGS MODAL -->
+  <div id="pinSettingsOverlay" class="overlay" onclick="if(event.target===this) closePinSettings()">
+    <div class="modal" style="max-width:420px;">
+      <div class="modal-header">🔒 Privacy PIN</div>
+      <div class="modal-body">
+        <p style="color:var(--gray-med); font-size:0.9rem; margin-bottom:1rem;">
+          Require a PIN before this tracker opens on this device. This is a privacy screen, not encryption — your data still lives in this browser's local storage.
+        </p>
+        <div class="form-row">
+          <label for="pinSetInput">Set / change PIN (leave blank to remove)</label>
+          <input type="password" id="pinSetInput" inputmode="numeric" placeholder="e.g. 4-8 digits" maxlength="12" data-no-autocorrect="1" autocorrect="off" autocapitalize="none" spellcheck="false" onkeydown="if(event.key==='Enter') savePinSetting()" />
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-ghost btn-sm" onclick="closePinSettings()">Close</button>
+          <button type="button" class="btn btn-teal btn-sm" onclick="savePinSetting()">Save</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script>
     const STORAGE_KEY = 'booktracker-books';
     const SYNC_CONFIG_KEY = 'booktracker-sync-config';
     const SHARED_SYNC_KEY = 'universal-sync-config-v1';
     const DEFAULT_FIREBASE_DB_URL = 'https://adeyinka-daniel-oluyole-default-rtdb.firebaseio.com';
+    const PIN_HASH_KEY = 'booktracker-pin-hash';
+    const PIN_UNLOCK_SESSION_KEY = 'booktracker-unlocked';
     let books = [];
 
     function isoToday() {
@@ -936,10 +1011,33 @@
     function showToast(msg) {
       const el = document.getElementById('toast');
       if (!el) return;
-      el.textContent = msg;
+      const msgEl = document.getElementById('toastMsg');
+      if (msgEl) msgEl.textContent = msg; else el.textContent = msg;
+      const actionBtn = document.getElementById('toastActionBtn');
+      if (actionBtn) actionBtn.style.display = 'none';
       el.classList.add('show');
       clearTimeout(el._t);
       el._t = setTimeout(function() { el.classList.remove('show'); }, 2800);
+    }
+
+    function showToastWithAction(msg, actionLabel, actionFn, durationMs) {
+      const el = document.getElementById('toast');
+      if (!el) return;
+      const msgEl = document.getElementById('toastMsg');
+      if (msgEl) msgEl.textContent = msg;
+      const actionBtn = document.getElementById('toastActionBtn');
+      if (actionBtn) {
+        actionBtn.textContent = actionLabel;
+        actionBtn.style.display = 'inline-block';
+        actionBtn.onclick = function() {
+          el.classList.remove('show');
+          clearTimeout(el._t);
+          actionFn();
+        };
+      }
+      el.classList.add('show');
+      clearTimeout(el._t);
+      el._t = setTimeout(function() { el.classList.remove('show'); }, durationMs || 5000);
     }
     function showAutoSaveIndicator() {
       const el = document.getElementById('autosaveIndicator');
@@ -947,6 +1045,57 @@
       el.style.opacity = '1';
       clearTimeout(el._t);
       el._t = setTimeout(function() { el.style.opacity = '0'; }, 1500);
+    }
+
+    /* ================================================================
+      PRIVACY PIN LOCK
+    ================================================================ */
+    async function sha256Hex(text) {
+      var enc = new TextEncoder().encode(text);
+      var buf = await crypto.subtle.digest('SHA-256', enc);
+      return Array.from(new Uint8Array(buf)).map(function(b) { return b.toString(16).padStart(2, '0'); }).join('');
+    }
+
+    async function attemptUnlock() {
+      var input = document.getElementById('pinLockInput');
+      var errEl = document.getElementById('pinLockError');
+      var val = (input && input.value) || '';
+      var storedHash = localStorage.getItem(PIN_HASH_KEY);
+      var hash = await sha256Hex(val);
+      if (hash === storedHash) {
+        sessionStorage.setItem(PIN_UNLOCK_SESSION_KEY, '1');
+        document.documentElement.classList.remove('pin-locked');
+        if (errEl) errEl.textContent = '';
+      } else {
+        if (errEl) errEl.textContent = 'Incorrect PIN';
+        if (input) { input.value = ''; input.focus(); }
+      }
+    }
+
+    function openPinSettings() {
+      document.getElementById('pinSetInput').value = '';
+      document.getElementById('pinSettingsOverlay').classList.add('open');
+    }
+
+    function closePinSettings() {
+      document.getElementById('pinSettingsOverlay').classList.remove('open');
+    }
+
+    async function savePinSetting() {
+      var val = (document.getElementById('pinSetInput').value || '').trim();
+      if (!val) {
+        localStorage.removeItem(PIN_HASH_KEY);
+        sessionStorage.removeItem(PIN_UNLOCK_SESSION_KEY);
+        showToast('PIN removed');
+        closePinSettings();
+        return;
+      }
+      if (val.length < 4) { showToast('Use at least 4 characters'); return; }
+      var hash = await sha256Hex(val);
+      localStorage.setItem(PIN_HASH_KEY, hash);
+      sessionStorage.setItem(PIN_UNLOCK_SESSION_KEY, '1');
+      showToast('🔒 PIN set');
+      closePinSettings();
     }
 
     /* ================================================================
@@ -1780,11 +1929,20 @@
     }
 
     function deleteBook(id) {
-      if (!window.confirm('Remove this book from your library?')) return;
-      books = books.filter(function(b) { return String(b.id) !== String(id); });
+      var idx = books.findIndex(function(b) { return String(b.id) === String(id); });
+      if (idx < 0) return;
+      var removed = books[idx];
+      books.splice(idx, 1);
       saveBooks();
       renderBookList();
-      showToast('Removed');
+      if (document.getElementById('view-stats') && document.getElementById('view-stats').classList.contains('active')) renderStats();
+      showToastWithAction('Removed "' + (removed.title || 'Untitled') + '"', 'Undo', function() {
+        books.splice(Math.min(idx, books.length), 0, removed);
+        saveBooks();
+        renderBookList();
+        if (document.getElementById('view-stats') && document.getElementById('view-stats').classList.contains('active')) renderStats();
+        showToast('Restored');
+      }, 5000);
     }
 
     var _chapterSaveTimer = null;
@@ -2445,6 +2603,10 @@
         syncBtn.classList.toggle('btn-ghost', !(cfg && cfg.enabled));
       }
       startCloudPolling();
+
+      if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
+        navigator.serviceWorker.register('./book-tracker-sw.js').catch(function() {});
+      }
     });
   </script>
 </body>
