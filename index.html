@@ -921,6 +921,33 @@
       text-decoration: none;
     }
 
+    .key-dates-countdown { display: flex; flex-direction: column; gap: 0.4rem; margin-bottom: 0.75rem; }
+    .key-dates-countdown:empty { display: none; margin: 0; }
+    .countdown-pill {
+      background: linear-gradient(135deg, var(--navy) 0%, var(--teal-dark) 100%);
+      color: white; border-radius: 8px; padding: 0.5rem 0.85rem;
+      font-size: 0.85rem; display: flex; gap: 0.5rem; align-items: baseline;
+    }
+    .countdown-pill strong { color: var(--gold-light); font-family: 'IBM Plex Mono', monospace; }
+
+    .contact-links-row { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 0.35rem; margin-bottom: 0.5rem; }
+    .contact-link-inline {
+      display: inline-block; padding: 0.2rem 0.5rem;
+      background: var(--gold-xlight); color: var(--gold);
+      border: 1px solid var(--gold-light); border-radius: 6px;
+      font-size: 0.85rem; text-decoration: none; font-weight: 600;
+    }
+    .contact-link-inline:hover { background: var(--gold-light); color: white; }
+
+    .day-streak-badge {
+      display: inline-flex; align-items: center; gap: 0.4rem;
+      background: linear-gradient(135deg, var(--gold) 0%, var(--gold-med) 100%);
+      color: white; font-weight: 800; font-size: 0.85rem;
+      padding: 0.4rem 0.9rem; border-radius: 999px; margin: 0.75rem 0 0;
+    }
+
+    .search-result-item:hover { background: var(--teal-xlight); }
+
     @media print {
       .top-nav, .day-actions, .toast, .modal-overlay, #autosaveIndicator { display: none !important; }
       .view { display: block !important; }
@@ -944,6 +971,7 @@
   <div class="nav-tab" id="nav-reality" onclick="showView('reality')">🧠 Reality Model</div>
   <div class="nav-tab" id="nav-notes" onclick="showView('notes')">📌 KeepNotes</div>
   <div class="nav-actions">
+    <button class="btn btn-ghost btn-sm" onclick="openGlobalSearch()" title="Search across the whole planner">🔍 Search</button>
     <button class="btn btn-teal btn-sm" onclick="saveAllCurrent()">💾 Save</button>
     <button class="btn btn-gold btn-sm" onclick="exportPlanner()">⬇ Export</button>
     <button class="btn btn-gold btn-sm" onclick="importPlanner()">⬆ Import</button>
@@ -965,6 +993,20 @@
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
       <button class="btn btn-teal" id="modalConfirmBtn">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== GLOBAL SEARCH MODAL ===== -->
+<div class="modal-overlay" id="searchOverlay">
+  <div class="modal" style="max-width:640px; max-height:80vh; display:flex; flex-direction:column;">
+    <div class="modal-header">🔍 Search Planner</div>
+    <div class="modal-body" style="overflow-y:auto; flex:1;">
+      <input type="text" id="globalSearchInput" placeholder="Search notes, tasks, contacts, dates…" oninput="runGlobalSearch()" style="width:100%; margin-bottom:1rem;" data-no-autocorrect="1" autocorrect="off" autocapitalize="none" spellcheck="false" />
+      <div id="globalSearchResults"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeGlobalSearch()">Close</button>
     </div>
   </div>
 </div>
@@ -1085,7 +1127,7 @@
         <div class="card">
           <div class="card-header gold">📞 Key Contacts &amp; Numbers</div>
           <div class="card-body">
-            <textarea id="ref-contacts" class="notes-ta" rows="5" placeholder="Important phone numbers, emails, or contacts for this month..." oninput="scheduleMonthSave()"></textarea>
+            <textarea id="ref-contacts" class="notes-ta" rows="5" placeholder="Important phone numbers, emails, or contacts for this month..." oninput="updateContactLinksForField(this); scheduleMonthSave()"></textarea>
           </div>
         </div>
         <div class="card">
@@ -1097,7 +1139,8 @@
         <div class="card">
           <div class="card-header navy">📅 Key Dates &amp; Deadlines</div>
           <div class="card-body">
-            <textarea id="ref-dates" class="notes-ta" rows="4" placeholder="Birthdays, anniversaries, deadlines, events..." oninput="scheduleMonthSave()"></textarea>
+            <div id="keyDatesCountdown" class="key-dates-countdown"></div>
+            <textarea id="ref-dates" class="notes-ta" rows="4" placeholder="Birthdays, anniversaries, deadlines, events..." oninput="renderKeyDatesCountdown(); scheduleMonthSave()"></textarea>
           </div>
         </div>
       </div>
@@ -1187,6 +1230,7 @@
                 <input type="text" id="dayDayName" readonly style="font-weight:600; color:var(--teal-dark);" />
               </div>
             </div>
+            <div id="dayStreakBadge"></div>
             <div class="legend-grid">
               <div class="legend-item"><span class="legend-sym">✓</span> Completed</div>
               <div class="legend-item"><span class="legend-sym">→</span> Rescheduled</div>
@@ -1844,6 +1888,89 @@ function updateDateLinksForField(field) {
   row.style.marginBottom = '0.5rem';
   row.innerHTML = dates.map(d => '<span class="date-link-inline" data-date-iso="' + d.iso + '" onclick="goToDateFromLink(\'' + d.iso + '\')">📅 ' + esc(d.match) + '</span>').join('');
 }
+
+/* Find phone numbers and email addresses in free text */
+function findContactsInText(text) {
+  if (!text || typeof text !== 'string') return [];
+  const results = [];
+  const seen = new Set();
+
+  const emailRe = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
+  let m;
+  while ((m = emailRe.exec(text)) !== null) {
+    if (seen.has(m[0])) continue;
+    seen.add(m[0]);
+    results.push({ type: 'email', match: m[0], href: 'mailto:' + m[0] });
+  }
+
+  const phoneRe = /(?:\+\d{1,3}[\s.-]?)?(?:\(\d{1,4}\)[\s.-]?)?\d[\d\s().-]{6,}\d/g;
+  while ((m = phoneRe.exec(text)) !== null) {
+    const raw = m[0].trim();
+    const digits = raw.replace(/\D/g, '');
+    if (digits.length < 7 || digits.length > 15) continue;
+    if (seen.has(raw)) continue;
+    seen.add(raw);
+    results.push({ type: 'phone', match: raw, href: 'tel:' + (raw.trim().startsWith('+') ? '+' : '') + digits });
+  }
+
+  return results;
+}
+
+/* Update or create contact-links row (phone/email) for a field */
+function updateContactLinksForField(field) {
+  if (!field) return;
+  let row = field.nextElementSibling;
+  if (!row || !row.classList.contains('contact-links-row')) {
+    row = document.createElement('div');
+    row.className = 'contact-links-row';
+    field.parentNode.insertBefore(row, field.nextSibling);
+  }
+  const contacts = findContactsInText(field.value || '');
+  if (contacts.length === 0) {
+    row.innerHTML = '';
+    return;
+  }
+  row.innerHTML = contacts.map(c =>
+    '<a class="contact-link-inline" href="' + esc(c.href) + '">' + (c.type === 'email' ? '✉️ ' : '📞 ') + esc(c.match) + '</a>'
+  ).join('');
+}
+
+/* Find nearest upcoming deadlines from free-text "Key Dates" content, one date per line */
+function computeUpcomingDeadlines(text, limit) {
+  if (!text) return [];
+  const lines = text.split('\n');
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const items = [];
+  lines.forEach(line => {
+    const trimmed = line.trim();
+    if (!trimmed) return;
+    const dates = findDatesInText(trimmed);
+    if (!dates.length) return;
+    const iso = dates[0].iso;
+    const d = new Date(iso + 'T00:00:00');
+    const daysUntil = Math.round((d - today) / 86400000);
+    if (daysUntil < 0) return;
+    items.push({ line: trimmed, iso, daysUntil });
+  });
+  items.sort((a, b) => a.daysUntil - b.daysUntil);
+  return items.slice(0, limit || 3);
+}
+
+function renderKeyDatesCountdown() {
+  const host = document.getElementById('keyDatesCountdown');
+  const field = document.getElementById('ref-dates');
+  if (!host || !field) return;
+  const items = computeUpcomingDeadlines(field.value || '', 3);
+  if (!items.length) {
+    host.innerHTML = '';
+    return;
+  }
+  host.innerHTML = items.map(it => {
+    const label = it.daysUntil === 0 ? 'Today' : it.daysUntil === 1 ? 'Tomorrow' : 'In ' + it.daysUntil + ' days';
+    return '<div class="countdown-pill"><strong>' + esc(label) + '</strong> — ' + esc(it.line) + '</div>';
+  }).join('');
+}
+
 function setupDateLinkifyForView(viewId) {
   const view = document.getElementById(viewId);
   if (!view) return;
@@ -2108,6 +2235,136 @@ function makePlannerPayload({ data, deleted }) {
     deleted: !!deleted,
     data: deleted ? null : (data == null ? null : data)
   };
+}
+
+/* ================================================================
+   GLOBAL SEARCH — local-only (no cloud round-trips per record)
+================================================================ */
+function getAllPlannerRecords(prefix) {
+  const fullPrefix = STORAGE_PREFIX + prefix;
+  const records = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const fullKey = localStorage.key(i);
+    if (!fullKey || !fullKey.startsWith(fullPrefix)) continue;
+    const parsed = parsePlannerPayload(localStorage.getItem(fullKey));
+    if (parsed.deleted || !parsed.data) continue;
+    records.push({ key: fullKey.slice(STORAGE_PREFIX.length + prefix.length), data: parsed.data });
+  }
+  return records;
+}
+
+function makeSnippet(text, q, radius) {
+  radius = radius || 40;
+  const lower = text.toLowerCase();
+  const idx = lower.indexOf(q);
+  if (idx < 0) return text.slice(0, 80);
+  const start = Math.max(0, idx - radius);
+  const end = Math.min(text.length, idx + q.length + radius);
+  return (start > 0 ? '…' : '') + text.slice(start, end).trim() + (end < text.length ? '…' : '');
+}
+
+function searchPlanner(query) {
+  const q = (query || '').trim().toLowerCase();
+  if (!q) return [];
+  const results = [];
+
+  getAllPlannerRecords('month-').forEach(({ key, data }) => {
+    const [yy, mm] = key.split('-').map(Number);
+    if (!yy || !mm) return;
+    const whenLabel = MONTHS[mm - 1] + ' ' + yy;
+    const sortKey = key + '-28';
+    const fields = [
+      ['Mission', data.mission], ['Roles', data.roles], ['Budget Notes', data.budget],
+      ['Key Contacts', data.contacts], ['Health Goals', data.health],
+      ['Key Dates', data.keyDates], ['Monthly Notes', data.notes]
+    ];
+    fields.forEach(([label, text]) => {
+      if (text && text.toLowerCase().includes(q)) {
+        results.push({ type: 'Monthly · ' + label, whenLabel, sortKey, monthKey: key, snippet: makeSnippet(text, q) });
+      }
+    });
+    (data.tasks || []).forEach((t) => {
+      if (t.text && t.text.toLowerCase().includes(q)) {
+        results.push({ type: 'Task', whenLabel, sortKey, monthKey: key, snippet: t.text });
+      }
+    });
+  });
+
+  getAllPlannerRecords('day-').forEach(({ key, data }) => {
+    const parts = key.split('-').map(Number);
+    if (parts.length !== 3 || !parts[0]) return;
+    const whenLabel = parts[2] + ' ' + MONTHS[parts[1] - 1].slice(0, 3) + ' ' + parts[0];
+    const fields = [['Day Mission', data.mission], ['Day Notes', data.notes]];
+    fields.forEach(([label, text]) => {
+      if (text && text.toLowerCase().includes(q)) {
+        results.push({ type: label, whenLabel, sortKey: key, dayKey: key, snippet: makeSnippet(text, q) });
+      }
+    });
+    (data.tasks || []).forEach((t) => {
+      if (t.text && t.text.toLowerCase().includes(q)) {
+        results.push({ type: 'Day Task', whenLabel, sortKey: key, dayKey: key, snippet: t.text });
+      }
+    });
+    (data.schedule || []).forEach((s) => {
+      if (s.text && s.text.toLowerCase().includes(q)) {
+        results.push({ type: 'Appointment', whenLabel, sortKey: key, dayKey: key, snippet: s.text });
+      }
+    });
+  });
+
+  results.sort((a, b) => b.sortKey.localeCompare(a.sortKey));
+  return results;
+}
+
+let _searchResultsCache = [];
+
+function openGlobalSearch() {
+  document.getElementById('globalSearchInput').value = '';
+  document.getElementById('globalSearchResults').innerHTML = '<p style="color:var(--gray-med); font-size:0.9rem;">Type to search notes, tasks, contacts, and dates across every month and day.</p>';
+  document.getElementById('searchOverlay').classList.add('open');
+  setTimeout(() => document.getElementById('globalSearchInput').focus(), 50);
+}
+
+function closeGlobalSearch() {
+  document.getElementById('searchOverlay').classList.remove('open');
+}
+
+function runGlobalSearch() {
+  const q = document.getElementById('globalSearchInput').value.trim();
+  const host = document.getElementById('globalSearchResults');
+  if (!q) { host.innerHTML = '<p style="color:var(--gray-med); font-size:0.9rem;">Type to search…</p>'; return; }
+
+  const results = searchPlanner(q).slice(0, 50);
+  _searchResultsCache = results;
+  if (!results.length) { host.innerHTML = '<p style="color:var(--gray-med); font-size:0.9rem;">No matches found.</p>'; return; }
+
+  host.innerHTML = results.map((r, i) => `
+    <div class="search-result-item" data-idx="${i}" style="padding:0.75rem; border-bottom:1px solid var(--gray-xlight); cursor:pointer;">
+      <div style="font-size:0.75rem; font-weight:800; color:var(--teal-dark); text-transform:uppercase; letter-spacing:0.04em;">${esc(r.type)} — ${esc(r.whenLabel)}</div>
+      <div style="font-size:0.9rem; color:var(--gray-dark); margin-top:0.25rem;">${esc(r.snippet)}</div>
+    </div>
+  `).join('');
+  host.querySelectorAll('.search-result-item').forEach((el) => {
+    el.addEventListener('click', () => {
+      const idx = parseInt(el.getAttribute('data-idx'), 10);
+      const r = _searchResultsCache[idx];
+      closeGlobalSearch();
+      if (r.monthKey) goToMonthFromSearch(r.monthKey);
+      else if (r.dayKey) goToDayFromSearch(r.dayKey);
+    });
+  });
+}
+
+function goToMonthFromSearch(monthKeyStr) {
+  const [y, m] = monthKeyStr.split('-').map(Number);
+  monthViewYear = y;
+  monthViewMonth = m - 1;
+  showView('month');
+}
+
+function goToDayFromSearch(dayKeyStr) {
+  dayViewDate = new Date(dayKeyStr + 'T00:00:00');
+  showView('day');
 }
 
 async function storageDeleteFullKey(fullKey) {
@@ -2718,6 +2975,8 @@ async function loadMonthData() {
   buildMonthlyIndex(d.index || []);
   updateMtaskStats();
   setupDateLinkifyForView('view-month');
+  renderKeyDatesCountdown();
+  updateContactLinksForField(document.getElementById('ref-contacts'));
 }
 
 async function saveMonthData() {
@@ -2799,10 +3058,12 @@ function updateMtaskStats() {
     const p = row.querySelector('select').value;
     if (p==='A') a++; else if (p==='B') b++; else if (p==='C') c++;
   });
+  const pct = total ? Math.round((done / total) * 100) : 0;
   document.getElementById('mtaskStats').innerHTML = `
     <div class="stat-pill">Total <strong>${total}</strong></div>
     <div class="stat-pill">Done <strong>${done}</strong></div>
     <div class="stat-pill">Left <strong>${total-done}</strong></div>
+    <div class="stat-pill">Completion <strong>${pct}%</strong></div>
     <div class="stat-pill"><span class="badge badge-A">A</span> <strong>${a}</strong></div>
     <div class="stat-pill"><span class="badge badge-B">B</span> <strong>${b}</strong></div>
     <div class="stat-pill"><span class="badge badge-C">C</span> <strong>${c}</strong></div>
@@ -3448,6 +3709,7 @@ function renderDayView() {
   clearTimeout(_daySaveTimer);
   clearDayFields();
   loadDayData(dk).then(() => { _dayLoading = false; setupDateLinkifyForView('view-day'); });
+  renderDayStreak();
 }
 
 function clearDayFields() {
@@ -3526,7 +3788,43 @@ async function saveDayPlanner() {
   if (ok) {
     showToast('✅ Saved — ' + dk);
     syncIndexFromDay(dayViewDate, obj);
+    renderDayStreak();
   }
+}
+
+/* Reads local storage only (no cloud round-trip) so the streak stays fast over many days */
+function dayHasContentLocal(dateObj) {
+  const dk = dateKey(dateObj);
+  const parsed = parsePlannerPayload(localStorage.getItem(STORAGE_PREFIX + 'day-' + dk));
+  if (parsed.deleted || !parsed.data) return false;
+  const data = parsed.data;
+  const hasMission = !!(data.mission || '').trim();
+  const hasNotes = !!(data.notes || '').trim();
+  const hasTask = Array.isArray(data.tasks) && data.tasks.some(t => (t.text || '').trim());
+  const hasSchedule = Array.isArray(data.schedule) && data.schedule.some(s => (s.text || '').trim());
+  return hasMission || hasNotes || hasTask || hasSchedule;
+}
+
+function computeDayPlanningStreak() {
+  let streak = 0;
+  let cursor = new Date();
+  cursor.setHours(0, 0, 0, 0);
+  if (!dayHasContentLocal(cursor)) {
+    cursor.setDate(cursor.getDate() - 1);
+  }
+  for (let i = 0; i < 3650; i++) {
+    if (!dayHasContentLocal(cursor)) break;
+    streak++;
+    cursor.setDate(cursor.getDate() - 1);
+  }
+  return streak;
+}
+
+function renderDayStreak() {
+  const host = document.getElementById('dayStreakBadge');
+  if (!host) return;
+  const streak = computeDayPlanningStreak();
+  host.innerHTML = streak > 0 ? '<div class="day-streak-badge">🔥 ' + streak + '-day planning streak</div>' : '';
 }
 
 function scheduleDaySave() {
