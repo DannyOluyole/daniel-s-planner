@@ -1589,6 +1589,13 @@
         <div style="margin-top:0.75rem; font-size:0.85rem; color:var(--gray-med); line-height:1.5;">
           Tip: Enter amounts as monthly totals. Use 🎙 Dictate while focused in a description field to speak items quickly.
         </div>
+        <div style="margin-top:1rem; padding-top:1rem; border-top:1.5px solid var(--gray-xlight);">
+          <div style="font-weight:800; color:var(--navy); margin-bottom:0.5rem; font-size:0.85rem; text-transform:uppercase; letter-spacing:0.05em;">All Expenses by Category</div>
+          <div style="display:flex; gap:1rem; align-items:center; flex-wrap:wrap;">
+            <div id="allExpensePie" style="width:170px; height:170px; flex-shrink:0;"></div>
+            <div id="allExpenseLegend" style="flex:1; min-width:160px;"></div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -1626,6 +1633,14 @@
         <div class="card-body">
           <div id="budgetSavingsList"></div>
           <button class="btn btn-ghost btn-sm" onclick="addBudgetRow('savings')">+ Add savings/debt</button>
+        </div>
+      </div>
+
+      <div class="card span2">
+        <div class="card-header">📈 Variable Expense Trend</div>
+        <div class="card-body">
+          <div style="font-size:0.8rem; color:var(--gray-med); margin-bottom:0.75rem;">Total variable spending over the last 6 months</div>
+          <div id="variableTrendChart" style="width:100%; overflow-x:auto;"></div>
         </div>
       </div>
 
@@ -3046,12 +3061,12 @@ function updateBudgetSummary() {
   if (kNetWrap) kNetWrap.classList.toggle('negative', net < 0);
 
   renderVariableExpensePie();
+  renderAllExpensePie();
 }
 
 const VARIABLE_PIE_COLORS = ['#005F5F', '#B8860B', '#20B2AA', '#C49A2B', '#1C2E4A', '#2E7D32', '#8D6E63', '#455A64', '#6A1B9A', '#E65100'];
 
-function clusterVariableExpenses() {
-  const rows = collectBudgetList('variable');
+function clusterExpenseRows(rows) {
   const map = new Map();
   rows.forEach((r) => {
     const displayName = (r.name || '').trim() || 'Uncategorized';
@@ -3065,14 +3080,13 @@ function clusterVariableExpenses() {
   return Array.from(map.values()).sort((a, b) => b.amount - a.amount);
 }
 
-function renderVariableExpensePie() {
-  const host = document.getElementById('variableExpensePie');
-  const legend = document.getElementById('variableExpenseLegend');
+function renderPieChart(hostId, legendId, entries, opts) {
+  const host = document.getElementById(hostId);
+  const legend = document.getElementById(legendId);
   if (!host || !legend) return;
 
-  const entries = clusterVariableExpenses();
   if (!entries.length) {
-    host.innerHTML = '<div style="text-align:center; color:var(--gray-med); font-size:0.8rem; padding-top:3.5rem;">No variable expenses yet</div>';
+    host.innerHTML = `<div style="text-align:center; color:var(--gray-med); font-size:0.8rem; padding-top:3.5rem;">${(opts && opts.emptyText) || 'No expenses yet'}</div>`;
     legend.innerHTML = '';
     return;
   }
@@ -3093,7 +3107,7 @@ function renderVariableExpensePie() {
   }).join('');
 
   host.innerHTML = `
-    <svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" role="img" aria-label="Variable expenses by category">
+    <svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" role="img" aria-label="Expenses by category">
       ${paths}
       <circle cx="${cx}" cy="${cy}" r="${r * 0.56}" fill="white"></circle>
       <text x="${cx}" y="${cy - 4}" text-anchor="middle" font-family="IBM Plex Sans" font-size="12" font-weight="900" fill="#1C2E4A">${formatMoney(total)}</text>
@@ -3111,6 +3125,23 @@ function renderVariableExpensePie() {
       </div>
     `;
   }).join('');
+}
+
+function clusterAllExpenses() {
+  const rows = [...collectBudgetList('fixed'), ...collectBudgetList('variable')];
+  return clusterExpenseRows(rows);
+}
+
+function renderAllExpensePie() {
+  renderPieChart('allExpensePie', 'allExpenseLegend', clusterAllExpenses(), { emptyText: 'No expenses yet' });
+}
+
+function clusterVariableExpenses() {
+  return clusterExpenseRows(collectBudgetList('variable'));
+}
+
+function renderVariableExpensePie() {
+  renderPieChart('variableExpensePie', 'variableExpenseLegend', clusterVariableExpenses(), { emptyText: 'No variable expenses yet' });
 }
 
 function removeBudgetRow(btn) {
@@ -3150,6 +3181,7 @@ async function loadBudgetData() {
   const notes = document.getElementById('budgetNotes');
   if (notes) notes.value = data.notes || '';
   updateBudgetSummary();
+  renderVariableTrend();
 }
 
 async function saveBudgetData() {
@@ -3164,6 +3196,76 @@ async function saveBudgetData() {
   const ok = await storageSave(budgetKey(budgetViewYear, budgetViewMonth), obj);
   if (ok) showToast('✅ Budget saved!');
   updateBudgetSummary();
+  renderVariableTrend();
+}
+
+function formatMoneyShort(n) {
+  const v = Number(n) || 0;
+  return '$' + Math.round(v).toLocaleString();
+}
+
+function renderTrendSvg(labels, values) {
+  const w = 620, h = 220;
+  const padL = 50, padR = 20, padT = 20, padB = 34;
+  const plotW = w - padL - padR, plotH = h - padT - padB;
+  const maxVal = Math.max(1, ...values);
+  const n = labels.length;
+  const xStep = n > 1 ? plotW / (n - 1) : 0;
+
+  const points = values.map((v, i) => ({
+    x: padL + i * xStep,
+    y: padT + plotH - (v / maxVal) * plotH,
+    v
+  }));
+
+  const gridLines = [];
+  for (let i = 0; i <= 4; i++) {
+    const gy = padT + (plotH * i / 4);
+    const val = maxVal * (1 - i / 4);
+    gridLines.push(`<line x1="${padL}" y1="${gy}" x2="${padL + plotW}" y2="${gy}" stroke="rgba(0,0,0,0.08)" stroke-width="1"></line>`);
+    gridLines.push(`<text x="${padL - 8}" y="${gy + 4}" text-anchor="end" font-size="9" fill="#5A5A5A" font-family="IBM Plex Mono">${formatMoneyShort(val)}</text>`);
+  }
+
+  const linePath = points.map((p, i) => (i === 0 ? 'M' : 'L') + ' ' + p.x + ' ' + p.y).join(' ');
+
+  const dots = points.map((p, i) => `
+    <circle cx="${p.x}" cy="${p.y}" r="4" fill="#005F5F"></circle>
+    <text x="${p.x}" y="${p.y - 10}" text-anchor="middle" font-size="9" font-weight="700" fill="#1C2E4A" font-family="IBM Plex Mono">${formatMoneyShort(p.v)}</text>
+    <text x="${p.x}" y="${padT + plotH + 18}" text-anchor="middle" font-size="10" fill="#5A5A5A" font-family="IBM Plex Sans">${esc(labels[i])}</text>
+  `).join('');
+
+  return `
+    <svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" style="max-width:100%; height:auto;" role="img" aria-label="Variable expense trend">
+      ${gridLines.join('')}
+      <path d="${linePath}" fill="none" stroke="#20B2AA" stroke-width="2.5"></path>
+      ${dots}
+    </svg>
+  `;
+}
+
+let _variableTrendToken = 0;
+
+async function renderVariableTrend() {
+  const host = document.getElementById('variableTrendChart');
+  if (!host) return;
+  const myToken = ++_variableTrendToken;
+
+  const months = [];
+  for (let i = 5; i >= 0; i--) {
+    let mm = budgetViewMonth - i, yy = budgetViewYear;
+    while (mm < 0) { mm += 12; yy -= 1; }
+    months.push({ year: yy, month: mm });
+  }
+
+  const totals = await Promise.all(months.map(async ({ year, month }) => {
+    const data = ensureBudgetDefaults(await storageLoad(budgetKey(year, month)));
+    return (data.variable || []).reduce((sum, x) => sum + (Number(x.amount) || 0), 0);
+  }));
+
+  if (myToken !== _variableTrendToken) return; // a newer call superseded this one; discard stale result
+
+  const labels = months.map(({ year, month }) => MONTHS[month].slice(0, 3) + ' ’' + String(year).slice(2));
+  host.innerHTML = renderTrendSvg(labels, totals);
 }
 
 function scheduleBudgetSave() {
