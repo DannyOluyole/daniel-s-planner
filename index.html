@@ -1614,6 +1614,10 @@
         <div class="card-body">
           <div id="budgetVariableList"></div>
           <button class="btn btn-ghost btn-sm" onclick="addBudgetRow('variable')">+ Add variable expense</button>
+          <div id="variableExpensePieWrap" style="margin-top:1.25rem; padding-top:1rem; border-top:1.5px solid var(--gray-xlight); display:flex; gap:1rem; align-items:center; flex-wrap:wrap;">
+            <div id="variableExpensePie" style="width:170px; height:170px; flex-shrink:0;"></div>
+            <div id="variableExpenseLegend" style="flex:1; min-width:160px;"></div>
+          </div>
         </div>
       </div>
 
@@ -3040,6 +3044,73 @@ function updateBudgetSummary() {
 
   const kNetWrap = document.getElementById('kpiNet');
   if (kNetWrap) kNetWrap.classList.toggle('negative', net < 0);
+
+  renderVariableExpensePie();
+}
+
+const VARIABLE_PIE_COLORS = ['#005F5F', '#B8860B', '#20B2AA', '#C49A2B', '#1C2E4A', '#2E7D32', '#8D6E63', '#455A64', '#6A1B9A', '#E65100'];
+
+function clusterVariableExpenses() {
+  const rows = collectBudgetList('variable');
+  const map = new Map();
+  rows.forEach((r) => {
+    const displayName = (r.name || '').trim() || 'Uncategorized';
+    const key = displayName.toLowerCase();
+    const amt = Math.abs(r.amount || 0);
+    if (amt <= 0) return;
+    const existing = map.get(key);
+    if (existing) existing.amount += amt;
+    else map.set(key, { name: displayName, amount: amt });
+  });
+  return Array.from(map.values()).sort((a, b) => b.amount - a.amount);
+}
+
+function renderVariableExpensePie() {
+  const host = document.getElementById('variableExpensePie');
+  const legend = document.getElementById('variableExpenseLegend');
+  if (!host || !legend) return;
+
+  const entries = clusterVariableExpenses();
+  if (!entries.length) {
+    host.innerHTML = '<div style="text-align:center; color:var(--gray-med); font-size:0.8rem; padding-top:3.5rem;">No variable expenses yet</div>';
+    legend.innerHTML = '';
+    return;
+  }
+
+  const total = entries.reduce((s, e) => s + e.amount, 0);
+  const size = 170, r = 74, cx = size / 2, cy = size / 2;
+  let start = -Math.PI / 2;
+  const paths = entries.map((e, i) => {
+    const frac = total ? e.amount / total : 0;
+    const end = start + frac * Math.PI * 2;
+    const x1 = cx + r * Math.cos(start), y1 = cy + r * Math.sin(start);
+    const x2 = cx + r * Math.cos(end), y2 = cy + r * Math.sin(end);
+    const large = (end - start) > Math.PI ? 1 : 0;
+    const d = `M ${cx} ${cy} L ${x1} ${y1} A ${r} ${r} 0 ${large} 1 ${x2} ${y2} Z`;
+    const fill = VARIABLE_PIE_COLORS[i % VARIABLE_PIE_COLORS.length];
+    start = end;
+    return `<path d="${d}" fill="${fill}" opacity="0.92"></path>`;
+  }).join('');
+
+  host.innerHTML = `
+    <svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" role="img" aria-label="Variable expenses by category">
+      ${paths}
+      <circle cx="${cx}" cy="${cy}" r="${r * 0.56}" fill="white"></circle>
+      <text x="${cx}" y="${cy - 4}" text-anchor="middle" font-family="IBM Plex Sans" font-size="12" font-weight="900" fill="#1C2E4A">${formatMoney(total)}</text>
+      <text x="${cx}" y="${cy + 13}" text-anchor="middle" font-family="IBM Plex Sans" font-size="10" font-weight="700" fill="#5A5A5A">total</text>
+    </svg>
+  `;
+
+  legend.innerHTML = entries.map((e, i) => {
+    const pct = total ? Math.round((e.amount / total) * 100) : 0;
+    const fill = VARIABLE_PIE_COLORS[i % VARIABLE_PIE_COLORS.length];
+    return `
+      <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.4rem; font-size:0.85rem;">
+        <span style="width:10px; height:10px; border-radius:999px; background:${fill}; flex-shrink:0;"></span>
+        <span style="flex:1; color:var(--gray-dark);"><strong>${esc(e.name)}</strong> ${formatMoney(e.amount)} <span style="color:var(--gray-med);">(${pct}%)</span></span>
+      </div>
+    `;
+  }).join('');
 }
 
 function removeBudgetRow(btn) {
