@@ -217,4 +217,17 @@ export class LocalCheckpointRepository implements CheckpointRepository {
   async setFutureVision(userId: string, text: string): Promise<void> {
     this.recordFor(userId).futureVision = text;
   }
+
+  async clearAllData(userId: string): Promise<void> {
+    // A genuinely empty record, not the demo fixtures — recordFor() would
+    // otherwise repopulate them the next time this userId is looked up.
+    this.records.set(userId, {
+      moneyState: { ...initialMoneyState, availableCents: 0, protectedCents: 0, futureYouCents: 0 },
+      decisions: [],
+      savingsGoals: [],
+      commitments: [],
+      income: [],
+      futureVision: null,
+    });
+  }
 }

@@ -54,4 +54,9 @@ export interface CheckpointRepository {
    * Null when never set. */
   getFutureVision(userId: string): Promise<string | null>;
   setFutureVision(userId: string, text: string): Promise<void>;
+  /** "Clear data" in Settings — wipes every decision, goal, commitment,
+   * income source, and future vision for this user, keeping the account
+   * itself intact. Only implemented in local/demo mode; the Supabase path
+   * clears server-side via the clear-data edge function instead. */
+  clearAllData?(userId: string): Promise<void>;
 }

@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase, supabaseConfigured } from "@core/config/supabase";
+import { checkpointRepository, placesRepository } from "@data/repositories";
 
 interface AuthContextValue {
   session: Session | null;
@@ -13,6 +14,10 @@ interface AuthContextValue {
   /** Permanently deletes the signed-in user's account and all their data
    * (cascades server-side — see migration 0015), then signs out locally. */
   deleteAccount: () => Promise<{ error: string | null }>;
+  /** Wipes every decision, goal, commitment, income source, watched place,
+   * and bank connection for the signed-in user, but keeps the account and
+   * session — a "start over" distinct from deleteAccount. */
+  clearData: () => Promise<{ error: string | null }>;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -77,6 +82,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const clearData = async (): Promise<{ error: string | null }> => {
+    const userId = session?.user?.id;
+    if (!userId) return { error: null };
+
+    if (!supabaseConfigured) {
+      // Local demo mode: reset the in-memory repositories directly instead
+      // of calling an edge function. LocalBankLinkRepository has nothing to
+      // clear — it never holds a real connection in demo mode.
+      await Promise.all([
+        checkpointRepository.clearAllData?.(userId),
+        placesRepository.clearAllData?.(userId),
+      ]);
+      return { error: null };
+    }
+
+    try {
+      const { error } = await supabase.functions.invoke("clear-data", {
+        body: { userId },
+      });
+      if (error) return { error: error.message };
+      return { error: null };
+    } catch (e) {
+      return { error: (e as Error).message ?? "Something went wrong." };
+    }
+  };
+
   const value = useMemo(
     () => ({
       session,
@@ -86,6 +117,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       signUpWithPassword,
       signOut,
       deleteAccount,
+      clearData,
     }),
     [session, loading]
   );

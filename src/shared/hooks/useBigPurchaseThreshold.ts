@@ -45,5 +45,16 @@ export function useBigPurchaseThreshold() {
     AsyncStorage.setItem(THRESHOLD_KEY, String(next)).catch(() => {});
   }, []);
 
-  return { enabled, thresholdCents, ready, setEnabled, setThresholdCents };
+  // "Clear data" in Settings — back to the untouched default rather than
+  // just removing the stored keys, so the UI reflects it immediately.
+  const reset = useCallback(async () => {
+    setEnabledState(true);
+    setThresholdCentsState(DEFAULT_THRESHOLD_CENTS);
+    await Promise.all([
+      AsyncStorage.removeItem(ENABLED_KEY),
+      AsyncStorage.removeItem(THRESHOLD_KEY),
+    ]);
+  }, []);
+
+  return { enabled, thresholdCents, ready, setEnabled, setThresholdCents, reset };
 }

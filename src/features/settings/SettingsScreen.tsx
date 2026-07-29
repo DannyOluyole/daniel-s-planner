@@ -46,13 +46,16 @@ function formatDayList(days: number[]): string {
 export function SettingsScreen({ navigation }: Props) {
   const { scheme } = useTheme();
   const { replay } = useOnboarding();
-  const { user, signOut, deleteAccount } = useAuth();
+  const { user, signOut, deleteAccount, clearData } = useAuth();
   const reminder = useCheckInReminder(user?.id ?? null);
   const bigPurchase = useBigPurchaseThreshold();
   const [thresholdInput, setThresholdInput] = useState<string | null>(null);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [confirmingClear, setConfirmingClear] = useState(false);
+  const [clearing, setClearing] = useState(false);
+  const [clearError, setClearError] = useState<string | null>(null);
   const dark = scheme === "dark";
 
   const handleDeleteAccount = async () => {
@@ -65,6 +68,25 @@ export function SettingsScreen({ navigation }: Props) {
     }
     // On success, AuthContext's session goes null and App.tsx swaps to
     // AuthScreen on its own — nothing left to do here.
+  };
+
+  const handleClearData = async () => {
+    setClearError(null);
+    setClearing(true);
+    const { error } = await clearData();
+    if (error) {
+      setClearError(Copy.clearData.errorFallback);
+      setClearing(false);
+      return;
+    }
+    // Local preferences aren't server-side, so reset them here rather than
+    // inside AuthContext. Reminders go through `disable()` (not just a
+    // state reset) so any already-scheduled notifications are cancelled.
+    if (reminder.status === "on") await reminder.disable();
+    await bigPurchase.reset();
+    setClearing(false);
+    setConfirmingClear(false);
+    await replay();
   };
 
   const displayedThreshold = thresholdInput ?? String(bigPurchase.thresholdCents / 100);
@@ -321,6 +343,45 @@ export function SettingsScreen({ navigation }: Props) {
           intent="quiet"
           onPress={() => navigation.navigate("WatchedPlaces")}
         />
+      </Card>
+
+      <Card className="mt-4">
+        <Text className={`text-headline mb-1 ${dark ? "text-ink-dark" : "text-ink"}`}>
+          Your data
+        </Text>
+        {confirmingClear ? (
+          <View>
+            <Text className="text-sm text-signal-caution mb-4">
+              {Copy.clearData.confirmBody}
+            </Text>
+            {clearError && (
+              <Text className="text-sm text-signal-caution mb-3">{clearError}</Text>
+            )}
+            <View className="gap-3">
+              <Button
+                label={clearing ? Copy.clearData.clearingLabel : Copy.clearData.confirmCta}
+                intent="quiet"
+                loading={clearing}
+                disabled={clearing}
+                onPress={handleClearData}
+              />
+              <Button
+                label={Copy.clearData.cancelCta}
+                intent="ghost"
+                disabled={clearing}
+                onPress={() => setConfirmingClear(false)}
+              />
+            </View>
+          </View>
+        ) : (
+          <>
+            <Text className={`text-sm mb-4 ${dark ? "text-ink-faint" : "text-ink-soft"}`}>
+              Wipe every decision, goal, bill, income source, and bank connection, and start over
+              — without deleting your account.
+            </Text>
+            <Button label={Copy.clearData.cta} intent="ghost" onPress={() => setConfirmingClear(true)} />
+          </>
+        )}
       </Card>
 
       <Card className="mt-4 mb-6">

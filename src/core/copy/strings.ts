@@ -334,6 +334,16 @@ export const Copy = {
     errorFallback: "That didn't go through. Try again.",
   },
 
+  clearData: {
+    cta: "Clear data",
+    confirmTitle: "Clear all your data?",
+    confirmBody: "This erases every decision, goal, bill, income source, watched place, and bank connection — and resets Big Purchase Mode and check-in reminders to their defaults. Your account and sign-in stay, and you'll go back through the intro. There's no undo.",
+    confirmCta: "Yes, clear everything",
+    cancelCta: "Cancel",
+    clearingLabel: "Clearing…",
+    errorFallback: "That didn't go through. Try again.",
+  },
+
   linkAccount: {
     title: "Connect your bank",
     subtitle:

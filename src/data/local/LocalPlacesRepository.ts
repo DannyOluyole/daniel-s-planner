@@ -27,4 +27,8 @@ export class LocalPlacesRepository implements PlacesRepository {
   async removeWatchedPlace(_userId: string, id: string): Promise<void> {
     this.places = this.places.filter((p) => p.id !== id);
   }
+
+  async clearAllData(): Promise<void> {
+    this.places = [];
+  }
 }

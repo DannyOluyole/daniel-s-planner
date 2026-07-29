@@ -200,5 +200,5 @@ export function useCheckInReminder(userId: string | null) {
     [status, scheduleNotifications]
   );
 
-  return { status, supported, toggle, schedule, setSchedule, sendTest };
+  return { status, supported, toggle, disable, schedule, setSchedule, sendTest };
 }
