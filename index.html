@@ -948,6 +948,29 @@
 
     .search-result-item:hover { background: var(--teal-xlight); }
 
+    .dashboard-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.25rem; }
+    .dash-card { cursor: pointer; transition: transform 0.15s ease, box-shadow 0.15s ease; }
+    .dash-card:hover { transform: translateY(-2px); box-shadow: 0 8px 28px var(--shadow-teal); }
+    .dash-big-num { font-family: 'Playfair Display', serif; font-size: 2.4rem; font-weight: 900; color: var(--teal-dark); }
+    .dash-sub { font-size: 0.85rem; color: var(--gray-med); margin-top: 0.3rem; }
+
+    .today-banner {
+      background: linear-gradient(135deg, var(--gold) 0%, var(--gold-med) 100%);
+      color: white; font-weight: 700; font-size: 0.85rem;
+      padding: 0.55rem 1.5rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+      flex-wrap: wrap;
+    }
+    .today-banner-close { background: none; border: none; color: white; cursor: pointer; font-size: 1rem; opacity: 0.8; padding: 0; }
+    .today-banner-close:hover { opacity: 1; }
+
+    .goal-progress-bar { width: 100%; height: 16px; background: var(--gray-xlight); border-radius: 999px; overflow: hidden; border: 1px solid var(--gray-light); }
+    .goal-progress-bar > div { height: 100%; background: linear-gradient(90deg, var(--teal) 0%, var(--teal-dark) 100%); transition: width 0.3s ease; }
+    .goal-milestone-row { display: grid; grid-template-columns: 28px 1fr 32px; gap: 0.5rem; align-items: center; margin-bottom: 0.5rem; }
+    .goal-milestone-row input[type="text"] { width: 100%; }
+    .goal-milestone-row.done-row input[type="text"] { text-decoration: line-through; opacity: 0.6; }
+    .goal-milestone-row .rm { background: none; border: none; cursor: pointer; font-size: 1.1rem; opacity: 0.7; }
+    .goal-milestone-row .rm:hover { opacity: 1; }
+
     @media print {
       .top-nav, .day-actions, .toast, .modal-overlay, #autosaveIndicator { display: none !important; }
       .view { display: block !important; }
@@ -961,8 +984,9 @@
 
 <!-- ===== TOP NAV ===== -->
 <nav class="top-nav">
-  <div class="nav-brand" onclick="showView('calendar')">📖 Daniel Planner</div>
-  <div class="nav-tab active" id="nav-calendar" onclick="showView('calendar')">📅 Calendar</div>
+  <div class="nav-brand" onclick="showView('dashboard')">📖 Daniel Planner</div>
+  <div class="nav-tab active" id="nav-dashboard" onclick="showView('dashboard')">🏠 Dashboard</div>
+  <div class="nav-tab" id="nav-calendar" onclick="showView('calendar')">📅 Calendar</div>
   <div class="nav-tab" id="nav-month" onclick="showView('month')">📚 Monthly System</div>
   <div class="nav-tab" id="nav-budget" onclick="showView('budget')">💰 Budget</div>
   <div class="nav-tab" id="nav-day" onclick="showView('day')">📝 Day Planner</div>
@@ -980,6 +1004,11 @@
     <button class="btn btn-red btn-sm" onclick="resetPlanner()">⚠ Reset</button>
   </div>
 </nav>
+
+<div id="todayBanner" class="today-banner" style="display:none;">
+  <span id="todayBannerContent"></span>
+  <button type="button" class="today-banner-close" onclick="dismissTodayBanner()" title="Hide for this session">✕</button>
+</div>
 
 <!-- ===== TOAST & AUTOSAVE ===== -->
 <div class="toast" id="toast"></div>
@@ -1049,9 +1078,39 @@
 </div>
 
 <!-- ===============================================================
+     VIEW: DASHBOARD
+=============================================================== -->
+<div class="view active" id="view-dashboard">
+  <div class="page-hero">
+    <h2>🏠 Dashboard</h2>
+    <p>Everything at a glance</p>
+  </div>
+  <div class="page-content">
+    <div class="dashboard-grid">
+      <div class="card dash-card" onclick="showView('day')" title="Open Day Planner">
+        <div class="card-header gold">🔥 Planning Streak</div>
+        <div class="card-body" id="dashStreak"></div>
+      </div>
+      <div class="card dash-card" id="dashDeadlineCard" title="Open that month">
+        <div class="card-header navy">📅 Next Deadline</div>
+        <div class="card-body" id="dashDeadline"></div>
+      </div>
+      <div class="card dash-card" onclick="showView('month')" title="Open Monthly System">
+        <div class="card-header">✅ Task Completion</div>
+        <div class="card-body" id="dashTasks"></div>
+      </div>
+      <div class="card dash-card" onclick="showView('budget')" title="Open Budget">
+        <div class="card-header gold">💰 Budget Net</div>
+        <div class="card-body" id="dashBudget"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===============================================================
      VIEW: CALENDAR
 =============================================================== -->
-<div class="view active" id="view-calendar">
+<div class="view" id="view-calendar">
   <div class="page-hero">
     <h2>📅 Daniel Planner — Calendar <span class="hero-gold" id="calHeroTitle">2025</span></h2>
     <p>Click any day to open its Daniel Day Planner • First Things First</p>
@@ -1091,6 +1150,7 @@
       <div style="font-family:'Playfair Display',serif; font-size:1.5rem; font-weight:900; color:var(--teal-dark); min-width:200px;" id="monthViewLabel">January 2025</div>
       <button class="cal-nav-btn" onclick="changeMonthView(1)">&#9654;</button>
       <div style="flex:1;"></div>
+      <button class="btn btn-gold btn-sm" onclick="exportMonthInReview()">🖨️ Month in Review</button>
       <button class="btn btn-teal btn-sm" onclick="saveMonthData()">💾 Save Month</button>
     </div>
 
@@ -1447,6 +1507,14 @@
         </div>
       </div>
     </div>
+    <div class="card smart-goal-field" style="margin-top:1.25rem;">
+      <div class="card-header navy">🏁 Milestones &amp; Progress</div>
+      <div class="card-body">
+        <div id="goalMilestoneProgress" style="margin-bottom:1rem;"></div>
+        <div id="goalMilestoneList"></div>
+        <button class="btn btn-ghost btn-sm" onclick="addGoalMilestoneRow()">+ Add milestone</button>
+      </div>
+    </div>
     <p style="text-align:center; color:var(--gray-med); font-style:italic; font-size:0.95rem; margin-top:1.5rem;">
       Write goals that are Specific, Measurable, Action-oriented, Realistic, and Timely.
     </p>
@@ -1752,6 +1820,11 @@ let _modalCb = null;
 let _pendingSave = false;
 
 const GOVERNING_VALUES_KEYS = ['love','joy','peace','longsuffering','kindness','goodness','faithfulness','gentleness','selfcontrol','personalhealthfitness','financialindependence','valuetime'];
+const GOVERNING_VALUES_LABELS = {
+  love: 'Love', joy: 'Joy', peace: 'Peace', longsuffering: 'Longsuffering', kindness: 'Kindness',
+  goodness: 'Goodness', faithfulness: 'Faithfulness', gentleness: 'Gentleness', selfcontrol: 'Self-control',
+  personalhealthfitness: 'Personal Health and Fitness', financialindependence: 'Financial Independence', valuetime: 'Value Time'
+};
 const SYNC_CONFIG_KEY = STORAGE_PREFIX + 'sync-config';
 const SHARED_SYNC_KEY = 'universal-sync-config-v1';
 const DEFAULT_FIREBASE_DB_URL = 'https://adeyinka-daniel-oluyole-default-rtdb.firebaseio.com';
@@ -1969,6 +2042,108 @@ function renderKeyDatesCountdown() {
     const label = it.daysUntil === 0 ? 'Today' : it.daysUntil === 1 ? 'Tomorrow' : 'In ' + it.daysUntil + ' days';
     return '<div class="countdown-pill"><strong>' + esc(label) + '</strong> — ' + esc(it.line) + '</div>';
   }).join('');
+}
+
+/* ================================================================
+   DASHBOARD
+================================================================ */
+function readLocalRecord(key) {
+  const parsed = parsePlannerPayload(localStorage.getItem(STORAGE_PREFIX + key));
+  return (parsed.deleted || !parsed.data) ? null : parsed.data;
+}
+
+function getNextDeadline() {
+  const allDeadlines = [];
+  getAllPlannerRecords('month-').forEach(({ key, data }) => {
+    if (data.keyDates) {
+      computeUpcomingDeadlines(data.keyDates, 99).forEach((it) => allDeadlines.push(Object.assign({ monthKey: key }, it)));
+    }
+  });
+  allDeadlines.sort((a, b) => a.daysUntil - b.daysUntil);
+  return allDeadlines[0] || null;
+}
+
+function getTodayTopTask() {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const data = readLocalRecord('day-' + dateKey(today));
+  if (!data || !Array.isArray(data.tasks)) return null;
+  const priorityOrder = { A: 0, B: 1, C: 2 };
+  const candidates = data.tasks.filter((t) => t.text && t.text.trim() && !t.done);
+  if (!candidates.length) return null;
+  candidates.sort((a, b) => (priorityOrder[a.priority] ?? 3) - (priorityOrder[b.priority] ?? 3));
+  return candidates[0];
+}
+
+function renderTodayBanner() {
+  const host = document.getElementById('todayBanner');
+  const content = document.getElementById('todayBannerContent');
+  if (!host || !content) return;
+  if (sessionStorage.getItem('todayBannerDismissed') === '1') { host.style.display = 'none'; return; }
+
+  const topTask = getTodayTopTask();
+  const nextDl = getNextDeadline();
+  const parts = [];
+  if (topTask) parts.push('🎯 Today: ' + esc(topTask.text));
+  if (nextDl) {
+    const label = nextDl.daysUntil === 0 ? 'Today' : nextDl.daysUntil === 1 ? 'Tomorrow' : 'In ' + nextDl.daysUntil + ' days';
+    parts.push('📅 ' + label + ': ' + esc(nextDl.line));
+  }
+
+  if (!parts.length) { host.style.display = 'none'; return; }
+  content.innerHTML = parts.join(' &nbsp;|&nbsp; ');
+  host.style.display = 'flex';
+}
+
+function dismissTodayBanner() {
+  sessionStorage.setItem('todayBannerDismissed', '1');
+  const host = document.getElementById('todayBanner');
+  if (host) host.style.display = 'none';
+}
+
+function renderDashboard() {
+  const streak = computeDayPlanningStreak();
+  const streakHost = document.getElementById('dashStreak');
+  if (streakHost) {
+    streakHost.innerHTML = streak > 0
+      ? '<div class="dash-big-num">' + streak + '</div><div class="dash-sub">day streak — keep it going</div>'
+      : '<p style="color:var(--gray-med); font-size:0.9rem;">No streak yet — fill in today\'s Day Planner to start one.</p>';
+  }
+
+  const nextDl = getNextDeadline();
+  const dlHost = document.getElementById('dashDeadline');
+  const dlCard = document.getElementById('dashDeadlineCard');
+  if (dlHost) {
+    if (nextDl) {
+      const label = nextDl.daysUntil === 0 ? 'Today' : nextDl.daysUntil === 1 ? '1 day' : nextDl.daysUntil + ' days';
+      dlHost.innerHTML = '<div class="dash-big-num">' + esc(label) + '</div><div class="dash-sub">' + esc(nextDl.line) + '</div>';
+      if (dlCard) dlCard.onclick = function() { goToMonthFromSearch(nextDl.monthKey); };
+    } else {
+      dlHost.innerHTML = '<p style="color:var(--gray-med); font-size:0.9rem;">No upcoming deadlines recorded.</p>';
+      if (dlCard) dlCard.onclick = function() { showView('month'); };
+    }
+  }
+
+  const curMonth = readLocalRecord('month-' + monthKey(monthViewYear, monthViewMonth)) || {};
+  const tasks = (curMonth.tasks || []).filter((t) => t.text && t.text.trim());
+  const doneCount = tasks.filter((t) => t.done).length;
+  const pct = tasks.length ? Math.round((doneCount / tasks.length) * 100) : 0;
+  const tasksHost = document.getElementById('dashTasks');
+  if (tasksHost) {
+    tasksHost.innerHTML = tasks.length
+      ? '<div class="dash-big-num">' + pct + '%</div><div class="dash-sub">' + doneCount + ' of ' + tasks.length + ' tasks done this month</div>'
+      : '<p style="color:var(--gray-med); font-size:0.9rem;">No tasks recorded this month.</p>';
+  }
+
+  const curBudget = ensureBudgetDefaults(readLocalRecord(budgetKey(monthViewYear, monthViewMonth)));
+  const income = (curBudget.income || []).reduce((s, x) => s + (Number(x.amount) || 0), 0);
+  const fixed = (curBudget.fixed || []).reduce((s, x) => s + (Number(x.amount) || 0), 0);
+  const variable = (curBudget.variable || []).reduce((s, x) => s + (Number(x.amount) || 0), 0);
+  const net = income - fixed - variable;
+  const budgetHost = document.getElementById('dashBudget');
+  if (budgetHost) {
+    budgetHost.innerHTML = '<div class="dash-big-num" style="color:' + (net < 0 ? 'var(--red)' : 'var(--teal-dark)') + ';">' + formatMoney(net) + '</div><div class="dash-sub">net this month</div>';
+  }
 }
 
 function setupDateLinkifyForView(viewId) {
@@ -2267,6 +2442,7 @@ function searchPlanner(query) {
   const q = (query || '').trim().toLowerCase();
   if (!q) return [];
   const results = [];
+  const undated = [];
 
   getAllPlannerRecords('month-').forEach(({ key, data }) => {
     const [yy, mm] = key.split('-').map(Number);
@@ -2312,8 +2488,51 @@ function searchPlanner(query) {
     });
   });
 
+  const keepData = readLocalRecord('keep-notes');
+  if (Array.isArray(keepData)) {
+    keepData.forEach((n) => {
+      const combined = ((n.title || '') + ' ' + (n.body || ''));
+      if (combined.toLowerCase().includes(q)) {
+        const created = n.createdAt ? new Date(n.createdAt) : null;
+        const validDate = created && !isNaN(created);
+        const whenLabel = validDate ? (created.getDate() + ' ' + MONTHS[created.getMonth()].slice(0, 3) + ' ' + created.getFullYear()) : 'KeepNotes';
+        const sortKey = validDate ? n.createdAt.slice(0, 10) : null;
+        const item = { type: 'KeepNote', whenLabel, section: 'notes', snippet: makeSnippet(combined, q) };
+        if (sortKey) results.push(Object.assign({ sortKey }, item));
+        else undated.push(item);
+      }
+    });
+  }
+
+  const goalsData = readLocalRecord('goals');
+  if (goalsData) {
+    if (goalsData.smartGoal && goalsData.smartGoal.toLowerCase().includes(q)) {
+      undated.push({ type: 'SMART Goal', whenLabel: 'Goals', section: 'goals', snippet: makeSnippet(goalsData.smartGoal, q) });
+    }
+    (goalsData.milestones || []).forEach((m) => {
+      if (m.text && m.text.toLowerCase().includes(q)) {
+        undated.push({ type: 'Milestone', whenLabel: 'Goals', section: 'goals', snippet: m.text });
+      }
+    });
+  }
+
+  const realityData = readLocalRecord('reality-model');
+  if (realityData && realityData.beliefWindow && realityData.beliefWindow.toLowerCase().includes(q)) {
+    undated.push({ type: 'Belief Window', whenLabel: 'Reality Model', section: 'reality', snippet: makeSnippet(realityData.beliefWindow, q) });
+  }
+
+  const valuesData = readLocalRecord('governing-values');
+  if (valuesData) {
+    GOVERNING_VALUES_KEYS.forEach((k) => {
+      const text = valuesData[k];
+      if (text && text.toLowerCase().includes(q)) {
+        undated.push({ type: 'Value · ' + (GOVERNING_VALUES_LABELS[k] || k), whenLabel: 'Governing Values', section: 'values', snippet: makeSnippet(text, q) });
+      }
+    });
+  }
+
   results.sort((a, b) => b.sortKey.localeCompare(a.sortKey));
-  return results;
+  return results.concat(undated);
 }
 
 let _searchResultsCache = [];
@@ -2351,6 +2570,7 @@ function runGlobalSearch() {
       closeGlobalSearch();
       if (r.monthKey) goToMonthFromSearch(r.monthKey);
       else if (r.dayKey) goToDayFromSearch(r.dayKey);
+      else if (r.section) showView(r.section);
     });
   });
 }
@@ -2825,6 +3045,7 @@ function showView(name) {
   document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
   document.getElementById('view-' + name).classList.add('active');
   document.getElementById('nav-'  + name).classList.add('active');
+  if (name === 'dashboard') renderDashboard();
   if (name === 'calendar') renderCalendar();
   if (name === 'month')    renderMonthView();
   if (name === 'budget')   renderBudgetView();
@@ -2834,6 +3055,7 @@ function showView(name) {
   if (name === 'reality')  loadRealityData();
   if (name === 'notes')    renderKeepNotes();
   if (name === 'values')   setupDateLinkifyForView('view-values');
+  renderTodayBanner();
 }
 
 /* ================================================================
@@ -2994,6 +3216,50 @@ async function saveMonthData() {
   const ok = await storageSave('month-' + monthKey(monthViewYear, monthViewMonth), obj);
   if (ok) showToast('✅ Monthly data saved!');
   updateMtaskStats();
+  renderTodayBanner();
+}
+
+async function exportMonthInReview() {
+  const monthLbl = MONTHS[monthViewMonth] + ' ' + monthViewYear;
+  const md = (await storageLoad('month-' + monthKey(monthViewYear, monthViewMonth))) || {};
+  const bd = ensureBudgetDefaults(await storageLoad(budgetKey(monthViewYear, monthViewMonth)));
+
+  const income = (bd.income || []).reduce((s, x) => s + (Number(x.amount) || 0), 0);
+  const fixed = (bd.fixed || []).reduce((s, x) => s + (Number(x.amount) || 0), 0);
+  const variable = (bd.variable || []).reduce((s, x) => s + (Number(x.amount) || 0), 0);
+  const expenses = fixed + variable;
+  const net = income - expenses;
+
+  const tasks = (md.tasks || []).filter(t => t.text && t.text.trim());
+  const tasksHtml = tasks.length
+    ? '<ul>' + tasks.map(t => {
+        const mark = t.done ? '✅' : '⬜';
+        const pri = t.priority ? '[' + t.priority + '] ' : '';
+        const due = t.due ? (formatToDdmmyyyy(t.due) || t.due) : '';
+        return '<li>' + mark + ' ' + pri + esc(t.text) + (due ? ' — due ' + esc(due) : '') + '</li>';
+      }).join('') + '</ul>'
+    : '<p><em>No tasks recorded.</em></p>';
+
+  const html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>' + esc(monthLbl) + ' — Month in Review</title>' +
+    '<style>body{font-family:Georgia,serif;max-width:700px;margin:2rem auto;padding:0 1.5rem;line-height:1.6;color:#222;} h1{font-size:1.8rem;border-bottom:2px solid #005F5F;} h2{font-size:1.3rem;margin-top:2rem;color:#005F5F;} .stat{display:inline-block;margin:0.4rem 1.25rem 0.4rem 0;} .stat b{display:block;font-size:1.4rem;color:#005F5F;} ul{padding-left:1.25rem;} li{margin-bottom:0.3rem;}</style>' +
+    '</head><body>' +
+    '<h1>' + esc(monthLbl) + ' — Month in Review</h1>' +
+    (md.mission ? '<h2>Mission</h2><p>' + esc(md.mission).replace(/\n/g, '<br>') + '</p>' : '') +
+    '<h2>Budget Summary</h2>' +
+    '<div class="stat"><b>' + formatMoney(income) + '</b>Income</div>' +
+    '<div class="stat"><b>' + formatMoney(expenses) + '</b>Expenses</div>' +
+    '<div class="stat"><b>' + formatMoney(net) + '</b>Net</div>' +
+    '<h2>Key Tasks</h2>' + tasksHtml +
+    (md.keyDates ? '<h2>Key Dates &amp; Deadlines</h2><p>' + esc(md.keyDates).replace(/\n/g, '<br>') + '</p>' : '') +
+    (md.notes ? '<h2>Notes</h2><p>' + esc(md.notes).replace(/\n/g, '<br>') + '</p>' : '') +
+    '</body></html>';
+
+  const w = window.open('', '_blank');
+  if (!w) { showToast('Allow pop-ups to export'); return; }
+  w.document.write(html);
+  w.document.close();
+  w.focus();
+  setTimeout(() => w.print(), 300);
 }
 
 function buildMasterTaskList(tasks) {
@@ -3147,12 +3413,13 @@ async function loadGoalsData() {
   const d = data || {};
   const el = document.getElementById('smartGoalText');
   if (el) el.value = d.smartGoal || '';
+  buildGoalMilestoneList(d.milestones || []);
   setupDateLinkifyForView('view-goals');
 }
 
 async function saveGoalsData() {
   const el = document.getElementById('smartGoalText');
-  const obj = { smartGoal: el ? (el.value || '') : '' };
+  const obj = { smartGoal: el ? (el.value || '') : '', milestones: collectGoalMilestones() };
   await storageSave('goals', obj);
   showAutoSaveIndicator();
 }
@@ -3160,6 +3427,68 @@ async function saveGoalsData() {
 function scheduleGoalsSave() {
   clearTimeout(_goalsSaveTimer);
   _goalsSaveTimer = setTimeout(saveGoalsData, 1100);
+}
+
+function buildGoalMilestoneList(milestones) {
+  const container = document.getElementById('goalMilestoneList');
+  if (!container) return;
+  container.innerHTML = '';
+  const items = (milestones && milestones.length) ? milestones : [{ text: '', done: false }];
+  items.forEach((m) => {
+    const row = document.createElement('div');
+    row.className = 'goal-milestone-row' + (m.done ? ' done-row' : '');
+    row.innerHTML = `
+      <input type="checkbox" class="checkbox-inp" ${m.done ? 'checked' : ''} onchange="this.closest('.goal-milestone-row').classList.toggle('done-row', this.checked); updateGoalMilestoneProgress(); scheduleGoalsSave()" />
+      <input type="text" placeholder="Milestone..." value="${esc(m.text || '')}" oninput="updateGoalMilestoneProgress(); scheduleGoalsSave()" />
+      <button type="button" class="rm" title="Remove" onclick="removeGoalMilestoneRow(this)">✕</button>
+    `;
+    container.appendChild(row);
+  });
+  updateGoalMilestoneProgress();
+}
+
+function collectGoalMilestones() {
+  return Array.from(document.querySelectorAll('.goal-milestone-row')).map((row) => ({
+    text: row.querySelector('input[type="text"]').value,
+    done: row.querySelector('input[type="checkbox"]').checked
+  })).filter((m) => m.text && m.text.trim());
+}
+
+function addGoalMilestoneRow() {
+  const milestones = collectGoalMilestones();
+  milestones.push({ text: '', done: false });
+  buildGoalMilestoneList(milestones);
+}
+
+function removeGoalMilestoneRow(btn) {
+  const row = btn.closest('.goal-milestone-row');
+  if (row) row.remove();
+  if (document.querySelectorAll('.goal-milestone-row').length === 0) {
+    buildGoalMilestoneList([]);
+  }
+  updateGoalMilestoneProgress();
+  scheduleGoalsSave();
+}
+
+function updateGoalMilestoneProgress() {
+  const rows = Array.from(document.querySelectorAll('.goal-milestone-row'));
+  let total = 0, done = 0;
+  rows.forEach((row) => {
+    const text = row.querySelector('input[type="text"]').value.trim();
+    if (!text) return;
+    total++;
+    if (row.querySelector('input[type="checkbox"]').checked) done++;
+  });
+  const pct = total ? Math.round((done / total) * 100) : 0;
+  const host = document.getElementById('goalMilestoneProgress');
+  if (!host) return;
+  host.innerHTML = `
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.4rem; font-size:0.85rem; color:var(--gray-med);">
+      <span><strong style="color:var(--teal-dark);">${done}</strong> of <strong style="color:var(--teal-dark);">${total}</strong> milestones done</span>
+      <span style="font-weight:800; color:var(--teal-dark);">${pct}%</span>
+    </div>
+    <div class="goal-progress-bar"><div style="width:${pct}%"></div></div>
+  `;
 }
 
 /* ================================================================
@@ -3789,6 +4118,7 @@ async function saveDayPlanner() {
     showToast('✅ Saved — ' + dk);
     syncIndexFromDay(dayViewDate, obj);
     renderDayStreak();
+    renderTodayBanner();
   }
 }
 
@@ -3969,6 +4299,8 @@ window.addEventListener('DOMContentLoaded', () => {
   setupTextAssist();
   buildDayUI();
   renderCalendar();
+  renderDashboard();
+  renderTodayBanner();
   const cfg = getSyncConfig();
   if (cfg && cfg.enabled) {
     document.getElementById('cloudSyncBtn').classList.add('btn-teal');
