@@ -16,7 +16,7 @@ type Props = NativeStackScreenProps<RootStackParamList, "NewDecision">;
 type Step = "intent" | "details";
 
 /**
- * The real entry point into a Checkpoint — amount + category, then straight
+ * The real entry point into a decision — amount + category, then straight
  * into the Wall. A tappable keypad instead of the OS keyboard, and an
  * optional (not required) merchant name, since the target scenario is
  * someone standing in line with a few seconds to spare, not filling out a

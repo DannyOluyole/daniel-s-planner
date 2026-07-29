@@ -1,5 +1,5 @@
 /**
- * Checkpoint design tokens.
+ * Pause Money design tokens.
  * Single source of truth for anything not expressed via NativeWind classes
  * (e.g. values needed inside SVG, Reanimated, or gradients).
  * Keep in sync with tailwind.config.js.

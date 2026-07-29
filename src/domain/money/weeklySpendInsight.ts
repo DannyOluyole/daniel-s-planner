@@ -16,7 +16,7 @@ function parseLocalDate(dateStr: string): Date {
 /**
  * The category with the most real bank spend over the trailing 7 days —
  * unlike Home's topCategoryThisWeek (which only sees purchases the user
- * manually Checkpoint'd), this reads actual synced transactions, so it can
+ * manually logged), this reads actual synced transactions, so it can
  * notice a pattern the user never logged. Only counts real debits (Plaid's
  * positive-amount convention) with a known category; returns null when
  * there's nothing worth saying.
@@ -64,7 +64,7 @@ const TREND_MIN_PERCENT_CHANGE = 15;
  * Transaction-backed twin of insightsEngine.ts's detectCategoryTrends —
  * same trailing-30-days-vs-previous-30-days comparison, same thresholds,
  * but reading real synced transactions instead of manually-logged
- * decisions, so it can catch a pattern the user never Checkpoint'd.
+ * decisions, so it can catch a pattern the user never logged.
  */
 export function detectCategoryTrendsFromTransactions(
   transactions: Transaction[],

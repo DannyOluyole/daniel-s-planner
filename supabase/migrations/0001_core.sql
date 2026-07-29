@@ -1,4 +1,4 @@
--- Core Checkpoint schema: MoneyState snapshots + decision log.
+-- Core Pause Money schema: MoneyState snapshots + decision log.
 -- Paste into the Supabase SQL editor for a fresh project.
 
 create table money_states (

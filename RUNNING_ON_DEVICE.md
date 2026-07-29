@@ -1,4 +1,4 @@
-# Running Checkpoint on a physical phone
+# Running Pause Money on a physical phone
 
 These steps assume you're running them from a terminal on the machine
 you're physically at (not a remote/sandboxed session) — Expo Go needs to

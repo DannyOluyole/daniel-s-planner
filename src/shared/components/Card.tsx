@@ -8,7 +8,7 @@ interface CardProps extends ViewProps {
 }
 
 /**
- * The single surface primitive used across Checkpoint. Deliberately quiet:
+ * The single surface primitive used across Pause Money. Deliberately quiet:
  * soft radius, hairline border instead of heavy shadow, generous padding.
  */
 export function Card({ children, raised = false, className, ...rest }: CardProps) {

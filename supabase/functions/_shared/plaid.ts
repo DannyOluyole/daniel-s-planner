@@ -75,7 +75,7 @@ export const plaid = {
   createLinkToken(userId: string) {
     return plaidFetch("/link/token/create", {
       user: { client_user_id: userId },
-      client_name: "Checkpoint",
+      client_name: "Pause Money",
       products: ["transactions"],
       country_codes: ["US"],
       language: "en",

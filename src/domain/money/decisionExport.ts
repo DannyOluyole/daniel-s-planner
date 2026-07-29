@@ -8,7 +8,7 @@ function escapeCsvField(value: string): string {
 
 /**
  * The user's own decision history as a spreadsheet-friendly CSV — one row
- * per Checkpoint, dollars rather than cents since this is meant to be read
+ * per decision, dollars rather than cents since this is meant to be read
  * by a person, not re-parsed by the app itself.
  */
 export function decisionsToCsv(decisions: SpendingDecision[]): string {

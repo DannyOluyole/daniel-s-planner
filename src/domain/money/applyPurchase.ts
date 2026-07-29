@@ -26,7 +26,7 @@ export interface WallVerdict {
 }
 
 /**
- * Pure ledger math behind the Checkpoint screen: what Available looks like
+ * Pure ledger math behind the Decision Mode screen: what Available looks like
  * before/after, and whether this purchase eats into the savings goal.
  * Deliberately returns numbers only, no copy — message text is composed at
  * the UI layer from `Copy`, keeping this module framework- and vocabulary-free.

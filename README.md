@@ -1,4 +1,4 @@
-# Checkpoint
+# Pause Money
 
 A financial *mindfulness* app, not a budgeting app. The signature feature is
 the **Spending Wall** — a calm checkpoint screen that appears before a
@@ -26,23 +26,23 @@ src/
   shared/      # cross-feature UI primitives (Button, Card, Screen) and hooks
 ```
 
-Screens depend on `CheckpointRepository` (an interface), never on Supabase
+Screens depend on `Pause MoneyRepository` (an interface), never on Supabase
 directly — swapping in a bank-aggregator SDK later means writing one new
 class in `data/`, not touching any screen.
 
 ## The vocabulary layer
 
 Every user-facing money word routes through `src/core/copy/strings.ts`. That
-file is the single place that encodes Checkpoint's tone:
+file is the single place that encodes Pause Money's tone:
 
-| Instead of      | Checkpoint says   |
+| Instead of      | Pause Money says   |
 |------------------|-------------------|
 | Budget           | Available / Protected |
 | Expenses         | Protected for… |
 | Transactions     | Decisions |
 | Over budget      | Stretched thin |
 | Save             | Set aside |
-| (checkout wall)  | Checkpoint |
+| (checkout wall)  | Pause Money |
 
 No screen should hardcode a finance word — import from `Copy` instead. This
 is what keeps the tone consistent as the app grows, and the one place to
@@ -102,7 +102,7 @@ toggle actually override the device setting). Preference (`system` / `light`
 ## Onboarding
 
 First launch shows `src/features/onboarding/OnboardingScreen.tsx` — four
-paged slides (`slides.ts`) introducing Available/Protected, the Checkpoint
+paged slides (`slides.ts`) introducing Available/Protected, the Pause Money
 pause, and Future You, before the user ever sees Home. Gate state lives in
 `OnboardingContext.tsx` (wrapping the app in `App.tsx`), backed by
 AsyncStorage (`onboardingStorage.ts`). Settings' "Replay intro" calls
@@ -111,8 +111,8 @@ needed, since `Root` in `App.tsx` reads `onboarded` straight from context.
 
 ## Decisions history
 
-`src/features/decisions/DecisionsScreen.tsx` lists past Checkpoint outcomes
-via `getRecentDecisions` (already defined on `CheckpointRepository` — no new
+`src/features/decisions/DecisionsScreen.tsx` lists past Pause Money outcomes
+via `getRecentDecisions` (already defined on `Pause MoneyRepository` — no new
 repository work needed). Each row (`DecisionRow.tsx`) shows the merchant,
 amount, and a quiet colored dot for outcome (Continued / Paused /
 Reconsidered), using `Copy.outcomeLabel` so the vocabulary stays consistent.
@@ -181,8 +181,8 @@ Schema: `supabase/migrations/0003_plaid_items.sql` (see "Supabase schema" above)
 
 `src/features/spending-wall/NewDecisionScreen.tsx` is the real entry point
 for logging a purchase — merchant/category + amount, then straight into the
-Wall. `HomeScreen`'s "Open Checkpoint" button navigates here instead of the
-old hardcoded demo values. On "Continue," `CheckpointRepository.recordDecision`
+Wall. `HomeScreen`'s "Open Pause Money" button navigates here instead of the
+old hardcoded demo values. On "Continue," `Pause MoneyRepository.recordDecision`
 now also debits `availableCents` (via the pure `applyPurchase` function in
 `src/domain/money/applyPurchase.ts`) by inserting a fresh `money_states`
 snapshot — this is what makes Available correct for a user who's never
@@ -195,7 +195,7 @@ the Product Vision describes.
 
 ## Savings goal
 
-`src/domain/entities/SavingsGoal.ts` + two new `CheckpointRepository` methods
+`src/domain/entities/SavingsGoal.ts` + two new `Pause MoneyRepository` methods
 (`getSavingsGoal`, `setSavingsGoal`) back a single goal per user (schema:
 `0002_savings_goals.sql`). It's set right after onboarding
 (`src/features/onboarding/components/SavingsGoalStep.tsx`) and editable later
@@ -206,7 +206,7 @@ You" card on Home navigates there (previously an orphaned route).
 
 `src/core/config/supabase.ts` exports `supabaseConfigured` (true once
 `EXPO_PUBLIC_SUPABASE_URL`/`_ANON_KEY` are set). `src/data/repositories.ts`
-picks `LocalCheckpointRepository`/`LocalBankLinkRepository` (in-memory,
+picks `LocalPause MoneyRepository`/`LocalBankLinkRepository` (in-memory,
 seeded with fixture numbers) instead of the Supabase-backed ones when
 unconfigured, and `AuthContext` synthesizes a stable local demo session
 instead of calling `supabase.auth.*`. This is what makes the whole app

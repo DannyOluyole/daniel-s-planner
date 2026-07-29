@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "Checkpoint — Decision Mode",
+  "name": "Pause Money — Decision Mode",
   "version": "0.3.0",
   "description": "A quiet pause before you place an order — with a real dollar-impact check once you sign in.",
   "permissions": ["storage"],

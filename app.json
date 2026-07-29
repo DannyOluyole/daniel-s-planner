@@ -1,8 +1,8 @@
 {
   "expo": {
-    "name": "Checkpoint",
+    "name": "Pause Money",
     "slug": "checkpoint",
-    "scheme": "checkpoint",
+    "scheme": "pausemoney",
     "version": "0.1.0",
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
@@ -11,20 +11,20 @@
       "backgroundColor": "#F7FAF8"
     },
     "ios": {
-      "bundleIdentifier": "com.checkpoint.app",
+      "bundleIdentifier": "com.pausemoney.app",
       "supportsTablet": false,
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
-      "package": "com.checkpoint.app",
+      "package": "com.pausemoney.app",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "monochromeImage": "./assets/adaptive-icon-monochrome.png",
         "backgroundColor": "#123324"
       },
-      "versionCode": 3
+      "versionCode": 1
     },
     "plugins": [
       "expo-font",
@@ -34,7 +34,7 @@
           "widgets": [
             {
               "name": "CheckpointWidget",
-              "label": "Checkpoint — Safe to spend",
+              "label": "Pause Money — Safe to spend",
               "minWidth": "110dp",
               "minHeight": "110dp",
               "description": "Shows what's safe to spend right now. Tap to open Decision Mode.",
@@ -42,7 +42,7 @@
             },
             {
               "name": "UpcomingWidget",
-              "label": "Checkpoint — What's ahead",
+              "label": "Pause Money — What's ahead",
               "minWidth": "180dp",
               "minHeight": "110dp",
               "description": "Shows the next scheduled income or bill. Tap to open Future You.",
@@ -54,7 +54,7 @@
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "Checkpoint checks the places you've added against your location only when you open the app, so it can offer a quiet check-in before you shop there."
+          "locationWhenInUsePermission": "Pause Money checks the places you've added against your location only when you open the app, so it can offer a quiet check-in before you shop there."
         }
       ],
       "expo-secure-store",

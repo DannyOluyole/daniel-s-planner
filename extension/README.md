@@ -1,9 +1,9 @@
-# Checkpoint browser extension (Stage 3)
+# Pause Money browser extension (Stage 3)
 
 A quiet pause at online checkouts. When you reach an order-review page on a
 supported store — Amazon, Best Buy, Nike, Apple, Walmart, eBay, Etsy, Target,
 Costco, Home Depot, Lowe's, Wayfair, IKEA, Macy's, Kohl's, Sephora, Ulta,
-Nordstrom, GameStop, Temu, Shein, or AliExpress — a small Checkpoint card
+Nordstrom, GameStop, Temu, Shein, or AliExpress — a small Pause Money card
 appears in the corner. Sign in once via the toolbar icon and
 it upgrades from a generic prompt into a real dollar-impact check — "This
 purchase delays your Trip fund by about 5 days" — computed from your actual
@@ -15,7 +15,7 @@ about a purchase. It never blocks the page or touches the order form.
 1. Open `chrome://extensions` (or `edge://extensions`)
 2. Enable **Developer mode**
 3. **Load unpacked** → select this `extension/` folder
-4. Click the Checkpoint icon in the toolbar and sign in with your Checkpoint
+4. Click the Pause Money icon in the toolbar and sign in with your Pause Money
    account (optional — the overlay still works without this, just generic)
 5. Visit a supported store's checkout page
 
@@ -49,7 +49,7 @@ about a purchase. It never blocks the page or touches the order form.
 
 ## Known limitations
 
-- `checkpoint://decision` only resolves if the Checkpoint app is installed
+- `pausemoney://decision` only resolves if the Pause Money app is installed
   and registered for the scheme on this device; swap `DECISION_URL` in
   `content.js` for the hosted web app URL when one exists.
 - Personalization requires the order total scraper to confidently find a

@@ -1,5 +1,5 @@
 /**
- * MoneyState is Checkpoint's core domain entity — a snapshot of where the
+ * MoneyState is Pause Money's core domain entity — a snapshot of where the
  * user stands right now. It deliberately avoids "budget" vocabulary; it
  * models state, not rules.
  */
@@ -47,7 +47,7 @@ export interface SpendingDecision {
   category?: string;
   intent?: PurchaseIntent;
   outcome: DecisionOutcome;
-  /** How long the user actually sat on the Checkpoint screen, in ms. */
+  /** How long the user actually sat on the Decision Mode screen, in ms. */
   pauseDurationMs: number;
   /** Optional "why" behind a paused/reconsidered decision — never asked of
    * a "continued" purchase, since there's nothing to explain. */

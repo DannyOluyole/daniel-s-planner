@@ -18,7 +18,7 @@ function isSameMonth(a: Date, b: Date): boolean {
 }
 
 /**
- * A month's worth of Checkpoint activity, retold as a short story instead
+ * A month's worth of decision activity, retold as a short story instead
  * of a chart — "Financial Replay." Built only from real, already-tracked
  * numbers (decision counts, money protected, where continued spend went by
  * intent) — deliberately never invents a claim (like "you protected your
@@ -50,7 +50,7 @@ export function buildMonthlyReplay(decisions: SpendingDecision[], monthDate: Dat
  */
 export function buildMonthlyReplayLines(replay: MonthlyReplay): string[] {
   if (replay.totalDecisions === 0) {
-    return [`No Checkpoints yet this ${replay.monthLabel} — they'll show up here once you start.`];
+    return [`No decisions yet this ${replay.monthLabel} — they'll show up here once you start.`];
   }
 
   const lines: string[] = [

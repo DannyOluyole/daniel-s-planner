@@ -1,7 +1,7 @@
 import { plaid, PlaidAccount, PlaidTransaction } from "./plaid.ts";
 
 /**
- * Heuristic mapping from raw account balances to Checkpoint's three
+ * Heuristic mapping from raw account balances to Pause Money's three
  * numbers. This is a starting point, not a finished model — refine once
  * real commitments/goals data exists:
  *

@@ -21,7 +21,7 @@ export function UpcomingWidget({ eventLabel, amountLabel }: Props) {
   return (
     <FlexWidget
       clickAction="OPEN_URI"
-      clickActionData={{ uri: "checkpoint://future-you" }}
+      clickActionData={{ uri: "pausemoney://future-you" }}
       style={{
         height: "match_parent",
         width: "match_parent",

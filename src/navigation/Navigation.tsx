@@ -37,7 +37,7 @@ export type TabParamList = {
   Home: undefined;
   FutureYou: undefined;
   // Never actually navigated into — its press is intercepted to open
-  // Decision Mode instead, so a new Checkpoint is one tap away from any
+  // Decision Mode instead, so a new decision is one tap away from any
   // tab, not just Home. See CenterActionButton.
   NewDecisionTab: undefined;
   Decisions: undefined;
@@ -113,7 +113,7 @@ function NoopScreen() {
  * Floats above the tab bar rather than sitting in line with the other
  * icons — the raised-circle treatment common to "primary action in a tab
  * bar" patterns, so the one thing worth doing from anywhere (start a
- * Checkpoint) reads as distinct from the four destinations around it.
+ * Decision Mode) reads as distinct from the four destinations around it.
  */
 function CenterActionButton({ onPress }: BottomTabBarButtonProps) {
   return (
@@ -211,11 +211,11 @@ function Tabs() {
 }
 
 // One-tap entry points (lock-screen widget, Action Button shortcut, browser
-// extension) all land on checkpoint://decision — straight into Decision
+// extension) all land on pausemoney://decision — straight into Decision
 // Mode, no navigating through Home first. On web the same map makes
 // /decision work as a plain URL.
 const linking: LinkingOptions<RootStackParamList> = {
-  prefixes: [Linking.createURL("/"), "checkpoint://"],
+  prefixes: [Linking.createURL("/"), "pausemoney://"],
   config: {
     screens: {
       Tabs: {

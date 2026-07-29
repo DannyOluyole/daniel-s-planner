@@ -6,14 +6,14 @@ export interface OnboardingSlide {
 }
 
 /**
- * The four ideas a new user needs before their first Checkpoint. Order
- * matters: state (Available/Protected) before the mechanism (Checkpoint)
+ * The four ideas a new user needs before their first decision. Order
+ * matters: state (Available/Protected) before the mechanism (Decision Mode)
  * before the payoff (Future You).
  */
 export const onboardingSlides: OnboardingSlide[] = [
   {
     key: "welcome",
-    eyebrow: "Checkpoint",
+    eyebrow: "Pause Money",
     title: "Tell us about your life, not your spreadsheet",
     body: "Not a budget. Not a scoreboard. We're less interested in your numbers than in what you're actually working toward.",
   },
@@ -25,14 +25,14 @@ export const onboardingSlides: OnboardingSlide[] = [
   },
   {
     key: "checkpoint",
-    eyebrow: "The Checkpoint",
+    eyebrow: "The pause",
     title: "A pause before it's final",
-    body: "Before a purchase completes, Checkpoint shows you the honest impact and gives you a short, unhurried moment to decide.",
+    body: "Before a purchase completes, Pause Money shows you the honest impact and gives you a short, unhurried moment to decide.",
   },
   {
     key: "future-you",
     eyebrow: "Future You",
     title: "Every decision has a second owner",
-    body: "Future You is who inherits today's choices — the dreams and plans you're actually building toward. Checkpoint keeps them in view, not to guilt you, just to remind you they're there.",
+    body: "Future You is who inherits today's choices — the dreams and plans you're actually building toward. Pause Money keeps them in view, not to guilt you, just to remind you they're there.",
   },
 ];

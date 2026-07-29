@@ -8,7 +8,7 @@ interface Props {
 
 /**
  * The lock-screen / home-screen widget face. Tapping anywhere on it opens
- * Decision Mode directly (checkpoint://decision) — the same one-tap entry
+ * Decision Mode directly (pausemoney://decision) — the same one-tap entry
  * point as the deep link used by the browser extension and any future
  * Action Button / Quick Settings shortcut.
  */
@@ -16,7 +16,7 @@ export function CheckpointWidget({ availableLabel }: Props) {
   return (
     <FlexWidget
       clickAction="OPEN_URI"
-      clickActionData={{ uri: "checkpoint://decision" }}
+      clickActionData={{ uri: "pausemoney://decision" }}
       style={{
         height: "match_parent",
         width: "match_parent",

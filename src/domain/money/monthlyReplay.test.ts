@@ -63,7 +63,7 @@ describe("buildMonthlyReplayLines", () => {
     const replay = buildMonthlyReplay([], JULY);
     const lines = buildMonthlyReplayLines(replay);
     expect(lines).toHaveLength(1);
-    expect(lines[0]).toContain("No Checkpoints yet");
+    expect(lines[0]).toContain("No decisions yet");
   });
 
   it("leads with the decision-count line, using correct singular/plural forms", () => {

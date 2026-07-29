@@ -17,7 +17,7 @@ export const supabaseConfigured = Boolean(supabaseUrl && supabaseAnonKey);
 
 if (!supabaseConfigured) {
   console.warn(
-    "[Checkpoint] Supabase env vars are missing — running in local demo mode. Set EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY to use a real backend."
+    "[Pause Money] Supabase env vars are missing — running in local demo mode. Set EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY to use a real backend."
   );
 }
 

@@ -10,7 +10,7 @@ interface Props {
 }
 
 /**
- * The three ways a Checkpoint can resolve. "Continue" is intentionally
+ * The three ways a decision can resolve. "Continue" is intentionally
  * disabled until the mandatory pause beat elapses, upstream in
  * SpendingWallScreen — this component only renders the resulting state.
  */

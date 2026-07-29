@@ -1,5 +1,5 @@
 /**
- * Checkpoint's vocabulary.
+ * Pause Money's vocabulary.
  *
  * Every user-facing string that touches money routes through this file.
  * No screen or component should hardcode finance words directly — this is
@@ -22,7 +22,7 @@ export const Copy = {
   futureYou: "Future You",
 
   // The signature flow
-  checkpoint: "Checkpoint",
+  checkpoint: "Decision Mode",
   decision: "Decision",
   pause: "Pause",
   continue_: "Continue",
@@ -41,7 +41,7 @@ export const Copy = {
   },
 
   home: {
-    title: "Checkpoint",
+    title: "Pause Money",
     subtitle: "A quiet look at where you stand.",
     availableLabel: "Available today",
     availableLabelGeneric: "Available",
@@ -102,7 +102,7 @@ export const Copy = {
     fridayNotificationBody: "Take a quiet look at where you stand before you head out.",
     moneyProtectedLine: (amount: string) => `You protected ${amount} by pausing or reconsidering this week.`,
     webUnsupportedNote: "Check-ins arrive as notifications, which need the iOS or Android app.",
-    permissionDeniedNote: "Notifications are off for Checkpoint — enable them in your device settings first.",
+    permissionDeniedNote: "Notifications are off for Pause Money — enable them in your device settings first.",
   },
 
   bigPurchaseMode: {
@@ -115,7 +115,7 @@ export const Copy = {
   places: {
     title: "Places to watch",
     subtitle:
-      "Mark a spot — a mall, your usual coffee shop — and Checkpoint offers a quiet check-in when you're nearby. Never a lecture, never automatic.",
+      "Mark a spot — a mall, your usual coffee shop — and Pause Money offers a quiet check-in when you're nearby. Never a lecture, never automatic.",
     addCta: "Add this place",
     savingLabel: "Getting your location…",
     namePlaceholder: "What should we call this place?",
@@ -127,17 +127,17 @@ export const Copy = {
     removeCta: "Remove",
     radiusNote: (meters: number) => `${meters}m radius`,
     permissionDeniedNote:
-      "Location access is off for Checkpoint — enable location access in your device settings to use this.",
+      "Location access is off for Pause Money — enable location access in your device settings to use this.",
     foregroundNote:
-      "Checkpoint only checks your location when you open the app — never in the background, no persistent notification.",
+      "Pause Money only checks your location when you open the app — never in the background, no persistent notification.",
     nearbyBannerTitle: (place: string) => `You're near ${place}`,
-    nearbyBannerBody: "Want to Checkpoint before you shop today?",
+    nearbyBannerBody: "Want to pause before you shop today?",
     nearbyBannerCta: "Open Decision Mode",
     nearbyBannerDismissCta: "Not now",
   },
 
   spendingWall: {
-    title: "Checkpoint",
+    title: "Pause Money",
     prompt: "Decision Mode",
     question: "Is this worth it, right now?",
     safeToSpendLabel: "Safe to Spend",
@@ -257,7 +257,7 @@ export const Copy = {
 
   savingsGoalStep: {
     title: "What's the dream you're building toward?",
-    subtitle: "A cushion, a trip, a new place — whatever it is, Checkpoint will give you a heads-up before a purchase dips into it.",
+    subtitle: "A cushion, a trip, a new place — whatever it is, Pause Money will give you a heads-up before a purchase dips into it.",
     namePlaceholder: "What are you working toward? (e.g. Cushion, Trip, New car)",
     amountPlaceholder: "$ target amount",
     skipCta: "Skip for now",
@@ -270,12 +270,12 @@ export const Copy = {
 
   onboardingHabits: {
     title: "What's a spending habit you have?",
-    subtitle: "Coffee, eating out, something you buy often. Checkpoint uses this to notice patterns, not to judge them.",
+    subtitle: "Coffee, eating out, something you buy often. Pause Money uses this to notice patterns, not to judge them.",
   },
 
   futureVisionStep: {
     title: "What does financial freedom look like to you?",
-    subtitle: "A short phrase is plenty — Checkpoint will bring it back up at the moments it actually matters.",
+    subtitle: "A short phrase is plenty — Pause Money will bring it back up at the moments it actually matters.",
     placeholder: "e.g. Buying my first house, Never worrying about bills",
     saveCta: "Save",
     skipCta: "Skip for now",
@@ -284,8 +284,8 @@ export const Copy = {
 
   decisionsScreen: {
     title: "Decisions",
-    subtitle: "Every Checkpoint, and how it went.",
-    empty: "No decisions yet — they'll show up here after your first Checkpoint.",
+    subtitle: "Every decision, and how it went.",
+    empty: "No decisions yet — they'll show up here after your first decision.",
     replayTitle: (month: string) => `Your ${month}, so far`,
     moneyProtectedLabel: (amount: string) => `${amount} protected by pausing or reconsidering`,
     topReasonLabel: (reason: string) => `Most common reason: "${reason}"`,
@@ -313,8 +313,8 @@ export const Copy = {
 
   auth: {
     signInTitle: "Welcome back",
-    signInSubtitle: "Continue to your Checkpoint.",
-    signUpTitle: "Start your Checkpoint",
+    signInSubtitle: "Continue where you left off.",
+    signUpTitle: "Start with Pause Money",
     signUpSubtitle: "A calmer way to see your money.",
     emailPlaceholder: "Email",
     passwordPlaceholder: "Password",
@@ -347,7 +347,7 @@ export const Copy = {
   linkAccount: {
     title: "Connect your bank",
     subtitle:
-      "Checkpoint reads your balances and recent activity — it can't move money. Your login stays with your bank.",
+      "Pause Money reads your balances and recent activity — it can't move money. Your login stays with your bank.",
     connectCta: "Connect a bank account",
     connectedLabel: "Connected",
     unlinkedLabel: "Not connected yet",

@@ -1,6 +1,6 @@
 /**
  * A single real transaction pulled from the user's linked bank via Plaid.
- * Read-only from the app's perspective — Checkpoint never writes these,
+ * Read-only from the app's perspective — Pause Money never writes these,
  * only displays them as recent activity.
  */
 export interface Transaction {

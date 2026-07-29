@@ -151,7 +151,7 @@ export function SettingsScreen({ navigation }: Props) {
           Bank connection
         </Text>
         <Text className={`text-sm mb-4 ${dark ? "text-ink-faint" : "text-ink-soft"}`}>
-          Manage the bank account Checkpoint reads balances from.
+          Manage the bank account Pause Money reads balances from.
         </Text>
         <Button
           label="Connect your bank"
@@ -165,7 +165,7 @@ export function SettingsScreen({ navigation }: Props) {
           Appearance
         </Text>
         <Text className={`text-sm mb-4 ${dark ? "text-ink-faint" : "text-ink-soft"}`}>
-          Checkpoint stays calm in either light or dark. System follows your device.
+          Pause Money stays calm in either light or dark. System follows your device.
         </Text>
         <ThemeToggle />
       </Card>
@@ -389,7 +389,7 @@ export function SettingsScreen({ navigation }: Props) {
           Introduction
         </Text>
         <Text className={`text-sm mb-4 ${dark ? "text-ink-faint" : "text-ink-soft"}`}>
-          Replay the walkthrough of Available, Protected, Checkpoint, and Future You.
+          Replay the walkthrough of Available, Protected, Decision Mode, and Future You.
         </Text>
         <Button label="Replay intro" intent="quiet" onPress={replay} />
       </Card>

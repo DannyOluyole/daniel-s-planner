@@ -20,7 +20,7 @@ const AMOUNT_TOLERANCE_RATIO = 0.1;
 /**
  * Finds real bank debits that have charged the same merchant for a similar
  * amount across several distinct months — the "forgotten subscription"
- * pattern Checkpoint's philosophy cares about: a quiet, recurring leak the
+ * pattern Pause Money's philosophy cares about: a quiet, recurring leak the
  * user set up once and then stopped noticing. Deliberately conservative
  * (3+ distinct months, amounts within 10% of each other) so this only ever
  * surfaces charges that are genuinely recurring, not a coincidence of two

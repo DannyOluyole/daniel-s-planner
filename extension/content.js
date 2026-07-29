@@ -1,4 +1,4 @@
-// Checkpoint — the pause, brought to online checkouts (Stage 3).
+// Pause Money — the pause, brought to online checkouts (Stage 3).
 // Shows one quiet overlay per checkout visit. Never blocks, never touches
 // the page's forms — it's a moment, not a wall. The overlay appears
 // immediately with a generic prompt, then upgrades in place to a real
@@ -7,10 +7,10 @@
 
 const OVERLAY_ID = "checkpoint-decision-overlay";
 const DISMISSED_KEY = "checkpoint-dismissed";
-// Where "Open Decision Mode" goes. checkpoint://decision reaches the
+// Where "Open Decision Mode" goes. pausemoney://decision reaches the
 // installed mobile/desktop app; swap for the hosted web app URL when one
 // exists.
-const DECISION_URL = "checkpoint://decision";
+const DECISION_URL = "pausemoney://decision";
 
 function alreadyDismissedHere() {
   try {
@@ -53,7 +53,7 @@ function buildOverlay() {
   wrap.appendChild(stripe);
 
   const title = document.createElement("div");
-  title.textContent = "Checkpoint";
+  title.textContent = "Pause Money";
   title.style.cssText = "color:#9A9CA5;font-size:11px;letter-spacing:0.15em;text-transform:uppercase;";
   wrap.appendChild(title);
 
@@ -70,7 +70,7 @@ function buildOverlay() {
 
   const hint = document.createElement("div");
   hint.id = "checkpoint-signin-hint";
-  hint.textContent = "Sign in via the Checkpoint icon in your toolbar for a real dollar-impact check.";
+  hint.textContent = "Sign in via the Pause Money icon in your toolbar for a real dollar-impact check.";
   hint.style.cssText = "display:none;color:#6B7280;font-size:11px;margin-top:8px;line-height:1.4;";
   wrap.appendChild(hint);
 
