@@ -2135,14 +2135,18 @@ function renderDashboard() {
       : '<p style="color:var(--gray-med); font-size:0.9rem;">No tasks recorded this month.</p>';
   }
 
-  const curBudget = ensureBudgetDefaults(readLocalRecord(budgetKey(monthViewYear, monthViewMonth)));
-  const income = (curBudget.income || []).reduce((s, x) => s + (Number(x.amount) || 0), 0);
-  const fixed = (curBudget.fixed || []).reduce((s, x) => s + (Number(x.amount) || 0), 0);
-  const variable = (curBudget.variable || []).reduce((s, x) => s + (Number(x.amount) || 0), 0);
-  const net = income - fixed - variable;
   const budgetHost = document.getElementById('dashBudget');
   if (budgetHost) {
-    budgetHost.innerHTML = '<div class="dash-big-num" style="color:' + (net < 0 ? 'var(--red)' : 'var(--teal-dark)') + ';">' + formatMoney(net) + '</div><div class="dash-sub">net this month</div>';
+    if (budgetLocked) {
+      budgetHost.innerHTML = '<p style="color:var(--gray-med); font-size:0.9rem;">🔒 Locked — open Budget to view.</p>';
+    } else {
+      const curBudget = ensureBudgetDefaults(readLocalRecord(budgetKey(monthViewYear, monthViewMonth)));
+      const income = (curBudget.income || []).reduce((s, x) => s + (Number(x.amount) || 0), 0);
+      const fixed = (curBudget.fixed || []).reduce((s, x) => s + (Number(x.amount) || 0), 0);
+      const variable = (curBudget.variable || []).reduce((s, x) => s + (Number(x.amount) || 0), 0);
+      const net = income - fixed - variable;
+      budgetHost.innerHTML = '<div class="dash-big-num" style="color:' + (net < 0 ? 'var(--red)' : 'var(--teal-dark)') + ';">' + formatMoney(net) + '</div><div class="dash-sub">net this month</div>';
+    }
   }
 }
 
