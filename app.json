@@ -12,7 +12,10 @@
     },
     "ios": {
       "bundleIdentifier": "com.checkpoint.app",
-      "supportsTablet": false
+      "supportsTablet": false,
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "package": "com.checkpoint.app",
@@ -20,7 +23,8 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "monochromeImage": "./assets/adaptive-icon-monochrome.png",
         "backgroundColor": "#123324"
-      }
+      },
+      "versionCode": 2
     },
     "plugins": [
       "expo-font",
@@ -53,7 +57,15 @@
           "locationWhenInUsePermission": "Checkpoint checks the places you've added against your location only when you open the app, so it can offer a quiet check-in before you shop there."
         }
       ],
-      "expo-secure-store"
+      "expo-secure-store",
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "deploymentTarget": "15.1"
+          }
+        }
+      ]
     ],
     "extra": {
       "eas": {
