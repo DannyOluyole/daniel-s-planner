@@ -24,7 +24,7 @@
         "monochromeImage": "./assets/adaptive-icon-monochrome.png",
         "backgroundColor": "#123324"
       },
-      "versionCode": 1
+      "versionCode": 2
     },
     "plugins": [
       "expo-font",
@@ -63,6 +63,10 @@
         {
           "ios": {
             "deploymentTarget": "15.1"
+          },
+          "android": {
+            "targetSdkVersion": 35,
+            "compileSdkVersion": 35
           }
         }
       ]
