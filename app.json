@@ -69,7 +69,8 @@
             "compileSdkVersion": 35
           }
         }
-      ]
+      ],
+      "expo-asset"
     ],
     "extra": {
       "eas": {
