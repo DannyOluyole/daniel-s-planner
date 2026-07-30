@@ -20,6 +20,11 @@ ios/
 # android/ ignore above, but credentials.json (passwords, key alias) does
 # not and must never be committed in plain text.
 credentials.json
+credentials/
+*.jks
+
+# Web export used for manual Vercel redeploys
+dist_new/
 
 # Editor/OS
 .vscode/
