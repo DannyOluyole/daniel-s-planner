@@ -121,7 +121,12 @@ export function useCheckInReminder(userId: string | null) {
               ...(Platform.OS === "android" ? { channelId: "checkpoint-alerts" } : null),
             },
             // expo-notifications' weekday is 1-indexed from Sunday.
-            trigger: { weekday: day + 1, hour: sched.hour, minute: sched.minute, repeats: true },
+            trigger: {
+              type: Notifications.SchedulableTriggerInputTypes.WEEKLY,
+              weekday: day + 1,
+              hour: sched.hour,
+              minute: sched.minute,
+            },
           })
         )
       );
