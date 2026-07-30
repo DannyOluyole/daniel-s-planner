@@ -16,6 +16,11 @@ ios/
 .env.local
 .env.*.local
 
+# EAS-downloaded signing credentials — the keystore itself falls under the
+# android/ ignore above, but credentials.json (passwords, key alias) does
+# not and must never be committed in plain text.
+credentials.json
+
 # Editor/OS
 .vscode/
 .DS_Store
