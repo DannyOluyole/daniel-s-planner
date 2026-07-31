@@ -17,12 +17,13 @@ const DISMISS_COOLDOWN_MS = 2 * 60 * 60 * 1000;
 const MAX_CACHED_AGE_MS = 5 * 60 * 1000;
 
 /**
- * Foreground-only replacement for background geofencing: checks the
- * device's last-known (cached) location against watched places whenever
- * Home regains focus, entirely in the foreground — no background task, no
- * "Allow all the time" permission, no persistent Android notification.
- * Trade-off versus the old approach: this only ever catches a nearby place
- * while the app happens to be open, not the instant you actually arrive.
+ * Foreground fallback for whoever hasn't granted (or has since revoked)
+ * background location permission: checks the device's last-known (cached)
+ * location against watched places whenever Home regains focus. Real arrival
+ * detection lives in geofencingTask.ts and fires the instant someone
+ * arrives, in the background — this hook only ever catches a nearby place
+ * while the app happens to be open, which is the best available fallback
+ * for anyone who declined "Allow all the time."
  *
  * Never prompts for permission itself — AddPlaceForm is the one place that
  * asks for it, the first time someone adds a watched place. This hook just

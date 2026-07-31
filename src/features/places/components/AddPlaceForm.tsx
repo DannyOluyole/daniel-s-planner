@@ -79,6 +79,16 @@ export function AddPlaceForm({ onSubmit, onCancel }: Props) {
         return;
       }
 
+      // Android requires background permission to be requested as its own,
+      // separate step after foreground is already granted — asking for both
+      // at once fails outright. Best-effort: if the user declines this one,
+      // arrival nudges just fall back to the foreground-only check next
+      // time the app is opened (see useNearbyPlace) rather than failing the
+      // whole "add a place" flow.
+      console.log("[AddPlaceForm] requesting background permission…");
+      const background = await Location.requestBackgroundPermissionsAsync();
+      console.log("[AddPlaceForm] background permission result:", background.status);
+
       console.log("[AddPlaceForm] checking cached position…");
       const cached = await Location.getLastKnownPositionAsync({ maxAge: MAX_CACHED_AGE_MS });
       console.log("[AddPlaceForm] cached position:", cached);

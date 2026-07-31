@@ -129,7 +129,9 @@ export const Copy = {
     permissionDeniedNote:
       "Location access is off for Pause Money — enable location access in your device settings to use this.",
     foregroundNote:
-      "Pause Money only checks your location when you open the app — never in the background, no persistent notification.",
+      "Location access for background arrival nudges is off, so Pause Money only checks when you open the app — enable \"Allow all the time\" in your device's location settings for Pause Money to get a nudge the moment you arrive.",
+    backgroundNote:
+      "Pause Money checks for arrival at these places in the background, only to offer a quiet nudge — no continuous tracking, no persistent notification.",
     nearbyBannerTitle: (place: string) => `You're near ${place}`,
     nearbyBannerBody: "Want to pause before you shop today?",
     nearbyBannerCta: "Open Decision Mode",

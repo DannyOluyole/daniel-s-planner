@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { WatchedPlace, WatchedPlaceInput } from "@domain/entities/WatchedPlace";
 import { placesRepository } from "@data/repositories";
+import { syncGeofences } from "../geofencingTask";
 
 export function useWatchedPlaces(userId: string | null) {
   const [places, setPlaces] = useState<WatchedPlace[]>([]);
@@ -12,6 +13,9 @@ export function useWatchedPlaces(userId: string | null) {
     try {
       const next = await placesRepository.getWatchedPlaces(userId);
       setPlaces(next);
+      // Keeps OS-level geofences in sync with whatever's actually saved —
+      // a no-op when background location permission isn't granted.
+      syncGeofences(next);
     } finally {
       setLoading(false);
     }

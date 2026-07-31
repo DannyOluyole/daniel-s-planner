@@ -1,5 +1,6 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { View, Text, Pressable } from "react-native";
+import * as Location from "expo-location";
 import { Screen } from "@shared/components/Screen";
 import { BackHeader } from "@shared/components/BackHeader";
 import { Card } from "@shared/components/Card";
@@ -16,13 +17,18 @@ export function WatchedPlacesScreen() {
   const { user } = useAuth();
   const { places, addPlace, removePlace } = useWatchedPlaces(user?.id ?? null);
   const [adding, setAdding] = useState(false);
+  const [backgroundGranted, setBackgroundGranted] = useState(false);
+
+  useEffect(() => {
+    Location.getBackgroundPermissionsAsync().then(({ status }) => setBackgroundGranted(status === "granted"));
+  }, [places]);
 
   return (
     <Screen>
       <BackHeader title={Copy.places.title} subtitle={Copy.places.subtitle} />
 
       <Text className={`text-xs mt-1 mb-4 ${dark ? "text-ink-faint" : "text-ink-faint"}`}>
-        {Copy.places.foregroundNote}
+        {backgroundGranted ? Copy.places.backgroundNote : Copy.places.foregroundNote}
       </Text>
 
       {places.length === 0 && !adding && (

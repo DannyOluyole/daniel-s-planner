@@ -54,9 +54,13 @@
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "Pause Money checks the places you've added against your location only when you open the app, so it can offer a quiet check-in before you shop there."
+          "locationWhenInUsePermission": "Pause Money checks your location while the app is open, so it can offer a quiet check-in when you're near a place you've added.",
+          "locationAlwaysAndWhenInUsePermission": "Pause Money uses your location in the background only to detect arrival at a place you've explicitly added, so it can offer a quiet check-in — nothing is tracked continuously.",
+          "isAndroidBackgroundLocationEnabled": true,
+          "isAndroidForegroundServiceEnabled": false
         }
       ],
+      "expo-task-manager",
       "expo-secure-store",
       [
         "expo-build-properties",
