@@ -23,8 +23,9 @@ credentials.json
 credentials/
 *.jks
 
-# Web export used for manual Vercel redeploys
-dist_new/
+# Web export used for manual Vercel redeploys — a fresh dist_newN/ dir gets
+# created each time the previous one is still locked by a leftover process
+dist_new*/
 
 # Editor/OS
 .vscode/
