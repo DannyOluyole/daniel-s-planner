@@ -14,7 +14,12 @@ import {
 import { View, Pressable } from "react-native";
 import * as Linking from "expo-linking";
 import * as Haptics from "expo-haptics";
-import { Ionicons } from "@expo/vector-icons";
+// Subpath import, not the `@expo/vector-icons` barrel — the barrel
+// re-exports all 18 icon families, and Metro bundles each family's font
+// file as a static asset once any of them is reachable through the module
+// graph. Importing only Ionicons directly keeps the other ~17 unused font
+// files (MaterialCommunityIcons alone is 1.3MB) out of the build entirely.
+import Ionicons from "@expo/vector-icons/Ionicons";
 import { useTheme } from "@core/theme/ThemeContext";
 import { colors } from "@core/theme/tokens";
 import { Copy } from "@core/copy/strings";
