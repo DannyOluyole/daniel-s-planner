@@ -41,7 +41,11 @@ export function DecisionsScreen() {
       // without a matching SDK build). Screens get eagerly required by the
       // navigator, so a static import here would crash the whole app at
       // boot, long before this try/catch ever got a chance to run.
-      const FileSystem = require("expo-file-system");
+      //
+      // expo-file-system's default export moved to a new File/Directory
+      // class-based API; documentDirectory/writeAsStringAsync/EncodingType
+      // only exist under the /legacy subpath now.
+      const FileSystem = require("expo-file-system/legacy");
       const Sharing = require("expo-sharing");
 
       const canShare = await Sharing.isAvailableAsync();

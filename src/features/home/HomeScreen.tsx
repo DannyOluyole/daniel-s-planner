@@ -51,8 +51,8 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
   const { income, loading: incomeLoading } = useIncome(userId);
   const { decisions, loading: decisionsLoading, refresh: refreshDecisions } = useDecisions(userId, 200);
   const { goals } = useSavingsGoals(userId);
-  const { status: bankStatus, refresh: refreshBankStatus } = useBankConnectionStatus(userId);
-  const { state: bankState, refresh: refreshBankState } = useCheckpoint(userId);
+  const { status: bankStatus, loading: bankStatusLoading, refresh: refreshBankStatus } = useBankConnectionStatus(userId);
+  const { state: bankState, loading: bankStateLoading, refresh: refreshBankState } = useCheckpoint(userId);
   const { transactions, refresh: refreshTransactions } = useTransactions(userId);
   const { nearbyPlace, dismiss: dismissNearbyPlace } = useNearbyPlace(userId);
   const isBankLinked = bankStatus === "linked";
@@ -97,7 +97,7 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
     ? Copy.home.statusCategoryOver
     : Copy.home.statusOnTrack;
 
-  const loading = commitmentsLoading || incomeLoading || decisionsLoading;
+  const loading = commitmentsLoading || incomeLoading || decisionsLoading || bankStatusLoading || bankStateLoading;
 
   return (
     <Screen>
