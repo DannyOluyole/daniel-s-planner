@@ -20,7 +20,8 @@ import { PortalScreen } from "@features/portal/PortalScreen";
 // completely unseen depending on whether the app happened to be open.
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
-    shouldShowAlert: true,
+    shouldShowBanner: true,
+    shouldShowList: true,
     shouldPlaySound: true,
     shouldSetBadge: false,
   }),
