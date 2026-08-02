@@ -79,7 +79,7 @@ export const plaid = {
       products: ["transactions"],
       country_codes: ["US"],
       language: "en",
-      android_package_name: "com.checkpoint.app",
+      android_package_name: "com.pausemoney.app",
     }) as Promise<{ link_token: string }>;
   },
 

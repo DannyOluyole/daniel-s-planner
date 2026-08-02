@@ -1,9 +1,30 @@
+import { FunctionsHttpError } from "@supabase/supabase-js";
 import { supabase } from "@core/config/supabase";
 import {
   BankConnectionStatus,
   BankLinkRepository,
 } from "@domain/repositories/BankLinkRepository";
 import { Transaction } from "@domain/entities/Transaction";
+
+/**
+ * Every plaid-* edge function returns `{ error: message }` in the response
+ * body on failure, but supabase-js's FunctionsHttpError always hardcodes
+ * its own `.message` to the generic "Edge Function returned a non-2xx
+ * status code" — the actual reason (e.g. a Plaid API error) only exists in
+ * `.context`, the raw Response, and has to be read out manually. Without
+ * this, that generic string is exactly what ends up in front of the user.
+ */
+async function unwrapFunctionsError(error: unknown): Promise<Error> {
+  if (error instanceof FunctionsHttpError) {
+    try {
+      const body = await error.context.json();
+      if (typeof body?.error === "string") return new Error(body.error);
+    } catch {
+      // Response body wasn't JSON or already consumed — fall through to the generic error below.
+    }
+  }
+  return error as Error;
+}
 
 /**
  * Talks only to Supabase Edge Functions (see /supabase/functions). The
@@ -15,7 +36,7 @@ export class SupabasePlaidRepository implements BankLinkRepository {
     const { data, error } = await supabase.functions.invoke("plaid-create-link-token", {
       body: { userId },
     });
-    if (error) throw error;
+    if (error) throw await unwrapFunctionsError(error);
     return data.linkToken as string;
   }
 
@@ -23,14 +44,14 @@ export class SupabasePlaidRepository implements BankLinkRepository {
     const { error } = await supabase.functions.invoke("plaid-exchange-token", {
       body: { userId, publicToken },
     });
-    if (error) throw error;
+    if (error) throw await unwrapFunctionsError(error);
   }
 
   async triggerSync(userId: string): Promise<void> {
     const { error } = await supabase.functions.invoke("plaid-sync", {
       body: { userId },
     });
-    if (error) throw error;
+    if (error) throw await unwrapFunctionsError(error);
   }
 
   async getConnectionStatus(userId: string): Promise<BankConnectionStatus> {
@@ -51,7 +72,7 @@ export class SupabasePlaidRepository implements BankLinkRepository {
     const { error } = await supabase.functions.invoke("plaid-unlink", {
       body: { userId },
     });
-    if (error) throw error;
+    if (error) throw await unwrapFunctionsError(error);
   }
 
   async getTransactions(userId: string, limit = 25): Promise<Transaction[]> {
