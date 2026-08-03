@@ -24,7 +24,7 @@
         "monochromeImage": "./assets/adaptive-icon-monochrome.png",
         "backgroundColor": "#123324"
       },
-      "versionCode": 6
+      "versionCode": 7
     },
     "plugins": [
       "expo-font",
