@@ -63,6 +63,12 @@
       "expo-task-manager",
       "expo-secure-store",
       [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "Pause Money uses Face ID to unlock the app after it's been in the background a while."
+        }
+      ],
+      [
         "expo-build-properties",
         {
           "ios": {

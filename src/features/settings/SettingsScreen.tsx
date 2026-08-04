@@ -10,6 +10,7 @@ import { useOnboarding } from "@features/onboarding/OnboardingContext";
 import { useAuth } from "@core/auth/AuthContext";
 import { useCheckInReminder } from "@shared/hooks/useCheckInReminder";
 import { useBigPurchaseThreshold } from "@shared/hooks/useBigPurchaseThreshold";
+import { useAppLock } from "@features/applock/useAppLock";
 import { Copy } from "@core/copy/strings";
 import { colors } from "@core/theme/tokens";
 import type { SettingsStackScreenProps } from "@app/Navigation";
@@ -49,6 +50,7 @@ export function SettingsScreen({ navigation }: Props) {
   const { user, signOut, deleteAccount, clearData } = useAuth();
   const reminder = useCheckInReminder(user?.id ?? null);
   const bigPurchase = useBigPurchaseThreshold();
+  const appLock = useAppLock();
   const [thresholdInput, setThresholdInput] = useState<string | null>(null);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -328,6 +330,31 @@ export function SettingsScreen({ navigation }: Props) {
               />
             </View>
           </View>
+        )}
+      </Card>
+
+      <Card className="mt-4">
+        <Text className={`text-headline mb-1 ${dark ? "text-ink-dark" : "text-ink"}`}>
+          {Copy.appLock.cardTitle}
+        </Text>
+        <Text className={`text-sm mb-4 ${dark ? "text-ink-faint" : "text-ink-soft"}`}>
+          {Copy.appLock.cardSubtitle}
+        </Text>
+        {appLock.canUseLock ? (
+          <View className="flex-row items-center justify-between">
+            <Text className={`text-base ${dark ? "text-ink-dark" : "text-ink"}`}>
+              {Copy.appLock.toggleLabel}
+            </Text>
+            <Switch
+              value={appLock.enabled}
+              onValueChange={appLock.setEnabled}
+              trackColor={{ true: colors.checkpointBright, false: undefined }}
+            />
+          </View>
+        ) : (
+          <Text className={`text-xs ${dark ? "text-ink-faint" : "text-ink-faint"}`}>
+            {Copy.appLock.unavailableNote}
+          </Text>
         )}
       </Card>
 

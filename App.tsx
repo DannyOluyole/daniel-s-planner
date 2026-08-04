@@ -12,6 +12,8 @@ import { OnboardingProvider, useOnboarding } from "@features/onboarding/Onboardi
 import { OnboardingScreen } from "@features/onboarding/OnboardingScreen";
 import { AuthScreen } from "@features/auth/AuthScreen";
 import { PortalScreen } from "@features/portal/PortalScreen";
+import { LockScreen } from "@features/applock/LockScreen";
+import { useAppLock } from "@features/applock/useAppLock";
 
 // Without a handler, expo-notifications silently drops any notification
 // received while the app is in the foreground — this is documented default
@@ -31,6 +33,7 @@ function Root() {
   const { scheme } = useTheme();
   const { user, loading: authLoading } = useAuth();
   const { ready: onboardingReady, onboarded } = useOnboarding();
+  const { ready: lockReady, locked, unlock } = useAppLock();
   // Lives in memory, not storage — a real relaunch gets a fresh Root mount
   // and sees the Portal again; backgrounding/foregrounding the app doesn't,
   // since the JS state survives. That's "once per session."
@@ -95,6 +98,12 @@ function Root() {
   // onboarded flips instantly via OnboardingContext.replay() (e.g. from
   // Settings), so this re-renders straight into onboarding with no relaunch.
   if (!onboarded) return <OnboardingScreen />;
+
+  // Gated after onboarding, not before — locking someone out of a setup
+  // flow they haven't finished yet would just be confusing, and there's
+  // nothing sensitive to protect until an account exists.
+  if (!lockReady) return spinner;
+  if (locked) return <LockScreen onUnlock={unlock} />;
 
   if (!hasEnteredPortal && !cameViaDeepLink) {
     return <PortalScreen onEnter={() => setHasEnteredPortal(true)} />;

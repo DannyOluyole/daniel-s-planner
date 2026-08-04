@@ -112,6 +112,18 @@ export const Copy = {
     thresholdLabel: "Threshold",
   },
 
+  appLock: {
+    cardTitle: "App lock",
+    cardSubtitle:
+      "Require Face ID, fingerprint, or your device passcode after Pause Money has been in the background a while.",
+    toggleLabel: "Require unlock",
+    unavailableNote: "Set up a fingerprint, face unlock, or a screen lock on this device to use this.",
+    title: "Pause Money is locked",
+    subtitle: "Unlock to see your accounts and decisions.",
+    failedNote: "That didn't go through — try again.",
+    unlockCta: "Unlock",
+  },
+
   places: {
     title: "Places to watch",
     subtitle:
