@@ -45,7 +45,7 @@ async function fetchSavingsGoals(session) {
 
 async function fetchIncome(session) {
   const res = await fetch(
-    `${SUPABASE_URL}/rest/v1/income?select=amount_cents,day_of_month,created_at,removed_at&user_id=eq.${session.userId}`,
+    `${SUPABASE_URL}/rest/v1/income?select=amount_cents,day_of_month,frequency,anchor_date,created_at,removed_at&user_id=eq.${session.userId}`,
     { headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${session.accessToken}` } }
   );
   if (!res.ok) return [];
@@ -145,12 +145,43 @@ function occurrencesWithinHorizon(dayOfMonth, from, horizonEnd) {
   return dates;
 }
 
+function stepDays(date, days) {
+  const next = new Date(date);
+  next.setDate(next.getDate() + days);
+  return next;
+}
+
+function occurrencesFromAnchor(anchorDateKey, intervalDays, from, horizonEnd) {
+  const [ay, am, ad] = anchorDateKey.split("-").map(Number);
+  let candidate = new Date(ay, am - 1, ad);
+  const fromDateOnly = new Date(from.getFullYear(), from.getMonth(), from.getDate());
+  while (candidate < fromDateOnly) {
+    candidate = stepDays(candidate, intervalDays);
+  }
+  const dates = [];
+  while (candidate <= horizonEnd) {
+    dates.push(candidate);
+    candidate = stepDays(candidate, intervalDays);
+  }
+  return dates;
+}
+
+function occurrencesForIncome(item, from, horizonEnd) {
+  if (item.frequency === "biweekly" && item.anchor_date) {
+    return occurrencesFromAnchor(item.anchor_date, 14, from, horizonEnd);
+  }
+  if (item.frequency === "weekly" && item.anchor_date) {
+    return occurrencesFromAnchor(item.anchor_date, 7, from, horizonEnd);
+  }
+  return occurrencesWithinHorizon(item.day_of_month, from, horizonEnd);
+}
+
 function buildFinancialTimeline(availableCents, income, commitments, hypotheticalAmountCents, now, horizonDays = 45) {
   const horizonEnd = new Date(now.getTime() + horizonDays * DAY_MS);
   const events = [];
 
   for (const item of income.filter((i) => !i.removed_at)) {
-    for (const date of occurrencesWithinHorizon(item.day_of_month, now, horizonEnd)) {
+    for (const date of occurrencesForIncome(item, now, horizonEnd)) {
       events.push({ date: toDateKey(date), amountCents: item.amount_cents, kind: "income" });
     }
   }
@@ -190,6 +221,35 @@ function formatShortfallDate(dateKey) {
   return new Date(y, m - 1, d).toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
+// Mirrors financialTimeline.ts's computeDaysUntilSafeToSpend exactly: how
+// many days until this purchase, made on that future day instead of today,
+// would leave every later day in the horizon still non-negative. Needs a
+// timeline built WITHOUT the hypothetical purchase (see getPersonalizedImpact),
+// trying the purchase against every future day rather than just today.
+function computeDaysUntilSafeToSpend(baselineTimeline, amountCents, now) {
+  if (baselineTimeline.lowestBalanceCents >= amountCents) return 0;
+
+  const n = baselineTimeline.runningBalances.length;
+  if (n === 0) return null;
+
+  const suffixMin = new Array(n);
+  let min = Infinity;
+  for (let i = n - 1; i >= 0; i--) {
+    min = Math.min(min, baselineTimeline.runningBalances[i]);
+    suffixMin[i] = min;
+  }
+
+  const todayDateOnly = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  for (let i = 0; i < n; i++) {
+    if (suffixMin[i] >= amountCents) {
+      const [y, m, d] = baselineTimeline.events[i].date.split("-").map(Number);
+      const eventDate = new Date(y, m - 1, d);
+      return Math.max(0, Math.round((eventDate.getTime() - todayDateOnly.getTime()) / DAY_MS));
+    }
+  }
+  return null;
+}
+
 // --- Goal selection — mirrors applyPurchase.ts's selectDippedGoal. ---
 
 function selectDippedGoal(goals, afterCents) {
@@ -212,9 +272,11 @@ function estimateDelayDays(dipsIntoGoalByCents, goal) {
 /**
  * Pure scoring, mirrors decisionNarrative.ts exactly — including a real
  * timeline shortfall taking priority over a goal dip, since going negative
- * before the next paycheck is a sharper problem than eating into savings.
+ * before the next paycheck is a sharper problem than eating into savings,
+ * and the "wait N days" framing (Financial Twin) when a baseline timeline
+ * (built without this hypothetical purchase) can name a concrete day count.
  */
-function computeImpact(orderAmountCents, beforeCents, goal, timeline) {
+function computeImpact(orderAmountCents, beforeCents, goal, timeline, baselineTimeline, now) {
   if (beforeCents == null) return null;
 
   const afterCents = beforeCents - orderAmountCents;
@@ -227,9 +289,19 @@ function computeImpact(orderAmountCents, beforeCents, goal, timeline) {
   let headline;
   if (timeline && timeline.causesShortfall) {
     const shortBy = Math.abs(timeline.lowestBalanceCents);
-    headline = timeline.lowestBalanceDate
-      ? `This leaves you short by ${formatMoney(shortBy)} before ${formatShortfallDate(timeline.lowestBalanceDate)}.`
-      : `This leaves you short by ${formatMoney(shortBy)} before your next paycheck.`;
+    const waitDays = baselineTimeline
+      ? computeDaysUntilSafeToSpend(baselineTimeline, orderAmountCents, now || new Date())
+      : null;
+    if (waitDays != null && waitDays > 0) {
+      const whenPhrase = timeline.lowestBalanceDate ? ` by ${formatShortfallDate(timeline.lowestBalanceDate)}` : "";
+      headline = `Your future self would prefer you wait ${waitDays} ${
+        waitDays === 1 ? "day" : "days"
+      } — this dips ${formatMoney(shortBy)} into money you need${whenPhrase}.`;
+    } else {
+      headline = timeline.lowestBalanceDate
+        ? `This leaves you short by ${formatMoney(shortBy)} before ${formatShortfallDate(timeline.lowestBalanceDate)}.`
+        : `This leaves you short by ${formatMoney(shortBy)} before your next paycheck.`;
+    }
     score = Math.min(score, 25);
   } else if (dipsIntoGoalBy > 0) {
     const goalName = goal && goal.name ? goal.name : "your savings goal";
@@ -241,7 +313,7 @@ function computeImpact(orderAmountCents, beforeCents, goal, timeline) {
     const dipRatio = goalTarget ? dipsIntoGoalBy / Math.max(goalTarget, 1) : 0.5;
     score -= Math.round(20 + dipRatio * 50);
   } else {
-    headline = "This purchase keeps you on track.";
+    headline = "Your future self can comfortably absorb this purchase.";
   }
 
   score = Math.max(3, Math.min(99, score));
@@ -288,9 +360,14 @@ async function getPersonalizedImpact(session, orderAmountCents) {
 
     const afterCents = beforeCents - orderAmountCents;
     const goal = selectDippedGoal(goals, afterCents);
-    const timeline = buildFinancialTimeline(beforeCents, income, commitments, orderAmountCents, new Date());
+    const now = new Date();
+    const timeline = buildFinancialTimeline(beforeCents, income, commitments, orderAmountCents, now);
+    // Built without the hypothetical purchase — computeDaysUntilSafeToSpend
+    // needs this to answer "wait N days", trying the purchase against every
+    // future day rather than just today. Matches SpendingWallScreen.tsx.
+    const baselineTimeline = buildFinancialTimeline(beforeCents, income, commitments, null, now);
 
-    return computeImpact(orderAmountCents, beforeCents, goal, timeline);
+    return computeImpact(orderAmountCents, beforeCents, goal, timeline, baselineTimeline, now);
   } catch {
     return null;
   }
@@ -303,5 +380,7 @@ if (typeof module !== "undefined") {
     getPersonalizedImpact,
     selectDippedGoal,
     buildFinancialTimeline,
+    computeDaysUntilSafeToSpend,
+    occurrencesForIncome,
   };
 }

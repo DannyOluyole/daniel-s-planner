@@ -2,7 +2,13 @@
 const assert = require("node:assert");
 const { isCheckoutUrl } = require("./checkoutMatcher");
 const { findTotalFromLines, parseAmountCents } = require("./orderAmount");
-const { computeImpact, selectDippedGoal, buildFinancialTimeline } = require("./impact");
+const {
+  computeImpact,
+  selectDippedGoal,
+  buildFinancialTimeline,
+  computeDaysUntilSafeToSpend,
+  occurrencesForIncome,
+} = require("./impact");
 
 const shouldMatch = [
   "https://www.amazon.com/gp/buy/spc/handlers/display.html",
@@ -73,7 +79,7 @@ console.log("ok — order total scraper resolved every fixture correctly");
 // A purchase well within Available and nowhere near the goal — on track.
 {
   const impact = computeImpact(2000, 100000, null, null);
-  assert.strictEqual(impact.headline, "This purchase keeps you on track.");
+  assert.strictEqual(impact.headline, "Your future self can comfortably absorb this purchase.");
   assert.ok(impact.score >= 80, `expected a high score, got ${impact.score}`);
   assert.strictEqual(impact.scoreLabel, "Excellent decision");
 }
@@ -111,6 +117,33 @@ assert.strictEqual(computeImpact(500, null, null, null), null);
   assert.ok(impact.headline.includes("short by $35.65 before Jul 23"), impact.headline);
   assert.ok(impact.score <= 25, `expected a capped low score, got ${impact.score}`);
   assert.strictEqual(impact.scoreLabel, "Think twice");
+}
+
+// A shortfall where waiting actually helps — the baseline (no purchase)
+// timeline shows day 25's paycheck would make this purchase safe against
+// everything else in the horizon, so the headline should name that wait
+// instead of the plainer "this leaves you short" fallback. Mirrors
+// SpendingWallScreen.tsx's baselineTimeline construction exactly.
+{
+  const now = new Date(2026, 6, 10); // July 10
+  const income = [{ amount_cents: 200000, day_of_month: 25, created_at: "2026-01-01", removed_at: null }];
+  const commitments = [
+    { type: "fixed", amount_cents: 30000, day_of_month: 12, created_at: "2026-01-01", removed_at: null },
+  ];
+  const availableCents = 50000;
+  const purchaseCents = 25000;
+
+  const timeline = buildFinancialTimeline(availableCents, income, commitments, purchaseCents, now);
+  const baselineTimeline = buildFinancialTimeline(availableCents, income, commitments, null, now);
+
+  assert.strictEqual(computeDaysUntilSafeToSpend(baselineTimeline, purchaseCents, now), 15);
+
+  const impact = computeImpact(purchaseCents, availableCents, null, timeline, baselineTimeline, now);
+  assert.strictEqual(
+    impact.headline,
+    "Your future self would prefer you wait 15 days — this dips $50.00 into money you need by Jul 12."
+  );
+  assert.ok(impact.score <= 25, `expected a capped low score, got ${impact.score}`);
 }
 
 console.log("ok — impact calculator matches the app's decision-narrative logic");
@@ -152,3 +185,38 @@ console.log("ok — selectDippedGoal matches the app's multi-goal selection");
   assert.strictEqual(timeline.lowestBalanceCents, -10000);
 }
 console.log("ok — buildFinancialTimeline matches the app's projection engine");
+
+// Biweekly/weekly income dispatches on frequency + anchor_date instead of
+// day_of_month, mirroring src/domain/money/financialTimeline.ts's
+// occurrencesForIncome/occurrencesFromAnchor.
+{
+  const now = new Date(2026, 6, 10); // July 10
+  // Anchor June 26 -> next occurrences: Jul 10, Jul 24 (both within a
+  // 20-day horizon from now).
+  const income = [
+    { frequency: "biweekly", anchor_date: "2026-06-26", amount_cents: 150000, created_at: "2026-01-01", removed_at: null },
+  ];
+  const timeline = buildFinancialTimeline(50000, income, [], null, now, 20);
+  assert.deepStrictEqual(timeline.events.map((e) => e.date), ["2026-07-10", "2026-07-24"]);
+  assert.deepStrictEqual(timeline.runningBalances, [200000, 350000]);
+}
+{
+  // Anchor Jul 3 -> Jul 10, Jul 17 within a 10-day horizon from now.
+  const now = new Date(2026, 6, 10);
+  const income = [
+    { frequency: "weekly", anchor_date: "2026-07-03", amount_cents: 50000, created_at: "2026-01-01", removed_at: null },
+  ];
+  const timeline = buildFinancialTimeline(0, income, [], null, now, 10);
+  assert.deepStrictEqual(timeline.events.map((e) => e.date), ["2026-07-10", "2026-07-17"]);
+}
+{
+  // A biweekly/weekly item with no anchor_date yet falls back to monthly
+  // day_of_month treatment.
+  const now = new Date(2026, 6, 10);
+  const income = [
+    { frequency: "biweekly", anchor_date: null, day_of_month: 25, amount_cents: 200000, created_at: "2026-01-01", removed_at: null },
+  ];
+  const timeline = buildFinancialTimeline(50000, income, [], null, now, 45);
+  assert.strictEqual(timeline.events[0].date, "2026-07-25");
+}
+console.log("ok — biweekly/weekly income frequency matches the app's projection engine");
