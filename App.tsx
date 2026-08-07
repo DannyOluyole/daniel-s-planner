@@ -14,6 +14,7 @@ import { AuthScreen } from "@features/auth/AuthScreen";
 import { PortalScreen } from "@features/portal/PortalScreen";
 import { LockScreen } from "@features/applock/LockScreen";
 import { useAppLock } from "@features/applock/useAppLock";
+import { useLapsedUserNudge } from "@shared/hooks/useLapsedUserNudge";
 
 // Without a handler, expo-notifications silently drops any notification
 // received while the app is in the foreground — this is documented default
@@ -34,6 +35,7 @@ function Root() {
   const { user, loading: authLoading } = useAuth();
   const { ready: onboardingReady, onboarded } = useOnboarding();
   const { ready: lockReady, locked, unlock } = useAppLock();
+  useLapsedUserNudge();
   // Lives in memory, not storage — a real relaunch gets a fresh Root mount
   // and sees the Portal again; backgrounding/foregrounding the app doesn't,
   // since the JS state survives. That's "once per session."
