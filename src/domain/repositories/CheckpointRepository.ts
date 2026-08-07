@@ -5,6 +5,7 @@ import {
   DecisionOutcome,
 } from "@domain/entities/MoneyState";
 import { SavingsGoal, SavingsGoalInput } from "@domain/entities/SavingsGoal";
+import { Challenge, ChallengeInput } from "@domain/entities/Challenge";
 import { Commitment, CommitmentInput } from "@domain/entities/Commitment";
 import { Income, IncomeInput } from "@domain/entities/Income";
 
@@ -58,6 +59,11 @@ export interface CheckpointRepository {
    * celebration so each one fires exactly once per account, not per device. */
   getShownMilestones(userId: string): Promise<string[]>;
   markMilestoneShown(userId: string, milestoneKey: string): Promise<void>;
+  /** Returns every challenge including removed ones — callers filter to
+   * active, same convention as getSavingsGoals. */
+  getChallenges(userId: string): Promise<Challenge[]>;
+  startChallenge(userId: string, input: ChallengeInput): Promise<Challenge>;
+  removeChallenge(userId: string, id: string): Promise<void>;
   /** "Clear data" in Settings — wipes every decision, goal, commitment,
    * income source, and future vision for this user, keeping the account
    * itself intact. Only implemented in local/demo mode; the Supabase path

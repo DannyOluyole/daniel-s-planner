@@ -7,6 +7,7 @@ import {
   DecisionOutcome,
 } from "@domain/entities/MoneyState";
 import { SavingsGoal, SavingsGoalInput } from "@domain/entities/SavingsGoal";
+import { Challenge, ChallengeInput } from "@domain/entities/Challenge";
 import { Commitment, CommitmentInput } from "@domain/entities/Commitment";
 import { Income, IncomeInput } from "@domain/entities/Income";
 import { applyPurchase } from "@domain/money/applyPurchase";
@@ -39,6 +40,10 @@ import { sumContinuedThisMonth } from "@domain/money/categoryImpact";
  * shown_milestones(id uuid default gen_random_uuid(), user_id uuid,
  *              milestone_key text, shown_at timestamptz,
  *              unique(user_id, milestone_key))
+ *
+ * challenges(id uuid default gen_random_uuid(), user_id uuid, type text,
+ *              starts_at date, ends_at date, created_at timestamptz,
+ *              removed_at timestamptz)
  *
  * removed_at is set instead of deleting the row on remove — a past month
  * where the item was genuinely active shouldn't lose it just because it
@@ -446,6 +451,57 @@ export class SupabaseCheckpointRepository implements CheckpointRepository {
     const { error } = await supabase
       .from("shown_milestones")
       .upsert({ user_id: userId, milestone_key: milestoneKey }, { onConflict: "user_id,milestone_key" });
+    if (error) throw error;
+  }
+
+  async getChallenges(userId: string): Promise<Challenge[]> {
+    const { data, error } = await supabase
+      .from("challenges")
+      .select("id, user_id, type, starts_at, ends_at, created_at, removed_at")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false });
+
+    if (error) throw error;
+
+    return (data ?? []).map((row) => ({
+      id: row.id,
+      userId: row.user_id,
+      type: row.type,
+      startsAt: row.starts_at,
+      endsAt: row.ends_at,
+      createdAt: row.created_at,
+      removedAt: row.removed_at ?? undefined,
+    }));
+  }
+
+  async startChallenge(userId: string, input: ChallengeInput): Promise<Challenge> {
+    const { data, error } = await supabase
+      .from("challenges")
+      .insert({ user_id: userId, type: input.type, starts_at: input.startsAt, ends_at: input.endsAt })
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    return {
+      id: data.id,
+      userId: data.user_id,
+      type: data.type,
+      startsAt: data.starts_at,
+      endsAt: data.ends_at,
+      createdAt: data.created_at,
+      removedAt: data.removed_at ?? undefined,
+    };
+  }
+
+  async removeChallenge(userId: string, id: string): Promise<void> {
+    const { error } = await supabase
+      .from("challenges")
+      .update({ removed_at: new Date().toISOString() })
+      .eq("user_id", userId)
+      .eq("id", id)
+      .is("removed_at", null);
+
     if (error) throw error;
   }
 }

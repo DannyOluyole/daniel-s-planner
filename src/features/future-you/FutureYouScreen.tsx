@@ -14,6 +14,10 @@ import { useIncome } from "@shared/hooks/useIncome";
 import { useCommitments } from "@shared/hooks/useCommitments";
 import { useAuth } from "@core/auth/AuthContext";
 import { useFutureVision } from "@shared/hooks/useFutureVision";
+import { useDecisions } from "@shared/hooks/useDecisions";
+import { useChallenges } from "@shared/hooks/useChallenges";
+import { buildChallengeWindow } from "@domain/money/challengeProgress";
+import { ChallengeCard } from "./components/ChallengeCard";
 import { SavingsGoalForm } from "@features/onboarding/components/SavingsGoalForm";
 import { FutureVisionForm } from "@features/onboarding/components/FutureVisionForm";
 import { buildFinancialTimeline } from "@domain/money/financialTimeline";
@@ -34,6 +38,8 @@ export function FutureYouScreen() {
   const { income } = useIncome(user?.id ?? null);
   const { commitments } = useCommitments(user?.id ?? null);
   const { vision, setVision } = useFutureVision(user?.id ?? null);
+  const { decisions } = useDecisions(user?.id ?? null, 200);
+  const { challenges, startChallenge, removeChallenge } = useChallenges(user?.id ?? null);
   const [editing, setEditing] = useState<EditingTarget>(null);
   const [editingVision, setEditingVision] = useState(false);
 
@@ -151,6 +157,13 @@ export function FutureYouScreen() {
             </>
           )}
         </Card>
+
+        <ChallengeCard
+          challenges={challenges}
+          decisions={decisions}
+          onStart={() => startChallenge({ type: "no_spend_week", ...buildChallengeWindow(7) })}
+          onRemove={removeChallenge}
+        />
 
         {timeline && <UpcomingTimeline timeline={timeline} />}
 

@@ -258,6 +258,17 @@ export const Copy = {
     aheadShortfallWarning: (amount: string, date: string) => `This dips ${amount} below zero on ${date}.`,
   },
 
+  challenges: {
+    sectionTitle: "Challenges",
+    noSpendWeekName: "No-Spend Week",
+    noSpendWeekDescription: "7 days, no “continued” purchases logged. Pausing or reconsidering doesn't break it.",
+    startCta: "Start a No-Spend Week",
+    inProgress: (daysElapsed: number, daysTotal: number) => `Day ${daysElapsed} of ${daysTotal}`,
+    failed: "This one didn't land — you can start a fresh one anytime.",
+    completed: "Complete! A full week without an unplanned purchase.",
+    cancelCta: "Cancel challenge",
+  },
+
   whatIfEngine: {
     title: "What if?",
     subtitle: "See how a change to your monthly spending or saving would play out.",

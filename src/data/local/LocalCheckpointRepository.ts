@@ -6,6 +6,7 @@ import {
   SpendingDecisionInput,
 } from "@domain/entities/MoneyState";
 import { SavingsGoal, SavingsGoalInput } from "@domain/entities/SavingsGoal";
+import { Challenge, ChallengeInput } from "@domain/entities/Challenge";
 import { Commitment, CommitmentInput } from "@domain/entities/Commitment";
 import { Income, IncomeInput } from "@domain/entities/Income";
 import { sumContinuedThisMonth } from "@domain/money/categoryImpact";
@@ -25,6 +26,7 @@ interface UserRecord {
   income: Income[];
   futureVision: string | null;
   shownMilestones: string[];
+  challenges: Challenge[];
 }
 
 /**
@@ -47,6 +49,7 @@ export class LocalCheckpointRepository implements CheckpointRepository {
         income: initialIncome.map((i) => ({ ...i, userId })),
         futureVision: null,
         shownMilestones: [],
+        challenges: [],
       };
       this.records.set(userId, record);
     }
@@ -231,6 +234,31 @@ export class LocalCheckpointRepository implements CheckpointRepository {
     }
   }
 
+  async getChallenges(userId: string): Promise<Challenge[]> {
+    return this.recordFor(userId).challenges;
+  }
+
+  async startChallenge(userId: string, input: ChallengeInput): Promise<Challenge> {
+    const record = this.recordFor(userId);
+    const challenge: Challenge = {
+      id: `local-challenge-${Date.now()}-${Math.round(Math.random() * 1e6)}`,
+      userId,
+      type: input.type,
+      startsAt: input.startsAt,
+      endsAt: input.endsAt,
+      createdAt: new Date().toISOString(),
+    };
+    record.challenges = [challenge, ...record.challenges];
+    return challenge;
+  }
+
+  async removeChallenge(userId: string, id: string): Promise<void> {
+    const record = this.recordFor(userId);
+    record.challenges = record.challenges.map((c) =>
+      c.id === id && !c.removedAt ? { ...c, removedAt: new Date().toISOString() } : c
+    );
+  }
+
   async clearAllData(userId: string): Promise<void> {
     // A genuinely empty record, not the demo fixtures — recordFor() would
     // otherwise repopulate them the next time this userId is looked up.
@@ -242,6 +270,7 @@ export class LocalCheckpointRepository implements CheckpointRepository {
       income: [],
       futureVision: null,
       shownMilestones: [],
+      challenges: [],
     });
   }
 }
