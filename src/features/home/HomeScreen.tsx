@@ -17,6 +17,8 @@ import { detectCategoryTrends } from "@domain/money/insightsEngine";
 import { buildFinancialTimeline, computeSafeSpendingDays } from "@domain/money/financialTimeline";
 import { computeFinancialConfidence } from "@domain/money/financialConfidence";
 import { computeWeeksProtectedStreak } from "@domain/money/streak";
+import { useMilestones } from "@shared/hooks/useMilestones";
+import { InfoModal } from "@shared/components/InfoModal";
 import { detectRecurringCharges } from "@domain/money/recurringCharges";
 import { buildDollarJobSegments } from "@domain/money/dollarJobs";
 import { AvailableCard } from "./components/AvailableCard";
@@ -90,6 +92,13 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
   );
   const confidence = computeFinancialConfidence(availableCents, goals, anyCategoryOverBudget, timeline.causesShortfall);
   const streakWeeks = computeWeeksProtectedStreak(decisions);
+  const { pending: pendingMilestone, dismiss: dismissMilestone } = useMilestones({
+    userId,
+    userCreatedAt: user?.created_at,
+    goals,
+    decisions,
+    availableCents,
+  });
   // Recurring-charge detection needs real bank history to mean anything —
   // local/demo mode has no synced transactions to find a pattern in.
   const recurringCharges = isBankLinked ? detectRecurringCharges(transactions).slice(0, 3) : [];
@@ -286,6 +295,12 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
           <Timeline decisions={decisions} transactions={isBankLinked ? transactions : []} />
           <View className="mb-4" />
         </ScrollView>
+      )}
+
+      {pendingMilestone && (
+        <InfoModal visible title={pendingMilestone.title} onClose={dismissMilestone}>
+          <Text className={dark ? "text-ink-dark" : "text-ink"}>{pendingMilestone.body}</Text>
+        </InfoModal>
       )}
     </Screen>
   );

@@ -107,6 +107,17 @@ export const Copy = {
     moneyProtectedLine: (amount: string) => `You protected ${amount} by pausing or reconsidering this week.`,
     webUnsupportedNote: "Check-ins arrive as notifications, which need the iOS or Android app.",
     permissionDeniedNote: "Notifications are off for Pause Money — enable them in your device settings first.",
+    winbackTitle: "We miss you",
+    winbackBody: "It's been a couple weeks — your Safe to Spend and goals are still right where you left them.",
+  },
+
+  milestones: {
+    firstGoalReachedTitle: "Goal reached 🎉",
+    firstGoalReachedBody: (goalName: string) => `You've reached your "${goalName}" goal. Take a moment — you built this.`,
+    firstProtectedTitle: "Your first pause",
+    firstProtectedBody: "You just chose to pause instead of buy. That's the whole idea — nice work.",
+    thirtyDaysTitle: "30 days in",
+    thirtyDaysBody: "You've been building this habit for a month now. It's starting to become who you are.",
   },
 
   bigPurchaseMode: {

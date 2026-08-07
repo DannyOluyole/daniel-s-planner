@@ -54,6 +54,10 @@ export interface CheckpointRepository {
    * Null when never set. */
   getFutureVision(userId: string): Promise<string | null>;
   setFutureVision(userId: string, text: string): Promise<void>;
+  /** Milestone keys already shown to this user — checked before surfacing a
+   * celebration so each one fires exactly once per account, not per device. */
+  getShownMilestones(userId: string): Promise<string[]>;
+  markMilestoneShown(userId: string, milestoneKey: string): Promise<void>;
   /** "Clear data" in Settings — wipes every decision, goal, commitment,
    * income source, and future vision for this user, keeping the account
    * itself intact. Only implemented in local/demo mode; the Supabase path

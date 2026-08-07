@@ -24,6 +24,7 @@ interface UserRecord {
   commitments: Commitment[];
   income: Income[];
   futureVision: string | null;
+  shownMilestones: string[];
 }
 
 /**
@@ -45,6 +46,7 @@ export class LocalCheckpointRepository implements CheckpointRepository {
         commitments: initialCommitments.map((c) => ({ ...c, userId })),
         income: initialIncome.map((i) => ({ ...i, userId })),
         futureVision: null,
+        shownMilestones: [],
       };
       this.records.set(userId, record);
     }
@@ -218,6 +220,17 @@ export class LocalCheckpointRepository implements CheckpointRepository {
     this.recordFor(userId).futureVision = text;
   }
 
+  async getShownMilestones(userId: string): Promise<string[]> {
+    return this.recordFor(userId).shownMilestones;
+  }
+
+  async markMilestoneShown(userId: string, milestoneKey: string): Promise<void> {
+    const record = this.recordFor(userId);
+    if (!record.shownMilestones.includes(milestoneKey)) {
+      record.shownMilestones.push(milestoneKey);
+    }
+  }
+
   async clearAllData(userId: string): Promise<void> {
     // A genuinely empty record, not the demo fixtures — recordFor() would
     // otherwise repopulate them the next time this userId is looked up.
@@ -228,6 +241,7 @@ export class LocalCheckpointRepository implements CheckpointRepository {
       commitments: [],
       income: [],
       futureVision: null,
+      shownMilestones: [],
     });
   }
 }

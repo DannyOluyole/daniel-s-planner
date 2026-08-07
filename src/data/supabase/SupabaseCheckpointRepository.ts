@@ -36,6 +36,10 @@ import { sumContinuedThisMonth } from "@domain/money/categoryImpact";
  * income(id uuid default gen_random_uuid(), user_id uuid, name text,
  *              amount_cents int, created_at timestamptz, removed_at timestamptz)
  *
+ * shown_milestones(id uuid default gen_random_uuid(), user_id uuid,
+ *              milestone_key text, shown_at timestamptz,
+ *              unique(user_id, milestone_key))
+ *
  * removed_at is set instead of deleting the row on remove — a past month
  * where the item was genuinely active shouldn't lose it just because it
  * was removed later. See @domain/money/activeDuringMonth.
@@ -429,6 +433,19 @@ export class SupabaseCheckpointRepository implements CheckpointRepository {
     const { error } = await supabase
       .from("future_visions")
       .upsert({ user_id: userId, text }, { onConflict: "user_id" });
+    if (error) throw error;
+  }
+
+  async getShownMilestones(userId: string): Promise<string[]> {
+    const { data, error } = await supabase.from("shown_milestones").select("milestone_key").eq("user_id", userId);
+    if (error) throw error;
+    return (data ?? []).map((row) => row.milestone_key);
+  }
+
+  async markMilestoneShown(userId: string, milestoneKey: string): Promise<void> {
+    const { error } = await supabase
+      .from("shown_milestones")
+      .upsert({ user_id: userId, milestone_key: milestoneKey }, { onConflict: "user_id,milestone_key" });
     if (error) throw error;
   }
 }
