@@ -16,10 +16,12 @@ import { topCategoryThisWeek } from "@domain/money/weeklyInsight";
 import { detectCategoryTrends } from "@domain/money/insightsEngine";
 import { buildFinancialTimeline, computeSafeSpendingDays } from "@domain/money/financialTimeline";
 import { computeFinancialConfidence } from "@domain/money/financialConfidence";
+import { computeWeeksProtectedStreak } from "@domain/money/streak";
 import { detectRecurringCharges } from "@domain/money/recurringCharges";
 import { buildDollarJobSegments } from "@domain/money/dollarJobs";
 import { AvailableCard } from "./components/AvailableCard";
 import { FinancialConfidenceCard } from "./components/FinancialConfidenceCard";
+import { StreakCard } from "./components/StreakCard";
 import { DollarJobsBar } from "./components/DollarJobsBar";
 import { Timeline } from "./components/Timeline";
 import { useCheckpoint } from "@shared/hooks/useCheckpoint";
@@ -87,6 +89,7 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
     (c) => (summarizeCategoryImpact(activeCommitments, decisions, c.category, 0)?.overBy ?? 0) > 0
   );
   const confidence = computeFinancialConfidence(availableCents, goals, anyCategoryOverBudget, timeline.causesShortfall);
+  const streakWeeks = computeWeeksProtectedStreak(decisions);
   // Recurring-charge detection needs real bank history to mean anything —
   // local/demo mode has no synced transactions to find a pattern in.
   const recurringCharges = isBankLinked ? detectRecurringCharges(transactions).slice(0, 3) : [];
@@ -206,6 +209,7 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
           )}
 
           <FinancialConfidenceCard score={confidence.score} label={confidence.label} checks={confidence.checks} />
+          <StreakCard weeks={streakWeeks} />
 
           {investingSpend > 0 && (
             <View

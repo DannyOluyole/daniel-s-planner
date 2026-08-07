@@ -76,6 +76,10 @@ export const Copy = {
     confidenceBillsCovered: "Bills covered",
     confidenceSavingsOnTrack: "Savings on track",
     confidenceSpendingWithinBudget: "Spending within budget",
+    streakLabel: "Weeks Protected",
+    streakBodyActive: (weeks: number) =>
+      `${weeks} ${weeks === 1 ? "week" : "weeks"} in a row pausing before you buy.`,
+    streakBodyEmpty: "Pause on a purchase this week to start your streak.",
     safeSpendingDaysWithAllowance: (days: number, amount: string) =>
       `About ${amount} a day feels comfortable for the next ${days} ${days === 1 ? "day" : "days"}, until payday.`,
     safeSpendingDaysOnly: (days: number) => `${days} ${days === 1 ? "day" : "days"} until payday.`,
