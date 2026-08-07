@@ -34,7 +34,12 @@ export function SafeToSpendMeter({ availableCents, amountCents, size = 180 }: Pr
   const remainingAfter = availableCents - amountCents;
 
   return (
-    <View className="items-center">
+    <View
+      className="items-center"
+      accessible
+      accessibilityRole="text"
+      accessibilityLabel={`${Copy.spendingWall.safeToSpendLabel}: ${money(Math.max(remainingAfter, 0))} after this`}
+    >
       <Svg width={size} height={size}>
         <Circle
           cx={size / 2}

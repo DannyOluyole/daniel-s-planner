@@ -19,11 +19,16 @@ export function StreakCard({ weeks }: Props) {
   const dark = scheme === "dark";
   const active = weeks > 0;
 
+  const bodyText = active ? Copy.home.streakBodyActive(weeks) : Copy.home.streakBodyEmpty;
+
   return (
     <View
       className={`mt-3 rounded-xl2 border p-4 flex-row items-center gap-3 ${
         dark ? "border-hairline-dark bg-surface-dark" : "border-hairline bg-surface"
       }`}
+      accessible
+      accessibilityRole="text"
+      accessibilityLabel={`${Copy.home.streakLabel}: ${bodyText}`}
     >
       <Text style={{ fontSize: 28 }}>{active ? "🔥" : "〰️"}</Text>
       <View className="flex-1">
@@ -36,9 +41,7 @@ export function StreakCard({ weeks }: Props) {
               {weeks}
             </Text>
           )}
-          <Text className={`text-sm ${dark ? "text-ink-dark" : "text-ink"}`}>
-            {active ? Copy.home.streakBodyActive(weeks) : Copy.home.streakBodyEmpty}
-          </Text>
+          <Text className={`text-sm ${dark ? "text-ink-dark" : "text-ink"}`}>{bodyText}</Text>
         </View>
       </View>
     </View>

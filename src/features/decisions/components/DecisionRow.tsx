@@ -56,7 +56,16 @@ export function DecisionRow({ decision, onToggleRegret }: Props) {
           {/* Regret only makes sense for a purchase actually gone through
               with — pausing/reconsidering already has its own reason. */}
           {decision.outcome === "continued" && onToggleRegret && (
-            <Pressable onPress={() => onToggleRegret(decision)} hitSlop={6} className="mt-1 self-start">
+            <Pressable
+              onPress={() => onToggleRegret(decision)}
+              hitSlop={6}
+              className="mt-1 self-start"
+              accessibilityRole="button"
+              accessibilityLabel={`${
+                decision.regretted ? Copy.decisionsScreen.unmarkRegrettedCta : Copy.decisionsScreen.markRegrettedCta
+              } — ${decision.merchant}`}
+              accessibilityState={{ selected: decision.regretted }}
+            >
               <Text
                 className={`text-xs font-medium ${
                   decision.regretted ? "text-signal-caution" : dark ? "text-ink-faint" : "text-ink-faint"

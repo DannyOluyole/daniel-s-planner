@@ -35,10 +35,17 @@ export function AlignmentScore({ score, label }: Props) {
         </Text>
         <Text className={`text-caption ${dark ? "text-ink-faint" : "text-ink-faint"}`}>ⓘ</Text>
       </Pressable>
-      <Text className="text-[44px] font-extrabold mt-2" style={{ color: tone }}>
-        {score}%
-      </Text>
-      <Text className={`text-sm font-medium mt-1.5 ${dark ? "text-ink-dark" : "text-ink"}`}>{label}</Text>
+      <View
+        className="items-center"
+        accessible
+        accessibilityRole="text"
+        accessibilityLabel={`${Copy.spendingWall.financialAlignmentLabel}: ${score}%, ${label}`}
+      >
+        <Text className="text-[44px] font-extrabold mt-2" style={{ color: tone }}>
+          {score}%
+        </Text>
+        <Text className={`text-sm font-medium mt-1.5 ${dark ? "text-ink-dark" : "text-ink"}`}>{label}</Text>
+      </View>
 
       <InfoModal
         visible={explainerOpen}

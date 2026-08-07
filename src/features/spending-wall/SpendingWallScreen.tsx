@@ -321,7 +321,12 @@ export function SpendingWallScreen({ route, navigation }: Props) {
                 // flex-1 centered block above — that block's content can grow
                 // taller than its allotted space, and an overflowing sibling
                 // silently overlapped (and ate clicks for) the buttons below.
-                <Pressable onPress={handleReadAloud} accessibilityRole="button" className="mb-3 items-center">
+                <Pressable
+                  onPress={handleReadAloud}
+                  accessibilityRole="button"
+                  accessibilityLabel={speaking ? Copy.spendingWall.stopReadingCta : Copy.spendingWall.readAloudCta}
+                  className="mb-3 items-center"
+                >
                   <Text className={`text-sm font-medium ${dark ? "text-ink-faint" : "text-ink-soft"}`}>
                     {speaking ? Copy.spendingWall.stopReadingCta : Copy.spendingWall.readAloudCta}
                   </Text>

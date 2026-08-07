@@ -54,6 +54,9 @@ export function Button({
     <Pressable
       onPress={handlePress}
       disabled={disabled || loading}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityState={{ disabled: disabled || loading, busy: loading }}
       className={`${base} ${styles[intent]} ${disabled ? "opacity-40" : ""}`}
       style={
         intent === "primary"

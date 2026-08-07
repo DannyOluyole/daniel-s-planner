@@ -13,7 +13,7 @@ interface Props {
 
 function ChecklistRow({ ok, label, dark }: { ok: boolean; label: string; dark: boolean }) {
   return (
-    <View className="flex-row items-center gap-2">
+    <View className="flex-row items-center gap-2" accessible accessibilityLabel={`${label}: ${ok ? "yes" : "no"}`}>
       <Text style={{ color: ok ? colors.checkpoint : colors.caution, fontSize: 13, fontWeight: "700" }}>
         {ok ? "✓" : "✕"}
       </Text>
@@ -44,13 +44,15 @@ export function FinancialConfidenceCard({ score, label, checks }: Props) {
       <Text className={`text-caption uppercase tracking-wide ${dark ? "text-ink-faint" : "text-ink-faint"}`}>
         {Copy.home.confidenceLabel}
       </Text>
-      <View className="flex-row items-baseline mt-1">
-        <Text className="text-3xl font-extrabold" style={{ color: tone }}>
-          {score}
-        </Text>
-        <Text className={`ml-1 text-base ${dark ? "text-ink-faint" : "text-ink-faint"}`}>/100</Text>
+      <View accessible accessibilityRole="text" accessibilityLabel={`${Copy.home.confidenceLabel}: ${score} out of 100, ${label}`}>
+        <View className="flex-row items-baseline mt-1">
+          <Text className="text-3xl font-extrabold" style={{ color: tone }}>
+            {score}
+          </Text>
+          <Text className={`ml-1 text-base ${dark ? "text-ink-faint" : "text-ink-faint"}`}>/100</Text>
+        </View>
+        <Text className={`mt-1 text-sm ${dark ? "text-ink-dark" : "text-ink"}`}>{label}</Text>
       </View>
-      <Text className={`mt-1 text-sm ${dark ? "text-ink-dark" : "text-ink"}`}>{label}</Text>
 
       <View className="mt-3 gap-1.5">
         <ChecklistRow ok={checks.billsCovered} label={Copy.home.confidenceBillsCovered} dark={dark} />
