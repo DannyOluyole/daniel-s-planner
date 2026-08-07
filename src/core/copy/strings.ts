@@ -45,6 +45,9 @@ export const Copy = {
     subtitle: "A quiet look at where you stand.",
     availableLabel: "Available today",
     availableLabelGeneric: "Available",
+    safeToSpendExplainerTitle: "Safe to Spend",
+    safeToSpendExplainerBody:
+      "What's left after your bills, savings goals, and already-logged decisions are accounted for — not just your raw account balance. It updates the moment any of those change.",
     protectedLabel: "Protected this month",
     futureYouLabel: "Future You is holding",
     comingInSummaryLabel: "Coming in",
@@ -168,6 +171,10 @@ export const Copy = {
   spendingWall: {
     title: "Pause Money",
     prompt: "Decision Mode",
+    financialAlignmentLabel: "Financial Alignment",
+    financialAlignmentExplainerTitle: "Financial Alignment",
+    financialAlignmentExplainerBody:
+      "How well this specific purchase fits what's already scheduled — your bills, your goals, what you've told this app matters to you. A low score doesn't mean \"don't buy it,\" just \"look at what it costs you.\"",
     question: "Is this worth it, right now?",
     safeToSpendLabel: "Safe to Spend",
     futureYouNote: (amount: string) =>
