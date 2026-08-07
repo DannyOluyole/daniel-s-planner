@@ -343,6 +343,12 @@ export const Copy = {
     markRegrettedCta: "Mark as regretted",
     regrettedLabel: "Regretted",
     unmarkRegrettedCta: "Unmark",
+    searchPlaceholder: "Search by merchant or category",
+    filterAll: "All",
+    filterPaused: "Paused",
+    filterReconsidered: "Reconsidered",
+    filterContinued: "Continued",
+    noResults: "Nothing matches that search.",
   },
 
   decisionMemoryCallback: {

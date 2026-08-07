@@ -1,12 +1,13 @@
-import React, { useState } from "react";
-import { View, Text, FlatList, ActivityIndicator, Platform } from "react-native";
+import React, { useMemo, useState } from "react";
+import { View, Text, FlatList, ActivityIndicator, Platform, Pressable } from "react-native";
 import { Screen } from "@shared/components/Screen";
 import { BackHeader } from "@shared/components/BackHeader";
 import { Card } from "@shared/components/Card";
 import { Button } from "@shared/components/Button";
+import { SearchInput } from "@shared/components/SearchInput";
 import { useTheme } from "@core/theme/ThemeContext";
 import { Copy } from "@core/copy/strings";
-import { money } from "@domain/entities/MoneyState";
+import { money, DecisionOutcome } from "@domain/entities/MoneyState";
 import { sumMoneyProtected, mostCommonPauseReason } from "@domain/money/decisionJournal";
 import { decisionsToCsv } from "@domain/money/decisionExport";
 import { buildMonthlyReplay, buildMonthlyReplayLines } from "@domain/money/monthlyReplay";
@@ -21,6 +22,23 @@ export function DecisionsScreen() {
   const { decisions, loading, toggleRegret } = useDecisions(user?.id ?? null, 200);
   const [exporting, setExporting] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
+  const [query, setQuery] = useState("");
+  const [outcomeFilter, setOutcomeFilter] = useState<DecisionOutcome | "all">("all");
+
+  // Client-side over the already-fetched 200 — useDecisions has no
+  // pagination to extend, and 200 is the same window every other screen
+  // (Home, Insights) already treats as "recent history."
+  const filteredDecisions = useMemo(() => {
+    const normalizedQuery = query.trim().toLowerCase();
+    return decisions.filter((d) => {
+      if (outcomeFilter !== "all" && d.outcome !== outcomeFilter) return false;
+      if (!normalizedQuery) return true;
+      return (
+        d.merchant.toLowerCase().includes(normalizedQuery) ||
+        (d.category ?? "").toLowerCase().includes(normalizedQuery)
+      );
+    });
+  }, [decisions, query, outcomeFilter]);
 
   const moneyProtectedCents = sumMoneyProtected(decisions);
   const topReason = mostCommonPauseReason(decisions);
@@ -91,8 +109,50 @@ export function DecisionsScreen() {
               <Text className="mt-1 text-sm text-signal-caution">{exportError}</Text>
             )}
           </View>
+
+          <SearchInput value={query} onChangeText={setQuery} placeholder={Copy.decisionsScreen.searchPlaceholder} />
+
+          <View className="flex-row flex-wrap gap-2 mt-3">
+            {(
+              [
+                ["all", Copy.decisionsScreen.filterAll],
+                ["paused", Copy.decisionsScreen.filterPaused],
+                ["reconsidered", Copy.decisionsScreen.filterReconsidered],
+                ["continued", Copy.decisionsScreen.filterContinued],
+              ] as const
+            ).map(([value, chipLabel]) => {
+              const active = outcomeFilter === value;
+              return (
+                <Pressable
+                  key={value}
+                  onPress={() => setOutcomeFilter(value)}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: active }}
+                  className={`rounded-full border px-4 py-2 ${
+                    active ? "bg-checkpoint border-checkpoint" : dark ? "border-hairline-dark" : "border-hairline"
+                  }`}
+                >
+                  <Text
+                    className={`text-xs font-medium ${
+                      active ? "text-white" : dark ? "text-ink-dark" : "text-ink"
+                    }`}
+                  >
+                    {chipLabel}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+
+          {filteredDecisions.length === 0 ? (
+            <View className="flex-1 items-center justify-center py-12">
+              <Text className={`text-center text-sm ${dark ? "text-ink-faint" : "text-ink-faint"}`}>
+                {Copy.decisionsScreen.noResults}
+              </Text>
+            </View>
+          ) : (
           <FlatList
-            data={decisions}
+            data={filteredDecisions}
             keyExtractor={(item) => item.id}
             renderItem={({ item }) => <DecisionRow decision={item} onToggleRegret={toggleRegret} />}
             showsVerticalScrollIndicator={false}
@@ -126,6 +186,7 @@ export function DecisionsScreen() {
               </View>
             }
           />
+          )}
         </>
       )}
     </Screen>
