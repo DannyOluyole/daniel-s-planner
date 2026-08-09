@@ -18,11 +18,26 @@ const okVerdict: WallVerdict = { beforeCents: 41200, afterCents: 36700, dipsInto
 const warnVerdict: WallVerdict = { beforeCents: 41200, afterCents: 16200, dipsIntoGoalBy: 13800, tone: "warn" };
 
 describe("buildDecisionNarrative", () => {
-  it("reads on-track with a high score when there's nothing to warn about", () => {
+  it("reads on-track with a high score, grounded in the real remaining balance when there's no timeline", () => {
     const result = buildDecisionNarrative(okVerdict, 4500, null);
-    expect(result.headline).toBe("Your future self can comfortably absorb this purchase.");
+    expect(result.headline).toBe("This leaves you $367.00 available — comfortably within plan.");
     expect(result.score).toBeGreaterThanOrEqual(80);
     expect(result.scoreLabel).toBe("Excellent decision");
+  });
+
+  it("names real days-until-payday in the on-track headline when a timeline is provided", () => {
+    const now = new Date(2026, 6, 10); // July 10
+    const timeline: FinancialTimeline = {
+      events: [{ date: "2026-07-20", label: "Paycheck", amountCents: 200000, kind: "income" }],
+      runningBalances: [236700],
+      causesShortfall: false,
+      lowestBalanceCents: 36700,
+      lowestBalanceDate: null,
+    };
+    const result = buildDecisionNarrative(okVerdict, 4500, null, timeline, null, null, now);
+    expect(result.headline).toBe(
+      "This leaves you $367.00, with 10 days until your next paycheck — comfortably within plan."
+    );
   });
 
   it("names the goal and dollar amount when it dips in with no target date", () => {

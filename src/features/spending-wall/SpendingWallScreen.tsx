@@ -180,7 +180,7 @@ export function SpendingWallScreen({ route, navigation }: Props) {
   return (
     <Screen>
       <Animated.View style={entryStyle} className="flex-1">
-        <GateBackdrop lifted={lifted} />
+        <GateBackdrop lifted={lifted} tier={frictionTier} />
 
         <View className="mt-4 items-center">
           <Text

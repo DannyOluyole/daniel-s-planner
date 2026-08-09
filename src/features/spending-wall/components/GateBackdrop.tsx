@@ -3,15 +3,31 @@ import { StyleSheet } from "react-native";
 import Svg, { Defs, Pattern, Rect } from "react-native-svg";
 import Animated, { useAnimatedStyle, useSharedValue, withTiming, Easing } from "react-native-reanimated";
 import { colors, motion } from "@core/theme/tokens";
+import { FrictionTier } from "@domain/money/frictionTier";
 
 const STRIPE = 26;
-const RESTING_OPACITY = 0.07;
-const LIFTED_OPACITY = 0.4;
+
+// Intensity scales with how much a purchase actually matters — same amber
+// stripe, no alarm-red, but a "big" or "reflection" purchase should feel
+// like a heavier barrier than a coffee, not an identical faint texture
+// regardless of stakes. Mirrors FRICTION_PAUSE_MS's escalation shape.
+const RESTING_OPACITY: Record<FrictionTier, number> = {
+  normal: 0.07,
+  big: 0.13,
+  reflection: 0.2,
+};
+const LIFTED_OPACITY: Record<FrictionTier, number> = {
+  normal: 0.4,
+  big: 0.55,
+  reflection: 0.7,
+};
 
 interface Props {
   /** True once the user has confirmed — the backdrop briefly brightens,
    * the same beat a real gate arm makes when you're cleared through. */
   lifted: boolean;
+  /** Drives resting/lifted intensity — see determineFrictionTier. */
+  tier: FrictionTier;
 }
 
 /**
@@ -21,15 +37,15 @@ interface Props {
  * at rest so it reads as ambient texture, not noise, then brightens on
  * lift as a payoff right before navigating away.
  */
-export function GateBackdrop({ lifted }: Props) {
-  const opacity = useSharedValue(RESTING_OPACITY);
+export function GateBackdrop({ lifted, tier }: Props) {
+  const opacity = useSharedValue(RESTING_OPACITY[tier]);
 
   useEffect(() => {
-    opacity.value = withTiming(lifted ? LIFTED_OPACITY : RESTING_OPACITY, {
+    opacity.value = withTiming(lifted ? LIFTED_OPACITY[tier] : RESTING_OPACITY[tier], {
       duration: motion.gateLift,
       easing: Easing.out(Easing.cubic),
     });
-  }, [lifted, opacity]);
+  }, [lifted, tier, opacity]);
 
   const style = useAnimatedStyle(() => ({ opacity: opacity.value }));
 

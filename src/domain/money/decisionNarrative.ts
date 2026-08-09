@@ -1,7 +1,7 @@
 import { WallVerdict } from "./applyPurchase";
 import { SavingsGoal } from "@domain/entities/SavingsGoal";
 import { money } from "@domain/entities/MoneyState";
-import { FinancialTimeline, computeDaysUntilSafeToSpend } from "./financialTimeline";
+import { FinancialTimeline, computeDaysUntilSafeToSpend, computeSafeSpendingDays } from "./financialTimeline";
 
 export interface DecisionNarrative {
   /** The story, not the balance — what this purchase actually does. */
@@ -107,7 +107,18 @@ export function buildDecisionNarrative(
     const dipRatio = goal ? verdict.dipsIntoGoalBy / Math.max(goal.targetCents, 1) : 0.5;
     score -= Math.round(20 + dipRatio * 50);
   } else {
-    headline = "Your future self can comfortably absorb this purchase.";
+    // Grounded in the actual numbers rather than one fixed sentence — a $2
+    // coffee and a $400 purchase that both clear the checks above shouldn't
+    // read identically. Prefers naming real days-until-payday when a
+    // scheduled income event exists; falls back to just the real balance
+    // when there's nothing scheduled to count down to.
+    const safeSpending = timeline ? computeSafeSpendingDays(verdict.afterCents, timeline, now) : null;
+    headline =
+      safeSpending?.daysUntilPayday != null
+        ? `This leaves you ${money(verdict.afterCents)}, with ${safeSpending.daysUntilPayday} ${
+            safeSpending.daysUntilPayday === 1 ? "day" : "days"
+          } until your next paycheck — comfortably within plan.`
+        : `This leaves you ${money(verdict.afterCents)} available — comfortably within plan.`;
   }
 
   score = Math.max(3, Math.min(99, score));
