@@ -19,7 +19,10 @@ import { computeFinancialConfidence } from "@domain/money/financialConfidence";
 import { computeWeeksProtectedStreak } from "@domain/money/streak";
 import { computePauseWins, computePauseLevel } from "@domain/money/pauseWins";
 import { useMilestones } from "@shared/hooks/useMilestones";
+import { useNightPause } from "@shared/hooks/useNightPause";
+import { useTemptedApps } from "@shared/hooks/useTemptedApps";
 import { InfoModal } from "@shared/components/InfoModal";
+import { NightPausePrompt } from "./components/NightPausePrompt";
 import { detectRecurringCharges } from "@domain/money/recurringCharges";
 import { buildDollarJobSegments } from "@domain/money/dollarJobs";
 import { AvailableCard } from "./components/AvailableCard";
@@ -96,6 +99,8 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
   const streakWeeks = computeWeeksProtectedStreak(decisions);
   const pauseWins = computePauseWins(decisions);
   const pauseLevel = computePauseLevel(pauseWins.lifetime.pauses);
+  const nightPause = useNightPause(decisions);
+  const { apps: temptedApps } = useTemptedApps();
   const { pending: pendingMilestone, dismiss: dismissMilestone } = useMilestones({
     userId,
     userCreatedAt: user?.created_at,
@@ -306,6 +311,15 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
         <InfoModal visible title={pendingMilestone.title} onClose={dismissMilestone}>
           <Text className={dark ? "text-ink-dark" : "text-ink"}>{pendingMilestone.body}</Text>
         </InfoModal>
+      )}
+
+      {!pendingMilestone && nightPause.detected && (
+        <NightPausePrompt
+          window={nightPause.detected}
+          temptedApp={temptedApps[0] ?? null}
+          onAccept={() => nightPause.accept(nightPause.detected!)}
+          onDecline={nightPause.decline}
+        />
       )}
     </Screen>
   );

@@ -153,6 +153,19 @@ export const Copy = {
     thresholdLabel: "Threshold",
   },
 
+  nightPause: {
+    promptTitle: "We've noticed something",
+    promptBody: (dayName: string, timeRange: string) =>
+      `Your purchases most often land on ${dayName}s, ${timeRange}. Want a longer pause during that window?`,
+    promptBodyWithApp: (dayName: string, timeRange: string, appName: string) =>
+      `Your purchases most often land on ${dayName}s, ${timeRange} — around when you said ${appName} tempts you. Want a longer pause during that window?`,
+    acceptCta: "Turn on Night Pause",
+    declineCta: "Not now",
+    cardTitle: "Night Pause",
+    cardSubtitle: (dayName: string, timeRange: string) => `Extra friction on ${dayName}s, ${timeRange}.`,
+    toggleLabel: "Night Pause",
+  },
+
   pauseIntensity: {
     cardTitle: "Pause intensity",
     cardSubtitle: "How much friction Decision Mode adds as a purchase gets bigger — and how long the pause lasts. Change this anytime.",

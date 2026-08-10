@@ -19,6 +19,8 @@ import { useDecisions } from "@shared/hooks/useDecisions";
 import { useVoiceOutput } from "@shared/hooks/useVoiceOutput";
 import { useBigPurchaseThreshold } from "@shared/hooks/useBigPurchaseThreshold";
 import { usePauseIntensity } from "@shared/hooks/usePauseIntensity";
+import { useNightPause } from "@shared/hooks/useNightPause";
+import { isWithinTemptationWindow } from "@domain/money/nightPause";
 import { useFutureVision } from "@shared/hooks/useFutureVision";
 import { useAuth } from "@core/auth/AuthContext";
 import { motion } from "@core/theme/tokens";
@@ -54,7 +56,14 @@ export function SpendingWallScreen({ route, navigation }: Props) {
   const { speak, stop: stopSpeaking, speaking } = useVoiceOutput();
   const { enabled: bigPurchaseEnabled, thresholdCents: bigPurchaseThresholdCents } = useBigPurchaseThreshold();
   const { intensity: pauseIntensity } = usePauseIntensity();
-  const frictionTier = determineFrictionTier(amountCents, bigPurchaseEnabled, bigPurchaseThresholdCents, pauseIntensity);
+  const nightPause = useNightPause(decisions);
+  const baseFrictionTier = determineFrictionTier(amountCents, bigPurchaseEnabled, bigPurchaseThresholdCents, pauseIntensity);
+  // Night Pause only ever escalates — a decision already at "big" or
+  // "reflection" on its own merits never gets downgraded just because it
+  // falls outside the detected window.
+  const nightPauseActive =
+    nightPause.enabled && nightPause.window != null && isWithinTemptationWindow(nightPause.window);
+  const frictionTier = nightPauseActive && baseFrictionTier === "normal" ? "big" : baseFrictionTier;
   const isBigPurchase = frictionTier !== "normal";
   const { vision } = useFutureVision(user?.id ?? null);
 

@@ -12,6 +12,9 @@ import { useCheckInReminder } from "@shared/hooks/useCheckInReminder";
 import { useBigPurchaseThreshold } from "@shared/hooks/useBigPurchaseThreshold";
 import { usePauseIntensity } from "@shared/hooks/usePauseIntensity";
 import { PauseIntensity } from "@domain/money/frictionTier";
+import { useNightPause } from "@shared/hooks/useNightPause";
+import { useDecisions } from "@shared/hooks/useDecisions";
+import { formatTemptationWindow } from "@features/home/components/NightPausePrompt";
 import { useAppLock } from "@features/applock/useAppLock";
 import { Copy } from "@core/copy/strings";
 import { colors } from "@core/theme/tokens";
@@ -53,6 +56,8 @@ export function SettingsScreen({ navigation }: Props) {
   const reminder = useCheckInReminder(user?.id ?? null);
   const bigPurchase = useBigPurchaseThreshold();
   const pauseIntensity = usePauseIntensity();
+  const { decisions } = useDecisions(user?.id ?? null, 200);
+  const nightPause = useNightPause(decisions);
   const appLock = useAppLock();
   const [thresholdInput, setThresholdInput] = useState<string | null>(null);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
@@ -90,6 +95,7 @@ export function SettingsScreen({ navigation }: Props) {
     if (reminder.status === "on") await reminder.disable();
     await bigPurchase.reset();
     await pauseIntensity.reset();
+    await nightPause.reset();
     setClearing(false);
     setConfirmingClear(false);
     await replay();
@@ -377,6 +383,29 @@ export function SettingsScreen({ navigation }: Props) {
           </Text>
         )}
       </Card>
+
+      {nightPause.window && (
+        <Card className="mt-4">
+          <View className="flex-row items-center justify-between">
+            <View className="flex-1 mr-3">
+              <Text className={`text-headline mb-1 ${dark ? "text-ink-dark" : "text-ink"}`}>
+                {Copy.nightPause.cardTitle}
+              </Text>
+              <Text className={`text-sm ${dark ? "text-ink-faint" : "text-ink-soft"}`}>
+                {(() => {
+                  const { dayName, timeRange } = formatTemptationWindow(nightPause.window);
+                  return Copy.nightPause.cardSubtitle(dayName, timeRange);
+                })()}
+              </Text>
+            </View>
+            <Switch
+              value={nightPause.enabled}
+              onValueChange={nightPause.setEnabled}
+              trackColor={{ true: colors.checkpointBright, false: undefined }}
+            />
+          </View>
+        </Card>
+      )}
 
       <Card className="mt-4">
         <Text className={`text-headline mb-1 ${dark ? "text-ink-dark" : "text-ink"}`}>
