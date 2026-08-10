@@ -133,6 +133,19 @@ export const Copy = {
     thirtyDaysBody: "You've been building this habit for a month now. It's starting to become who you are.",
   },
 
+  pauseWins: {
+    title: "Pause Wins",
+    weeklyLabel: "This week",
+    lifetimeLabel: "Lifetime",
+    pausesLabel: (n: number) => `${n} ${n === 1 ? "pause" : "pauses"}`,
+    skippedLabel: (n: number) => `${n} skipped`,
+    keptLabel: (amount: string) => `${amount} kept`,
+    intentionalRateLabel: (percent: number) => `You stepped back to think ${percent}% of the time.`,
+    levelProgressLabel: (remaining: number, name: string) =>
+      `${remaining} more ${remaining === 1 ? "pause" : "pauses"} to ${name}`,
+    emptyBody: "Pause on a purchase to start your first win.",
+  },
+
   bigPurchaseMode: {
     cardTitle: "Big Purchase Mode",
     cardSubtitle: "Above a threshold you set, Decision Mode adds a few extra questions worth sitting with.",

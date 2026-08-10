@@ -17,6 +17,7 @@ import { detectCategoryTrends } from "@domain/money/insightsEngine";
 import { buildFinancialTimeline, computeSafeSpendingDays } from "@domain/money/financialTimeline";
 import { computeFinancialConfidence } from "@domain/money/financialConfidence";
 import { computeWeeksProtectedStreak } from "@domain/money/streak";
+import { computePauseWins, computePauseLevel } from "@domain/money/pauseWins";
 import { useMilestones } from "@shared/hooks/useMilestones";
 import { InfoModal } from "@shared/components/InfoModal";
 import { detectRecurringCharges } from "@domain/money/recurringCharges";
@@ -24,6 +25,7 @@ import { buildDollarJobSegments } from "@domain/money/dollarJobs";
 import { AvailableCard } from "./components/AvailableCard";
 import { FinancialConfidenceCard } from "./components/FinancialConfidenceCard";
 import { StreakCard } from "./components/StreakCard";
+import { PauseWinsCard } from "./components/PauseWinsCard";
 import { DollarJobsBar } from "./components/DollarJobsBar";
 import { Timeline } from "./components/Timeline";
 import { useCheckpoint } from "@shared/hooks/useCheckpoint";
@@ -92,6 +94,8 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
   );
   const confidence = computeFinancialConfidence(availableCents, goals, anyCategoryOverBudget, timeline.causesShortfall);
   const streakWeeks = computeWeeksProtectedStreak(decisions);
+  const pauseWins = computePauseWins(decisions);
+  const pauseLevel = computePauseLevel(pauseWins.lifetime.pauses);
   const { pending: pendingMilestone, dismiss: dismissMilestone } = useMilestones({
     userId,
     userCreatedAt: user?.created_at,
@@ -219,6 +223,7 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
 
           <FinancialConfidenceCard score={confidence.score} label={confidence.label} checks={confidence.checks} />
           <StreakCard weeks={streakWeeks} />
+          <PauseWinsCard wins={pauseWins} level={pauseLevel} />
 
           {investingSpend > 0 && (
             <View
