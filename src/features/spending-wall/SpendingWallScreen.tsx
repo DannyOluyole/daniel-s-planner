@@ -25,11 +25,10 @@ import { computeWallVerdict, selectDippedGoal } from "@domain/money/applyPurchas
 import { buildWallSpokenSummary } from "@domain/money/parsePurchaseSpeech";
 import { summarizeCategoryImpact } from "@domain/money/categoryImpact";
 import { buildDecisionNarrative } from "@domain/money/decisionNarrative";
-import { buildFinancialTimeline } from "@domain/money/financialTimeline";
+import { buildFinancialTimeline, computeSafeSpendingDays } from "@domain/money/financialTimeline";
 import { findRelevantPauseReason, findRegrettedPurchaseWarning } from "@domain/money/decisionJournal";
 import { determineFrictionTier, FRICTION_PAUSE_MS } from "@domain/money/frictionTier";
-import { SafeToSpendMeter } from "./components/SafeToSpendMeter";
-import { AlignmentScore } from "./components/AlignmentScore";
+import { LedgerCard } from "./components/LedgerCard";
 import { DecisionActions } from "./components/DecisionActions";
 import { PauseReasonPicker } from "./components/PauseReasonPicker";
 import { DecisionGate } from "./components/DecisionGate";
@@ -96,6 +95,14 @@ export function SpendingWallScreen({ route, navigation }: Props) {
   const narrative = verdict
     ? buildDecisionNarrative(verdict, amountCents, dippedGoal, timeline, vision, baselineTimeline)
     : null;
+  // Same "is this actually a concern" check buildDecisionNarrative makes
+  // internally to pick its headline branch — recomputed here so the ledger's
+  // After-purchase/goal rows can share the same red/green read as the
+  // headline they sit next to, without buildDecisionNarrative needing to
+  // expose its internal branch choice.
+  const concern = Boolean(timeline?.causesShortfall) || verdict?.tone === "warn";
+  const safeDays =
+    verdict && timeline ? computeSafeSpendingDays(verdict.afterCents, timeline).daysUntilPayday : null;
 
   const categoryImpact = summarizeCategoryImpact(commitments, decisions, category, amountCents);
   const pauseReasonMatch = findRelevantPauseReason(decisions, merchant, category);
@@ -214,35 +221,20 @@ export function SpendingWallScreen({ route, navigation }: Props) {
           className="flex-1"
           contentContainerStyle={{ flexGrow: 1, alignItems: "center", justifyContent: "center", paddingVertical: 12 }}
         >
-          <SafeToSpendMeter
-            availableCents={state?.availableCents ?? 0}
-            amountCents={amountCents}
-          />
-          <Text
-            className={`mt-6 text-sm text-center px-8 ${
-              dark ? "text-ink-faint" : "text-ink-soft"
-            }`}
-          >
-            {Copy.spendingWall.futureYouNote(money(amountCents))}
-          </Text>
-
-          {narrative && (
-            <View className="mt-6 w-full" style={{ borderRadius: 28, overflow: "hidden" }}>
-              <Card raised className="w-full items-center">
-                <Text
-                  className={`text-base font-medium text-center ${dark ? "text-ink-dark" : "text-ink"}`}
-                >
-                  {narrative.headline}
-                </Text>
-                <AlignmentScore score={narrative.score} label={narrative.scoreLabel} />
-                {narrative.futureSelfNote && (
-                  <Text
-                    className={`mt-3 text-sm text-center italic ${dark ? "text-ink-faint" : "text-ink-soft"}`}
-                  >
-                    Future You says: {narrative.futureSelfNote}
-                  </Text>
-                )}
-              </Card>
+          {narrative && verdict && (
+            <View className="w-full" style={{ borderRadius: 28, overflow: "hidden" }}>
+              <LedgerCard
+                beforeCents={verdict.beforeCents}
+                afterCents={verdict.afterCents}
+                concern={concern}
+                safeDays={safeDays}
+                score={narrative.score}
+                headline={narrative.headline}
+                futureSelfNote={narrative.futureSelfNote}
+                categoryImpact={categoryImpact}
+                goalName={dippedGoal?.name ?? null}
+                goalDipCents={verdict.dipsIntoGoalBy}
+              />
               <VaultDoorOverlay lifted={lifted} />
             </View>
           )}

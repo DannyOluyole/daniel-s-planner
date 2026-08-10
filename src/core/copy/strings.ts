@@ -176,9 +176,6 @@ export const Copy = {
     financialAlignmentExplainerBody:
       "How well this specific purchase fits what's already scheduled — your bills, your goals, what you've told this app matters to you. A low score doesn't mean \"don't buy it,\" just \"look at what it costs you.\"",
     question: "Is this worth it, right now?",
-    safeToSpendLabel: "Safe to Spend",
-    futureYouNote: (amount: string) =>
-      `Future You will have ${amount} less set aside.`,
     pauseHint: "Take a breath. This screen won't rush you.",
     reflectionPauseHint: "This one's worth sitting with a little longer.",
     continueLabel: "Continue",
@@ -198,6 +195,12 @@ export const Copy = {
       "Is this replacing something?",
       "Is this part of your plan?",
     ],
+    ledgerAvailableNowLabel: "Available now",
+    ledgerAfterPurchaseLabel: "After purchase",
+    ledgerSafeDaysLabel: "Safe spending days",
+    ledgerSafeDaysValue: (days: number) => `${days} ${days === 1 ? "day" : "days"}`,
+    ledgerCategoryLabel: (category: string) => `${category} this month`,
+    ledgerGoalImpactLabel: (goal: string) => `${goal} impact`,
   },
 
   pauseReasonCallback: {
