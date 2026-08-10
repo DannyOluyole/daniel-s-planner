@@ -1,4 +1,4 @@
-import { WallVerdict } from "./applyPurchase";
+import { WallVerdict, WallTone } from "./applyPurchase";
 import { SavingsGoal } from "@domain/entities/SavingsGoal";
 import { money } from "@domain/entities/MoneyState";
 import { FinancialTimeline, computeDaysUntilSafeToSpend, computeSafeSpendingDays } from "./financialTimeline";
@@ -48,12 +48,28 @@ function lowerFirst(s: string): string {
 /**
  * A callback to the user's own "Future Self" answer from onboarding — reads
  * differently depending on whether this purchase is actually a concern, so
- * it never contradicts the main headline above it.
+ * it never contradicts the main headline above it. When a specific savings
+ * goal is what's actually being dipped into, names it and the exact amount
+ * skipping would keep in it — the habit doc's "skip this and you're $150
+ * closer to your trip" framing, more concrete than the generic vision
+ * callback below and available even to someone who skipped the Future Self
+ * onboarding step (a real goal name still exists to reference).
  */
-function buildFutureSelfNote(isConcern: boolean, futureVision: string | null | undefined): string | null {
+function buildFutureSelfNote(
+  verdictTone: WallTone,
+  causesShortfall: boolean,
+  futureVision: string | null | undefined,
+  dippedGoal: SavingsGoal | null,
+  dipsIntoGoalBy: number
+): string | null {
+  if (verdictTone === "warn" && dippedGoal && dipsIntoGoalBy > 0) {
+    return `Skip this and you're ${money(dipsIntoGoalBy)} closer to ${dippedGoal.name}.`;
+  }
+
   const vision = futureVision?.trim();
   if (!vision) return null;
   const phrased = lowerFirst(vision);
+  const isConcern = causesShortfall || verdictTone === "warn";
   return isConcern
     ? `This won't stop ${phrased}, but waiting until your next payday keeps you exactly on schedule.`
     : `You're getting closer to ${phrased} every week.`;
@@ -132,8 +148,13 @@ export function buildDecisionNarrative(
       ? "Worth a second thought"
       : "Think twice";
 
-  const isConcern = Boolean(timeline?.causesShortfall) || verdict.tone === "warn";
-  const futureSelfNote = buildFutureSelfNote(isConcern, futureVision);
+  const futureSelfNote = buildFutureSelfNote(
+    verdict.tone,
+    Boolean(timeline?.causesShortfall),
+    futureVision,
+    goal,
+    verdict.dipsIntoGoalBy
+  );
 
   return { headline, score, scoreLabel, futureSelfNote };
 }

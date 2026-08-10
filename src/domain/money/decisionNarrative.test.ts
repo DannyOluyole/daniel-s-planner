@@ -121,9 +121,21 @@ describe("buildDecisionNarrative", () => {
     expect(result.futureSelfNote).toBe("You're getting closer to buying my first house every week.");
   });
 
-  it("reads reassuringly-but-honest when the purchase is a real concern", () => {
-    const goal = makeGoal({ targetCents: 50000 });
+  it("names the specific goal and dollar amount when the purchase dips into it, even with a vision set", () => {
+    const goal = makeGoal({ name: "Cushion", targetCents: 50000 });
     const result = buildDecisionNarrative(warnVerdict, 25000, goal, null, "Buying my first house");
+    expect(result.futureSelfNote).toBe("Skip this and you're $138.00 closer to Cushion.");
+  });
+
+  it("falls back to the generic vision callback for a real concern with no goal to name", () => {
+    const timeline: FinancialTimeline = {
+      events: [],
+      runningBalances: [],
+      lowestBalanceCents: -1000,
+      lowestBalanceDate: "2026-07-23",
+      causesShortfall: true,
+    };
+    const result = buildDecisionNarrative(okVerdict, 4500, null, timeline, "Buying my first house");
     expect(result.futureSelfNote).toBe(
       "This won't stop buying my first house, but waiting until your next payday keeps you exactly on schedule."
     );
