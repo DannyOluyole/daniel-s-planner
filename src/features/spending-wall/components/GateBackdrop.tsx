@@ -14,20 +14,28 @@ import { FrictionTier } from "@domain/money/frictionTier";
 const WHEEL_SIZE = 64;
 const WHEEL_ROTATION_DEG = 200;
 const SEAM_GAP_PX = 6;
+// Pinned in the header area (below the eyebrow/prompt text, above the
+// merchant/amount line) — the one part of the screen never covered by an
+// opaque Card. Centering it on the whole screen instead put it directly
+// behind the narrative card's solid background, making it invisible
+// regardless of opacity.
+const WHEEL_TOP_OFFSET = 96;
 
 // Intensity scales with how much a purchase actually matters — same amber
 // seam, no alarm-red, but a "big" or "reflection" purchase should feel
 // like a heavier barrier than a coffee, not an identical faint texture
 // regardless of stakes. Mirrors FRICTION_PAUSE_MS's escalation shape.
+// Deliberately visible rather than barely-there — an earlier faint version
+// (0.07 resting) was indistinguishable from no gate at all in practice.
 const RESTING_OPACITY: Record<FrictionTier, number> = {
-  normal: 0.07,
-  big: 0.13,
-  reflection: 0.2,
+  normal: 0.5,
+  big: 0.62,
+  reflection: 0.78,
 };
 const LIFTED_OPACITY: Record<FrictionTier, number> = {
-  normal: 0.4,
-  big: 0.55,
-  reflection: 0.7,
+  normal: 0.72,
+  big: 0.82,
+  reflection: 0.94,
 };
 
 interface Props {
@@ -44,11 +52,11 @@ interface Props {
  * A vault motif — a wheel handle on a seam between two door panels, filling
  * the whole screen behind Decision Mode's content instead of a single
  * banner, so the Wall always feels like standing at the vault, not just
- * glancing at a label up top. Kept faint at rest so it reads as ambient
- * texture, not noise; on lift the wheel turns and the doors part slightly
- * as a payoff right before navigating away. Never blocks or delays reading
- * the actual decision — the narrative/score above this backdrop are always
- * visible immediately.
+ * glancing at a label up top. Genuinely visible, not just ambient texture —
+ * on lift the wheel turns and the doors part slightly as a payoff right
+ * before navigating away. Never blocks or delays reading the actual
+ * decision — the narrative/score sit in an opaque card above this backdrop
+ * and are always fully visible regardless of this component's state.
  */
 export function GateBackdrop({ lifted, tier }: Props) {
   const opacity = useSharedValue(RESTING_OPACITY[tier]);
@@ -116,11 +124,9 @@ const styles = StyleSheet.create({
   },
   wheelWrap: {
     position: "absolute",
-    top: 0,
+    top: WHEEL_TOP_OFFSET,
     left: 0,
     right: 0,
-    bottom: 0,
     alignItems: "center",
-    justifyContent: "center",
   },
 });
