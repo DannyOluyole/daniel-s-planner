@@ -32,7 +32,8 @@ import { SafeToSpendMeter } from "./components/SafeToSpendMeter";
 import { AlignmentScore } from "./components/AlignmentScore";
 import { DecisionActions } from "./components/DecisionActions";
 import { PauseReasonPicker } from "./components/PauseReasonPicker";
-import { GateBackdrop } from "./components/GateBackdrop";
+import { DecisionGate } from "./components/DecisionGate";
+import { VaultDoorOverlay } from "./components/VaultDoorOverlay";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import type { RootStackParamList } from "@app/Navigation";
 import { DecisionOutcome } from "@domain/entities/MoneyState";
@@ -180,8 +181,6 @@ export function SpendingWallScreen({ route, navigation }: Props) {
   return (
     <Screen>
       <Animated.View style={entryStyle} className="flex-1">
-        <GateBackdrop lifted={lifted} tier={frictionTier} />
-
         <View className="mt-4 items-center">
           <Text
             className={`text-micro uppercase tracking-widest ${
@@ -207,6 +206,7 @@ export function SpendingWallScreen({ route, navigation }: Props) {
           <Text className={`mt-2 text-base ${dark ? "text-ink-faint" : "text-ink-soft"}`}>
             {merchant} · {money(amountCents)}
           </Text>
+          <DecisionGate lifted={lifted} tier={frictionTier} />
         </View>
 
         <ScrollView
@@ -227,21 +227,24 @@ export function SpendingWallScreen({ route, navigation }: Props) {
           </Text>
 
           {narrative && (
-            <Card raised className="mt-6 w-full items-center">
-              <Text
-                className={`text-base font-medium text-center ${dark ? "text-ink-dark" : "text-ink"}`}
-              >
-                {narrative.headline}
-              </Text>
-              <AlignmentScore score={narrative.score} label={narrative.scoreLabel} />
-              {narrative.futureSelfNote && (
+            <View className="mt-6 w-full" style={{ borderRadius: 28, overflow: "hidden" }}>
+              <Card raised className="w-full items-center">
                 <Text
-                  className={`mt-3 text-sm text-center italic ${dark ? "text-ink-faint" : "text-ink-soft"}`}
+                  className={`text-base font-medium text-center ${dark ? "text-ink-dark" : "text-ink"}`}
                 >
-                  Future You says: {narrative.futureSelfNote}
+                  {narrative.headline}
                 </Text>
-              )}
-            </Card>
+                <AlignmentScore score={narrative.score} label={narrative.scoreLabel} />
+                {narrative.futureSelfNote && (
+                  <Text
+                    className={`mt-3 text-sm text-center italic ${dark ? "text-ink-faint" : "text-ink-soft"}`}
+                  >
+                    Future You says: {narrative.futureSelfNote}
+                  </Text>
+                )}
+              </Card>
+              <VaultDoorOverlay lifted={lifted} />
+            </View>
           )}
 
           {pauseReasonCallbackText && (
