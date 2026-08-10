@@ -336,6 +336,16 @@ export const Copy = {
     skipCta: "Skip for now",
   },
 
+  onboardingPauseRule: {
+    appsTitle: "Which apps tempt you most?",
+    appsSubtitle: "Pick as many as apply — totally optional, and just for you.",
+    appOptions: ["Amazon", "Temu", "Shein", "DoorDash", "Uber Eats", "TikTok Shop", "Best Buy", "Other"],
+    thresholdTitle: "When should we make you pause?",
+    thresholdSubtitle: "You can change this anytime in Settings.",
+    continueCta: "Continue",
+    skipCta: "Skip for now",
+  },
+
   onboardingResponsibilities: {
     title: "What's already spoken for?",
     subtitle: "Rent, a phone bill, anything that leaves your account the same way every month. One's enough to start — add more anytime.",

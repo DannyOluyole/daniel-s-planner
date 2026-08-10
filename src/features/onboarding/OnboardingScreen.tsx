@@ -16,14 +16,17 @@ import { OnboardingSlideView } from "./components/OnboardingSlideView";
 import { OnboardingDots } from "./components/OnboardingDots";
 import { SavingsGoalForm } from "./components/SavingsGoalForm";
 import { FutureVisionForm } from "./components/FutureVisionForm";
+import { PauseRuleForm } from "./components/PauseRuleForm";
 import { AddCommitmentForm } from "@features/home/components/AddCommitmentForm";
 import { useOnboarding } from "./OnboardingContext";
 import { useAuth } from "@core/auth/AuthContext";
 import { useSavingsGoals } from "@shared/hooks/useSavingsGoals";
 import { useCommitments } from "@shared/hooks/useCommitments";
 import { useFutureVision } from "@shared/hooks/useFutureVision";
+import { useTemptedApps } from "@shared/hooks/useTemptedApps";
+import { useBigPurchaseThreshold } from "@shared/hooks/useBigPurchaseThreshold";
 
-type Step = "slides" | "responsibilities" | "habits" | "vision" | "goal";
+type Step = "slides" | "pauseRule" | "responsibilities" | "habits" | "vision" | "goal";
 
 export function OnboardingScreen() {
   const { complete } = useOnboarding();
@@ -33,6 +36,8 @@ export function OnboardingScreen() {
   const { addGoal } = useSavingsGoals(user?.id ?? null);
   const { addCommitment } = useCommitments(user?.id ?? null);
   const { setVision } = useFutureVision(user?.id ?? null);
+  const { setApps: setTemptedApps } = useTemptedApps();
+  const { setEnabled: setBigPurchaseEnabled, setThresholdCents } = useBigPurchaseThreshold();
   const [index, setIndex] = useState(0);
   const [step, setStep] = useState<Step>("slides");
   const scrollRef = useRef<ScrollView>(null);
@@ -48,7 +53,7 @@ export function OnboardingScreen() {
 
   const goNext = () => {
     if (isLast) {
-      setStep("responsibilities");
+      setStep("pauseRule");
       return;
     }
     // Update index immediately rather than waiting on onMomentumScrollEnd —
@@ -59,6 +64,29 @@ export function OnboardingScreen() {
     setIndex(next);
     scrollRef.current?.scrollTo({ x: width * next, animated: true });
   };
+
+  if (step === "pauseRule") {
+    return (
+      <Screen>
+        <View className="flex-1 justify-center px-2">
+          <PauseRuleForm
+            onSubmit={(apps, thresholdCents) => {
+              setTemptedApps(apps);
+              setBigPurchaseEnabled(true);
+              // "Every purchase" has no real dollar floor — a low sentinel
+              // keeps every purchase in at least the "big" friction tier;
+              // frictionTier.ts floors the reflection-tier multiplier's
+              // base separately so this doesn't force the longest pause on
+              // every single coffee.
+              setThresholdCents(thresholdCents ?? 1);
+              setStep("responsibilities");
+            }}
+            onSkip={() => setStep("responsibilities")}
+          />
+        </View>
+      </Screen>
+    );
+  }
 
   if (step === "responsibilities" || step === "habits") {
     const isResponsibilities = step === "responsibilities";
