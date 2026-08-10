@@ -27,12 +27,13 @@ import { HomeScreen } from "@features/home/HomeScreen";
 import { ManageMoneyScreen } from "@features/home/ManageMoneyScreen";
 import { NewDecisionScreen } from "@features/spending-wall/NewDecisionScreen";
 import { SpendingWallScreen } from "@features/spending-wall/SpendingWallScreen";
+import { DecisionRecordedScreen } from "@features/spending-wall/DecisionRecordedScreen";
 import { FutureYouScreen } from "@features/future-you/FutureYouScreen";
 import { SettingsScreen } from "@features/settings/SettingsScreen";
 import { DecisionsScreen } from "@features/decisions/DecisionsScreen";
 import { LinkAccountScreen } from "@features/link-account/LinkAccountScreen";
 import { WatchedPlacesScreen } from "@features/places/WatchedPlacesScreen";
-import type { PurchaseIntent } from "@domain/entities/MoneyState";
+import type { PurchaseIntent, DecisionOutcome } from "@domain/entities/MoneyState";
 
 // The four destinations someone actually returns to, always reachable in one
 // tap. Everything else (the decision flow, drilling into managing income and
@@ -69,6 +70,14 @@ export type RootStackParamList = {
     merchant: string;
     category?: string;
     intent?: PurchaseIntent;
+  };
+  // The reward beat after a decision is recorded — replaces a silent
+  // popToTop() so every outcome (including "continued") gets a moment of
+  // acknowledgement before landing back on Home.
+  DecisionRecorded: {
+    outcome: DecisionOutcome;
+    amountCents: number;
+    merchant: string;
   };
   // Editing income/bills/goals is upkeep, not something glanced at daily —
   // pulled off Home's main scroll so Home can stay a quick daily read.
@@ -254,6 +263,11 @@ export function Navigation() {
           name="SpendingWall"
           component={SpendingWallScreen}
           options={{ presentation: "fullScreenModal", animation: "fade" }}
+        />
+        <RootStack.Screen
+          name="DecisionRecorded"
+          component={DecisionRecordedScreen}
+          options={{ presentation: "fullScreenModal", animation: "fade", gestureEnabled: false }}
         />
         <RootStack.Screen name="ManageMoney" component={ManageMoneyScreen} />
       </RootStack.Navigator>

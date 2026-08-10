@@ -114,6 +114,16 @@ export const Copy = {
     winbackBody: "It's been a couple weeks — your Safe to Spend and goals are still right where you left them.",
   },
 
+  decisionRecorded: {
+    pausedTitle: "Pause complete",
+    pausedBody: (amount: string) => `You took a moment before spending — ${amount} stayed put while you did.`,
+    reconsideredTitle: "Pause complete",
+    reconsideredBody: (amount: string) => `You paused, thought it through, and skipped it. ${amount} stayed in your account.`,
+    continuedTitle: "Good decision",
+    continuedBody: "You paused, considered it, and chose intentionally. That's the whole idea.",
+    doneCta: "Done",
+  },
+
   milestones: {
     firstGoalReachedTitle: "Goal reached 🎉",
     firstGoalReachedBody: (goalName: string) => `You've reached your "${goalName}" goal. Take a moment — you built this.`,

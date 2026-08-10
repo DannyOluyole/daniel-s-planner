@@ -165,8 +165,10 @@ export function SpendingWallScreen({ route, navigation }: Props) {
         timeout,
       ]);
       refreshCheckpointWidget();
-      // Pop past NewDecision too — after deciding, the purchase form is done.
-      navigation.popToTop();
+      // The reward beat, not a silent pop — every outcome (including
+      // "continued") gets an acknowledgement; that screen's own Done button
+      // does the popToTop() that used to happen right here.
+      navigation.replace("DecisionRecorded", { outcome, amountCents, merchant });
     } catch (e) {
       setDecideError((e as Error).message ?? "Something went wrong. Try again.");
       setLifted(false);
