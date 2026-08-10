@@ -18,6 +18,7 @@ import { useIncome } from "@shared/hooks/useIncome";
 import { useDecisions } from "@shared/hooks/useDecisions";
 import { useVoiceOutput } from "@shared/hooks/useVoiceOutput";
 import { useBigPurchaseThreshold } from "@shared/hooks/useBigPurchaseThreshold";
+import { usePauseIntensity } from "@shared/hooks/usePauseIntensity";
 import { useFutureVision } from "@shared/hooks/useFutureVision";
 import { useAuth } from "@core/auth/AuthContext";
 import { motion } from "@core/theme/tokens";
@@ -52,7 +53,8 @@ export function SpendingWallScreen({ route, navigation }: Props) {
   const { decisions } = useDecisions(user?.id ?? null, 200);
   const { speak, stop: stopSpeaking, speaking } = useVoiceOutput();
   const { enabled: bigPurchaseEnabled, thresholdCents: bigPurchaseThresholdCents } = useBigPurchaseThreshold();
-  const frictionTier = determineFrictionTier(amountCents, bigPurchaseEnabled, bigPurchaseThresholdCents);
+  const { intensity: pauseIntensity } = usePauseIntensity();
+  const frictionTier = determineFrictionTier(amountCents, bigPurchaseEnabled, bigPurchaseThresholdCents, pauseIntensity);
   const isBigPurchase = frictionTier !== "normal";
   const { vision } = useFutureVision(user?.id ?? null);
 
@@ -139,9 +141,9 @@ export function SpendingWallScreen({ route, navigation }: Props) {
   };
 
   useEffect(() => {
-    const timer = setTimeout(() => setContinueEnabled(true), FRICTION_PAUSE_MS[frictionTier]);
+    const timer = setTimeout(() => setContinueEnabled(true), FRICTION_PAUSE_MS[pauseIntensity][frictionTier]);
     return () => clearTimeout(timer);
-  }, [frictionTier]);
+  }, [frictionTier, pauseIntensity]);
 
   const handleDecide = async (outcome: DecisionOutcome, pauseReason?: string) => {
     if (lifted) return; // already mid-decision — ignore a second tap during the lift beat

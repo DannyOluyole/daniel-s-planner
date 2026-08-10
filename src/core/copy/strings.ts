@@ -153,6 +153,16 @@ export const Copy = {
     thresholdLabel: "Threshold",
   },
 
+  pauseIntensity: {
+    cardTitle: "Pause intensity",
+    cardSubtitle: "How much friction Decision Mode adds as a purchase gets bigger — and how long the pause lasts. Change this anytime.",
+    gentleLabel: "Gentle",
+    standardLabel: "Standard",
+    strongLabel: "Strong",
+    strictLabel: "Strict",
+    strictNote: "The longest pause Pause Money can add today — not a real app lock.",
+  },
+
   appLock: {
     cardTitle: "App lock",
     cardSubtitle:

@@ -10,6 +10,8 @@ import { useOnboarding } from "@features/onboarding/OnboardingContext";
 import { useAuth } from "@core/auth/AuthContext";
 import { useCheckInReminder } from "@shared/hooks/useCheckInReminder";
 import { useBigPurchaseThreshold } from "@shared/hooks/useBigPurchaseThreshold";
+import { usePauseIntensity } from "@shared/hooks/usePauseIntensity";
+import { PauseIntensity } from "@domain/money/frictionTier";
 import { useAppLock } from "@features/applock/useAppLock";
 import { Copy } from "@core/copy/strings";
 import { colors } from "@core/theme/tokens";
@@ -50,6 +52,7 @@ export function SettingsScreen({ navigation }: Props) {
   const { user, signOut, deleteAccount, clearData } = useAuth();
   const reminder = useCheckInReminder(user?.id ?? null);
   const bigPurchase = useBigPurchaseThreshold();
+  const pauseIntensity = usePauseIntensity();
   const appLock = useAppLock();
   const [thresholdInput, setThresholdInput] = useState<string | null>(null);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
@@ -86,6 +89,7 @@ export function SettingsScreen({ navigation }: Props) {
     // state reset) so any already-scheduled notifications are cancelled.
     if (reminder.status === "on") await reminder.disable();
     await bigPurchase.reset();
+    await pauseIntensity.reset();
     setClearing(false);
     setConfirmingClear(false);
     await replay();
@@ -330,6 +334,47 @@ export function SettingsScreen({ navigation }: Props) {
               />
             </View>
           </View>
+        )}
+      </Card>
+
+      <Card className="mt-4">
+        <Text className={`text-headline mb-1 ${dark ? "text-ink-dark" : "text-ink"}`}>
+          {Copy.pauseIntensity.cardTitle}
+        </Text>
+        <Text className={`text-sm mb-4 ${dark ? "text-ink-faint" : "text-ink-soft"}`}>
+          {Copy.pauseIntensity.cardSubtitle}
+        </Text>
+        <View className="flex-row flex-wrap gap-2">
+          {(
+            [
+              ["gentle", Copy.pauseIntensity.gentleLabel],
+              ["standard", Copy.pauseIntensity.standardLabel],
+              ["strong", Copy.pauseIntensity.strongLabel],
+              ["strict", Copy.pauseIntensity.strictLabel],
+            ] as [PauseIntensity, string][]
+          ).map(([value, label]) => {
+            const active = pauseIntensity.intensity === value;
+            return (
+              <Pressable
+                key={value}
+                onPress={() => pauseIntensity.setIntensity(value)}
+                accessibilityRole="button"
+                accessibilityState={{ selected: active }}
+                className={`rounded-full border px-3 py-1.5 ${
+                  active ? "bg-checkpoint border-checkpoint" : dark ? "border-hairline-dark" : "border-hairline"
+                }`}
+              >
+                <Text className={active ? "text-white text-xs font-medium" : `text-xs ${dark ? "text-ink-dark" : "text-ink"}`}>
+                  {label}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
+        {pauseIntensity.intensity === "strict" && (
+          <Text className={`text-xs mt-3 ${dark ? "text-ink-faint" : "text-ink-faint"}`}>
+            {Copy.pauseIntensity.strictNote}
+          </Text>
         )}
       </Card>
 
