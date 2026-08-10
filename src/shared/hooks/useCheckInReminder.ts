@@ -6,7 +6,7 @@ import { Copy } from "@core/copy/strings";
 import { bankLinkRepository, checkpointRepository } from "@data/repositories";
 import { money } from "@domain/entities/MoneyState";
 import { humanizeCategory } from "@domain/money/humanizeCategory";
-import { sumMoneyProtected } from "@domain/money/decisionJournal";
+import { computePauseWins } from "@domain/money/pauseWins";
 import {
   highestSpendingWeekday,
   topCategoryThisWeekFromTransactions,
@@ -40,11 +40,10 @@ function notificationId(day: number): string {
  * Builds the check-in body from real synced transactions when there's
  * enough history to say something true — a real weekly digest combining
  * this week's top category, a genuine 30-day trend (not just a snapshot),
- * and the historically busiest spending day — falling back to a generic
- * line otherwise (no bank linked yet, or too little history for any signal).
+ * the historically busiest spending day, and this week's Pause Wins —
+ * falling back to a generic line otherwise (no bank linked yet, or too
+ * little history for any signal).
  */
-const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
-
 async function buildReminderBody(userId: string): Promise<string> {
   try {
     const [transactions, decisions] = await Promise.all([
@@ -55,11 +54,9 @@ async function buildReminderBody(userId: string): Promise<string> {
     const topTrend = detectCategoryTrendsFromTransactions(transactions)[0] ?? null;
     const busiestDay = highestSpendingWeekday(transactions);
     // Decision Journal reads from local decisions, not synced transactions —
-    // a separate data source from the three facts above, so it's fetched
-    // and filtered to the same trailing week independently.
-    const weekAgo = Date.now() - WEEK_MS;
-    const recentDecisions = decisions.filter((d) => new Date(d.decidedAt).getTime() >= weekAgo);
-    const moneyProtectedCents = sumMoneyProtected(recentDecisions);
+    // a separate data source from the three facts above. computePauseWins
+    // does its own trailing-7-day filtering, so the full history goes in.
+    const pauseWins = computePauseWins(decisions).weekly;
 
     const parts: string[] = [];
     if (topCategory) {
@@ -74,8 +71,11 @@ async function buildReminderBody(userId: string): Promise<string> {
           : `${label} is down ${Math.abs(topTrend.percentChange)}% over the last 30 days.`
       );
     }
-    if (moneyProtectedCents > 0) {
-      parts.push(Copy.reminders.moneyProtectedLine(money(moneyProtectedCents)));
+    if (pauseWins.moneyKeptCents > 0) {
+      parts.push(Copy.reminders.moneyProtectedLine(money(pauseWins.moneyKeptCents)));
+    }
+    if (pauseWins.pauses > 0) {
+      parts.push(Copy.reminders.pauseWinsLine(pauseWins.pauses, pauseWins.skipped));
     }
     if (busiestDay) {
       parts.push(`${busiestDay}s tend to be your highest-spending day.`);

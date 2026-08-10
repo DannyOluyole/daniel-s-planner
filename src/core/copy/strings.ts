@@ -108,6 +108,10 @@ export const Copy = {
     fridayNotificationTitle: "A moment to check in",
     fridayNotificationBody: "Take a quiet look at where you stand before you head out.",
     moneyProtectedLine: (amount: string) => `You protected ${amount} by pausing or reconsidering this week.`,
+    pauseWinsLine: (pauses: number, skipped: number) =>
+      skipped > 0
+        ? `You paused ${pauses} ${pauses === 1 ? "time" : "times"} and skipped ${skipped} ${skipped === 1 ? "purchase" : "purchases"} this week.`
+        : `You paused ${pauses} ${pauses === 1 ? "time" : "times"} this week.`,
     webUnsupportedNote: "Check-ins arrive as notifications, which need the iOS or Android app.",
     permissionDeniedNote: "Notifications are off for Pause Money — enable them in your device settings first.",
     winbackTitle: "We miss you",
