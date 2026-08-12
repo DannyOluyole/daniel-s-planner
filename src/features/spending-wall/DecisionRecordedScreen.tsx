@@ -1,10 +1,12 @@
 import React from "react";
 import { useTheme } from "@core/theme/ThemeContext";
-import { View, Text } from "react-native";
+import { View, Text, Share } from "react-native";
 import { Screen } from "@shared/components/Screen";
 import { Button } from "@shared/components/Button";
 import { Copy } from "@core/copy/strings";
 import { money } from "@domain/entities/MoneyState";
+import { useAuth } from "@core/auth/AuthContext";
+import { useReferrals } from "@shared/hooks/useReferrals";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import type { RootStackParamList } from "@app/Navigation";
 
@@ -22,6 +24,9 @@ export function DecisionRecordedScreen({ route, navigation }: Props) {
   const { outcome, amountCents } = route.params;
   const { scheme } = useTheme();
   const dark = scheme === "dark";
+  const { user } = useAuth();
+  const { summary } = useReferrals(user?.id ?? null);
+  const canShareWin = outcome !== "continued" && amountCents > 0;
 
   const { title, body } =
     outcome === "continued"
@@ -47,6 +52,19 @@ export function DecisionRecordedScreen({ route, navigation }: Props) {
         </Text>
       </View>
       <View className="mb-6">
+        {canShareWin && summary && (
+          <View className="mb-3">
+            <Button
+              label={Copy.decisionRecorded.shareCta}
+              intent="quiet"
+              onPress={() => {
+                Share.share({ message: Copy.decisionRecorded.shareMessage(money(amountCents), summary.code) }).catch(
+                  () => {}
+                );
+              }}
+            />
+          </View>
+        )}
         <Button label={Copy.decisionRecorded.doneCta} onPress={() => navigation.popToTop()} />
       </View>
     </Screen>

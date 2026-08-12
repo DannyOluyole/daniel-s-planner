@@ -448,6 +448,20 @@ export function SettingsScreen({ navigation }: Props) {
 
       <Card className="mt-4">
         <Text className={`text-headline mb-1 ${dark ? "text-ink-dark" : "text-ink"}`}>
+          {Copy.referrals.title}
+        </Text>
+        <Text className={`text-sm mb-4 ${dark ? "text-ink-faint" : "text-ink-soft"}`}>
+          {Copy.referrals.subtitle}
+        </Text>
+        <Button
+          label={Copy.referrals.title}
+          intent="quiet"
+          onPress={() => navigation.navigate("Referral")}
+        />
+      </Card>
+
+      <Card className="mt-4">
+        <Text className={`text-headline mb-1 ${dark ? "text-ink-dark" : "text-ink"}`}>
           Your data
         </Text>
         {confirmingClear ? (

@@ -33,6 +33,7 @@ import { SettingsScreen } from "@features/settings/SettingsScreen";
 import { DecisionsScreen } from "@features/decisions/DecisionsScreen";
 import { LinkAccountScreen } from "@features/link-account/LinkAccountScreen";
 import { WatchedPlacesScreen } from "@features/places/WatchedPlacesScreen";
+import { ReferralScreen } from "@features/referrals/ReferralScreen";
 import type { PurchaseIntent, DecisionOutcome } from "@domain/entities/MoneyState";
 
 // The four destinations someone actually returns to, always reachable in one
@@ -57,6 +58,10 @@ export type SettingsStackParamList = {
   SettingsHome: undefined;
   LinkAccount: undefined;
   WatchedPlaces: undefined;
+  // code is optional route param, prefilled from a pausemoney://referral
+  // deep link — redeeming still requires a deliberate button press there,
+  // see ReferralScreen.
+  Referral: { code?: string } | undefined;
 };
 
 export type RootStackParamList = {
@@ -104,6 +109,7 @@ function SettingsStackNavigator() {
       <SettingsStack.Screen name="SettingsHome" component={SettingsScreen} />
       <SettingsStack.Screen name="LinkAccount" component={LinkAccountScreen} />
       <SettingsStack.Screen name="WatchedPlaces" component={WatchedPlacesScreen} />
+      <SettingsStack.Screen name="Referral" component={ReferralScreen} />
     </SettingsStack.Navigator>
   );
 }
@@ -240,6 +246,10 @@ const linking: LinkingOptions<RootStackParamList> = {
           Settings: {
             screens: {
               SettingsHome: "settings",
+              // pausemoney://referral?code=XXXXXX — a friend's share link.
+              // Lands straight on the redeem screen with the code prefilled;
+              // see ReferralScreen for why redemption still needs a tap.
+              Referral: "referral",
             },
           },
         },

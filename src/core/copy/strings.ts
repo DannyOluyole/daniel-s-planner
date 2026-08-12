@@ -126,6 +126,31 @@ export const Copy = {
     continuedTitle: "Good decision",
     continuedBody: "You paused, considered it, and chose intentionally. That's the whole idea.",
     doneCta: "Done",
+    shareCta: "Share this win",
+    shareMessage: (amount: string, code: string) =>
+      `I just kept ${amount} by pausing before I bought something I didn't need — Pause Money made me wait. Use my code ${code} when you join: pausemoney://referral?code=${code}`,
+  },
+
+  referrals: {
+    title: "Invite friends",
+    subtitle: "When Premium launches, you and everyone you invite get 30 days free.",
+    yourCodeLabel: "Your code",
+    invitesSentLabel: (n: number) => `${n} ${n === 1 ? "friend has" : "friends have"} joined with your code`,
+    daysBankedLabel: (days: number) => `${days} Premium ${days === 1 ? "day" : "days"} banked`,
+    daysBankedNote: "Banked now, unlocked the day Premium ships — nothing to redeem yet.",
+    shareCta: "Share your code",
+    shareMessage: (code: string) =>
+      `I've been using Pause Money to think twice before buying things I don't need. Use my code ${code} when you sign up — we both get 30 days of Premium once it launches. pausemoney://referral?code=${code}`,
+    enterCodeLabel: "Have a friend's code?",
+    enterCodePlaceholder: "Enter code",
+    redeemCta: "Redeem",
+    redeemSuccess: (days: number) => `Code applied — ${days} Premium days banked for both of you.`,
+    redeemErrorInvalidCode: "That code doesn't match anyone.",
+    redeemErrorSelfReferral: "That's your own code.",
+    redeemErrorAlreadyUsed: "You've already used a referral code.",
+    redeemErrorUnavailable: "Referrals need an account — sign in first.",
+    redeemErrorUnknown: "Something went wrong. Try again.",
+    demoNote: "Referrals need a real account to work — this is a preview in demo mode.",
   },
 
   milestones: {
