@@ -637,6 +637,39 @@
     .chapter-block .chapter-body .hint { font-size: 0.8rem; color: var(--gray-med); margin-top: 0.5rem; }
     .chapter-notes-empty { text-align: center; color: var(--gray-med); padding: 2rem; }
     .add-chapter-btn { margin-bottom: 1.5rem; }
+
+    .ai-engine-bar {
+      display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;
+      background: var(--gold-xlight); border: 1.5px solid var(--gold-light);
+      border-radius: 10px; padding: 0.75rem 1rem; margin-bottom: 1.5rem;
+    }
+    .ai-engine-bar #aiEngineStatus { font-weight: 700; color: var(--navy); font-size: 0.9rem; }
+    .ai-engine-bar .ai-engine-hint { font-size: 0.78rem; color: var(--gray-med); flex-basis: 100%; }
+    .ai-engine-bar select { width: auto; max-width: 260px; padding: 0.4rem 0.6rem; }
+
+    .ai-chapter-tools { margin-top: 1rem; padding-top: 1rem; border-top: 1.5px solid var(--gray-xlight); }
+    .ai-pdf-range { margin-bottom: 0.85rem; }
+    .ai-pdf-range label { display: block; font-size: 0.78rem; font-weight: 700; color: var(--gray-med); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 0.35rem; }
+    .ai-pdf-range-row { display: flex; align-items: center; gap: 0.5rem; max-width: 220px; }
+    .ai-pdf-range-row input { width: 90px; }
+    .ai-pdf-hint { margin-bottom: 0.85rem; }
+    .ai-chapter-results:empty { margin: 0; }
+    .ai-chapter-results { margin-top: 0.85rem; }
+    .ai-study-text { background: var(--teal-xlight); border-radius: 10px; padding: 0.9rem 1.1rem; margin-bottom: 1rem; }
+    .ai-study-text strong { display: block; color: var(--teal-dark); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.4rem; }
+    .ai-study-text p { font-size: 0.92rem; line-height: 1.6; color: var(--gray-dark); }
+    .ai-quiz-question { margin-bottom: 1.1rem; }
+    .ai-quiz-q-text { font-weight: 700; color: var(--navy); margin-bottom: 0.5rem; }
+    .ai-quiz-choice { display: block; padding: 0.45rem 0.7rem; border-radius: 8px; margin-bottom: 0.3rem; cursor: pointer; font-size: 0.92rem; }
+    .ai-quiz-choice:hover { background: var(--gray-xlight); }
+    .ai-quiz-choice input { margin-right: 0.5rem; }
+    .ai-quiz-choice.correct { background: #E8F5E9; color: var(--green); font-weight: 700; }
+    .ai-quiz-choice.incorrect { background: #FFEBEE; color: var(--red); font-weight: 700; }
+    .ai-quiz-explanation { font-size: 0.85rem; color: var(--gray-med); margin-top: 0.3rem; padding-left: 0.7rem; }
+    .ai-quiz-actions { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; margin-top: 0.5rem; }
+    .ai-quiz-score { font-weight: 800; color: var(--teal-dark); }
+    .ai-quiz-last-score { font-size: 0.82rem; color: var(--gray-med); margin-top: 0.5rem; }
+    .ai-error { color: var(--red); font-size: 0.88rem; background: #FFEBEE; border-radius: 8px; padding: 0.7rem 0.9rem; }
   </style>
 </head>
 <body>
@@ -721,6 +754,12 @@
         <select id="notesBookSelect" onchange="renderChapterNotes()">
           <option value="">— Select a book —</option>
         </select>
+      </div>
+      <div id="aiEngineBar" class="ai-engine-bar">
+        <span id="aiEngineStatus">🤖 AI Study Tools: not loaded</span>
+        <select id="aiModelSelect" style="display:none;"></select>
+        <button type="button" class="btn btn-teal btn-sm" id="aiLoadBtn" onclick="loadAIEngine()">Load AI Model</button>
+        <span class="hint ai-engine-hint">Runs fully in this browser — no account, no API key, nothing leaves your device. First load downloads the model (roughly 1–2GB) and works best in Chrome or Edge.</span>
       </div>
       <div id="chapterNotesArea">
         <p class="chapter-notes-empty">Select a book above to add or edit chapter insights.</p>
@@ -1425,11 +1464,22 @@
           if (b.coverUrl == null) b.coverUrl = '';
           if (b.linkUrl == null) b.linkUrl = '';
           if (b.pricePaid == null) b.pricePaid = 0;
+          b.chapters.forEach(function(c) {
+            if (c.aiStudy == null) c.aiStudy = '';
+            if (!Array.isArray(c.aiQuiz)) c.aiQuiz = [];
+            if (c.aiScore === undefined) c.aiScore = null;
+            if (c.pdfStartPage == null) c.pdfStartPage = '';
+            if (c.pdfEndPage == null) c.pdfEndPage = '';
+          });
         });
       } catch (e) {
         books = [];
       }
     }
+
+    /* Bridge for the AI Study Tools module script (type="module" scripts don't
+       see this classic script's top-level `let books`, so expose a getter). */
+    window.getBooks = function() { return books; };
 
     function saveBooks() {
       try {
@@ -1966,6 +2016,7 @@
     }
 
     var _chapterSaveTimer = null;
+    var _pdfRangeSaveTimer = null;
 
     function fillNotesBookSelect() {
       var sel = document.getElementById('notesBookSelect');
@@ -2009,12 +2060,30 @@
               '<div class="chapter-body">' +
                 '<textarea placeholder="Insights, quotes, and commentary from this chapter…" data-book-id="' + escapeHtml(bookId) + '" data-chapter-id="' + escapeHtml(chId) + '" oninput="scheduleChapterSaveFromInput(this)">' + escapeHtml(c.notes || '') + '</textarea>' +
                 '<p class="hint">Auto-saved as you type.</p>' +
+                '<div class="ai-chapter-tools" data-book-id="' + escapeHtml(bookId) + '" data-chapter-id="' + escapeHtml(chId) + '">' +
+                  (book.pdfUrl ? (
+                    '<div class="ai-pdf-range">' +
+                      '<label>Source pages in book PDF (optional)</label>' +
+                      '<div class="ai-pdf-range-row">' +
+                        '<input type="number" min="1" placeholder="from" class="ai-pdf-start" value="' + escapeHtml(c.pdfStartPage || '') + '" data-book-id="' + escapeHtml(bookId) + '" data-chapter-id="' + escapeHtml(chId) + '" oninput="schedulePdfRangeSave(this)" />' +
+                        '<span>–</span>' +
+                        '<input type="number" min="1" placeholder="to" class="ai-pdf-end" value="' + escapeHtml(c.pdfEndPage || '') + '" data-book-id="' + escapeHtml(bookId) + '" data-chapter-id="' + escapeHtml(chId) + '" oninput="schedulePdfRangeSave(this)" />' +
+                      '</div>' +
+                      '<p class="hint">Leave blank to use the first part of the PDF only (capped for the AI\'s context window).</p>' +
+                    '</div>'
+                  ) : (
+                    '<p class="hint ai-pdf-hint">Add a PDF link to this book (Edit Book) to let the AI read actual book pages as source material.</p>'
+                  )) +
+                  '<button type="button" class="btn btn-gold btn-sm ai-generate-btn" onclick="generateChapterStudyFromBtn(this)">🤖 Generate Study &amp; Quiz</button>' +
+                  '<div class="ai-chapter-results"></div>' +
+                '</div>' +
               '</div>' +
             '</div>'
           );
         });
       }
       area.innerHTML = html;
+      if (typeof renderAllChapterAITools === 'function') renderAllChapterAITools();
     }
 
     function scheduleChapterSaveFromInput(textarea) {
@@ -2026,6 +2095,24 @@
       _chapterSaveTimer = setTimeout(function() {
         saveChapterNote(bookId, chapterId, value);
       }, 800);
+    }
+
+    function schedulePdfRangeSave(input) {
+      var bookId = input && input.getAttribute('data-book-id');
+      var chapterId = input && input.getAttribute('data-chapter-id');
+      if (!bookId || !chapterId) return;
+      clearTimeout(_pdfRangeSaveTimer);
+      _pdfRangeSaveTimer = setTimeout(function() {
+        var book = books.filter(function(b) { return b.id === bookId; })[0];
+        var chapter = book && (book.chapters || []).find(function(c) { return String(c.id) === String(chapterId); });
+        if (!chapter) return;
+        var wrap = input.closest('.ai-chapter-tools');
+        var startEl = wrap && wrap.querySelector('.ai-pdf-start');
+        var endEl = wrap && wrap.querySelector('.ai-pdf-end');
+        chapter.pdfStartPage = startEl ? startEl.value : '';
+        chapter.pdfEndPage = endEl ? endEl.value : '';
+        saveBooks();
+      }, 700);
     }
 
     function addChapterFromBtn(btn) {
@@ -2056,7 +2143,7 @@
       if (!book) return;
       if (!book.chapters) book.chapters = [];
       var num = book.chapters.length + 1;
-      book.chapters.push({ id: Date.now().toString(), label: 'Chapter ' + num, notes: '' });
+      book.chapters.push({ id: Date.now().toString(), label: 'Chapter ' + num, notes: '', aiStudy: '', aiQuiz: [], aiScore: null, pdfStartPage: '', pdfEndPage: '' });
       saveBooks();
       renderChapterNotes();
       showToast('Chapter added');
@@ -2631,6 +2718,377 @@
         navigator.serviceWorker.register('./book-tracker-sw.js').catch(function() {});
       }
     });
+  </script>
+
+  <!-- ================================================================
+    AI STUDY TOOLS — fully in-browser LLM (WebLLM), no API key, no server.
+    A separate module script since it needs top-level `import`; it talks to
+    the classic script above only through window.getBooks()/saveBooks()/
+    escapeHtml()/showToast() (module scripts don't see that script's
+    top-level `let` bindings, but its `function` declarations are already
+    on `window` automatically).
+  ================================================================ -->
+  <script type="module">
+    let webllm = null;
+    let aiEngine = null;
+    let aiEngineLoading = false;
+    let aiModelList = [];
+
+    const CURATED_MODELS = [
+      { label: 'Small & fast (~1B)', pattern: /Llama-3\.2-1B-Instruct-q4f/i },
+      { label: 'Balanced (~3B, recommended)', pattern: /Llama-3\.2-3B-Instruct-q4f/i },
+      { label: 'Higher quality (Phi-3.5 mini)', pattern: /Phi-3\.5-mini-instruct-q4f/i },
+      { label: 'Higher quality (Qwen2.5 7B)', pattern: /Qwen2\.5-7B-Instruct-q4f/i }
+    ];
+
+    function setAIStatus(text) {
+      var el = document.getElementById('aiEngineStatus');
+      if (el) el.textContent = text;
+    }
+
+    async function initAIModule() {
+      try {
+        webllm = await import('https://cdn.jsdelivr.net/npm/@mlc-ai/web-llm/+esm');
+      } catch (e) {
+        setAIStatus('🤖 AI Study Tools: unavailable (could not load the AI library — check your connection)');
+        return;
+      }
+
+      if (!navigator.gpu) {
+        setAIStatus('🤖 AI Study Tools: this browser doesn\'t support WebGPU — try Chrome or Edge');
+        return;
+      }
+
+      try {
+        aiModelList = (webllm.prebuiltAppConfig && webllm.prebuiltAppConfig.model_list) || [];
+      } catch (e) {
+        aiModelList = [];
+      }
+
+      var sel = document.getElementById('aiModelSelect');
+      var curated = CURATED_MODELS
+        .map(function(c) {
+          var match = aiModelList.find(function(m) { return c.pattern.test(m.model_id); });
+          return match ? { label: c.label, id: match.model_id } : null;
+        })
+        .filter(Boolean);
+
+      if (!curated.length) {
+        setAIStatus('🤖 AI Study Tools: no compatible models found in this library version');
+        return;
+      }
+
+      if (sel) {
+        var defaultEntry = curated.filter(function(c) { return /recommended/i.test(c.label); })[0] || curated[0];
+        sel.innerHTML = curated.map(function(c) {
+          return '<option value="' + c.id + '"' + (c.id === defaultEntry.id ? ' selected' : '') + '>' + c.label + '</option>';
+        }).join('');
+        sel.style.display = '';
+      }
+
+      setAIStatus('🤖 AI Study Tools: ready to load');
+    }
+
+    async function loadAIEngine() {
+      if (aiEngineLoading || aiEngine) return;
+      if (!webllm) { setAIStatus('🤖 AI Study Tools: library not loaded yet'); return; }
+
+      var sel = document.getElementById('aiModelSelect');
+      var modelId = sel && sel.value;
+      if (!modelId) { setAIStatus('🤖 AI Study Tools: no model selected'); return; }
+
+      aiEngineLoading = true;
+      var btn = document.getElementById('aiLoadBtn');
+      if (btn) btn.disabled = true;
+      if (sel) sel.disabled = true;
+
+      try {
+        aiEngine = await webllm.CreateMLCEngine(modelId, {
+          initProgressCallback: function(report) {
+            setAIStatus('🤖 ' + (report && report.text ? report.text : 'Loading…'));
+          }
+        });
+        setAIStatus('🤖 AI Study Tools: ready');
+        if (btn) { btn.textContent = 'Reload AI Model'; btn.disabled = false; }
+        if (sel) sel.disabled = false;
+      } catch (e) {
+        setAIStatus('🤖 AI Study Tools: failed to load — ' + (e && e.message ? e.message : 'unknown error'));
+        if (btn) btn.disabled = false;
+        if (sel) sel.disabled = false;
+        aiEngine = null;
+      } finally {
+        aiEngineLoading = false;
+      }
+    }
+
+    function buildAIStudyPrompt(chapterLabel, sourceText) {
+      return (
+        'You are a study assistant helping a reader review a book chapter titled "' + chapterLabel + '". ' +
+        'Using ONLY the source material below (do not invent facts not implied by it), produce:\n' +
+        '1. A concise study guide (150-250 words) that summarizes and reinforces the key ideas.\n' +
+        '2. Exactly 4 multiple-choice quiz questions (4 options each, exactly one correct) testing understanding of the material.\n\n' +
+        'Reply with ONLY the following format, nothing else, no markdown formatting, no extra commentary:\n\n' +
+        'STUDY GUIDE:\n' +
+        '<study guide text>\n\n' +
+        'QUESTION 1: <question>\n' +
+        'A) <option>\n' +
+        'B) <option>\n' +
+        'C) <option>\n' +
+        'D) <option>\n' +
+        'ANSWER: <A, B, C, or D>\n' +
+        'EXPLANATION: <one short sentence>\n\n' +
+        '(repeat through QUESTION 4 in the exact same shape)\n\n' +
+        'SOURCE MATERIAL:\n' + sourceText
+      );
+    }
+
+    /* ================================================================
+      PDF SOURCE MATERIAL — lazy-loaded PDF.js, text extraction only,
+      entirely client-side. CORS-dependent: the PDF's host must allow
+      cross-origin fetches, or this fails and we fall back to notes.
+    ================================================================ */
+    let pdfjsLib = null;
+    let pdfjsLoadPromise = null;
+    const MAX_PDF_CHARS = 6000;
+    const MAX_NOTES_CHARS = 2000;
+    const DEFAULT_PDF_PAGE_SPAN = 15;
+
+    function ensurePdfJs() {
+      if (pdfjsLib) return Promise.resolve(pdfjsLib);
+      if (pdfjsLoadPromise) return pdfjsLoadPromise;
+      pdfjsLoadPromise = import('https://cdn.jsdelivr.net/npm/pdfjs-dist/build/pdf.min.mjs').then(function(mod) {
+        mod.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@' + mod.version + '/build/pdf.worker.min.mjs';
+        pdfjsLib = mod;
+        return mod;
+      });
+      return pdfjsLoadPromise;
+    }
+
+    async function extractPdfText(url, startPage, endPage) {
+      var lib = await ensurePdfJs();
+      var pdf = await lib.getDocument({ url: url }).promise;
+      var first = Math.max(1, parseInt(startPage, 10) || 1);
+      var last = endPage
+        ? Math.min(pdf.numPages, parseInt(endPage, 10) || pdf.numPages)
+        : Math.min(pdf.numPages, first + DEFAULT_PDF_PAGE_SPAN - 1);
+      if (last < first) last = first;
+
+      var text = '';
+      for (var i = first; i <= last; i++) {
+        var page = await pdf.getPage(i);
+        var content = await page.getTextContent();
+        var pageText = content.items.map(function(it) { return it.str; }).join(' ');
+        text += pageText + '\n\n';
+        if (text.length > MAX_PDF_CHARS) break;
+      }
+      text = text.trim();
+      if (text.length > MAX_PDF_CHARS) text = text.slice(0, MAX_PDF_CHARS) + '\n…[truncated for length]';
+      return { text: text, first: first, last: last };
+    }
+
+    function parseAIStudyResponse(raw) {
+      var text = String(raw || '').replace(/\*\*/g, '').replace(/^#+\s*/gm, '');
+      var studyMatch = text.match(/STUDY GUIDE:\s*([\s\S]*?)(?=\n\s*QUESTION\s*1\s*:)/i);
+      var study = studyMatch ? studyMatch[1].trim() : '';
+
+      var quiz = [];
+      var qRe = /QUESTION\s*\d+\s*:\s*(.*?)\n\s*A\)\s*(.*?)\n\s*B\)\s*(.*?)\n\s*C\)\s*(.*?)\n\s*D\)\s*(.*?)\n\s*ANSWER:\s*([ABCD])\b\s*\n\s*EXPLANATION:\s*(.*?)(?=\n\s*QUESTION\s*\d+\s*:|$)/gis;
+      var m;
+      while ((m = qRe.exec(text)) !== null) {
+        var letterIdx = { A: 0, B: 1, C: 2, D: 3 }[m[6].toUpperCase()];
+        quiz.push({
+          question: m[1].trim(),
+          choices: [m[2].trim(), m[3].trim(), m[4].trim(), m[5].trim()],
+          correctIndex: letterIdx != null ? letterIdx : 0,
+          explanation: (m[7] || '').trim()
+        });
+      }
+      return { study: study, quiz: quiz };
+    }
+
+    function renderAIError(host, message) {
+      if (host) host.innerHTML = '<div class="ai-error">' + window.escapeHtml(message) + '</div>';
+    }
+
+    function generateChapterStudyFromBtn(btn) {
+      var wrap = btn.closest('.ai-chapter-tools');
+      if (!wrap) return;
+      generateChapterStudy(wrap.getAttribute('data-book-id'), wrap.getAttribute('data-chapter-id'), wrap);
+    }
+
+    async function generateChapterStudy(bookId, chapterId, wrap) {
+      var resultsHost = wrap.querySelector('.ai-chapter-results');
+      var books = window.getBooks();
+      var book = books.filter(function(b) { return b.id === bookId; })[0];
+      var chapter = book && (book.chapters || []).find(function(c) { return String(c.id) === String(chapterId); });
+      if (!chapter) return;
+
+      var notes = (chapter.notes || '').trim();
+      if (!aiEngine) {
+        window.showToast('Load the AI model first (top of this page)');
+        return;
+      }
+
+      var btn = wrap.querySelector('.ai-generate-btn');
+      if (btn) btn.disabled = true;
+      var pageInfo = '';
+      var pdfWarning = '';
+
+      try {
+        var pdfText = '';
+        if (book.pdfUrl) {
+          if (resultsHost) resultsHost.innerHTML = '<div class="ai-error" style="background:var(--teal-xlight); color:var(--teal-dark);">📄 Reading PDF pages…</div>';
+          try {
+            var extracted = await extractPdfText(book.pdfUrl, chapter.pdfStartPage, chapter.pdfEndPage);
+            pdfText = extracted.text;
+            pageInfo = extracted.first + '–' + extracted.last;
+          } catch (pdfErr) {
+            pdfWarning = 'Could not read the PDF (' + ((pdfErr && pdfErr.message) || 'unknown error') + ') — this often means the PDF\'s host doesn\'t allow cross-origin access. ';
+          }
+        }
+
+        var cappedNotes = notes.length > MAX_NOTES_CHARS ? (notes.slice(0, MAX_NOTES_CHARS) + '\n…[truncated for length]') : notes;
+
+        var sourceParts = [];
+        if (pdfText) sourceParts.push('BOOK EXCERPT (pages ' + pageInfo + '):\n' + pdfText);
+        if (cappedNotes) sourceParts.push('READER\'S OWN NOTES:\n' + cappedNotes);
+        var combinedSource = sourceParts.join('\n\n').trim();
+
+        if (combinedSource.length < 40) {
+          if (btn) btn.disabled = false;
+          window.showToast(pdfWarning ? pdfWarning + 'Add some chapter notes too.' : 'Add a few sentences of chapter notes, or set a PDF page range, first');
+          renderChapterAIResults(bookId, chapterId, wrap);
+          return;
+        }
+
+        if (resultsHost) resultsHost.innerHTML = '<div class="ai-error" style="background:var(--teal-xlight); color:var(--teal-dark);">🤖 Generating study guide and quiz…</div>';
+
+        var reply = await aiEngine.chat.completions.create({
+          messages: [
+            { role: 'system', content: 'You produce study guides and quizzes in a strict text format for a personal reading app.' },
+            { role: 'user', content: buildAIStudyPrompt(chapter.label || 'this chapter', combinedSource) }
+          ],
+          temperature: 0.7
+        });
+        var text = reply && reply.choices && reply.choices[0] && reply.choices[0].message ? reply.choices[0].message.content : '';
+        var parsed = parseAIStudyResponse(text);
+        if (!parsed.quiz.length) {
+          renderAIError(resultsHost, 'Could not read a quiz from the AI response. Try regenerating.');
+          return;
+        }
+        chapter.aiStudy = parsed.study;
+        chapter.aiQuiz = parsed.quiz;
+        chapter.aiScore = null;
+        window.saveBooks();
+        renderChapterAIResults(bookId, chapterId, wrap);
+        window.showToast(pdfWarning ? '✅ Generated (PDF unavailable — used notes only)' : '✅ Study guide and quiz generated');
+      } catch (e) {
+        var msg = (e && e.message) || 'unknown error';
+        if (/disposed|device removed|not loaded before|lost/i.test(msg)) {
+          aiEngine = null;
+          var loadBtn = document.getElementById('aiLoadBtn');
+          if (loadBtn) { loadBtn.disabled = false; loadBtn.textContent = 'Load AI Model'; }
+          setAIStatus('🤖 AI Study Tools: connection to the model was lost — click "Load AI Model" above and try again');
+          renderAIError(resultsHost, 'The AI model\'s connection was lost (this can happen after the device sleeps or under memory pressure). Click "Load AI Model" at the top of this page, then try generating again.');
+        } else {
+          renderAIError(resultsHost, 'Generation failed: ' + msg);
+        }
+      } finally {
+        if (btn) btn.disabled = false;
+      }
+    }
+
+    function renderChapterAIResults(bookId, chapterId, wrap) {
+      var host = wrap.querySelector('.ai-chapter-results');
+      var btn = wrap.querySelector('.ai-generate-btn');
+      var books = window.getBooks();
+      var book = books.filter(function(b) { return b.id === bookId; })[0];
+      var chapter = book && (book.chapters || []).find(function(c) { return String(c.id) === String(chapterId); });
+      if (!chapter || !host) return;
+
+      if (btn) btn.textContent = (chapter.aiQuiz && chapter.aiQuiz.length) ? '🔁 Regenerate Study & Quiz' : '🤖 Generate Study & Quiz';
+
+      if (!chapter.aiQuiz || !chapter.aiQuiz.length) { host.innerHTML = ''; return; }
+
+      var html = '';
+      if (chapter.aiStudy) {
+        html += '<div class="ai-study-text"><strong>Study Guide</strong><p>' + window.escapeHtml(chapter.aiStudy).replace(/\n/g, '<br>') + '</p></div>';
+      }
+      html += '<div class="ai-quiz">';
+      chapter.aiQuiz.forEach(function(q, qi) {
+        html += '<div class="ai-quiz-question" data-qi="' + qi + '">' +
+          '<div class="ai-quiz-q-text">' + (qi + 1) + '. ' + window.escapeHtml(q.question) + '</div>';
+        (q.choices || []).forEach(function(choice, ci) {
+          html += '<label class="ai-quiz-choice"><input type="radio" name="ai-q-' + window.escapeHtml(bookId) + '-' + window.escapeHtml(chapterId) + '-' + qi + '" value="' + ci + '" /> ' + window.escapeHtml(choice) + '</label>';
+        });
+        html += '<div class="ai-quiz-explanation" style="display:none;"></div>';
+        html += '</div>';
+      });
+      html += '<div class="ai-quiz-actions">' +
+        '<button type="button" class="btn btn-teal btn-sm" onclick="checkChapterQuizFromBtn(this)">Check Answers</button>' +
+        '<div class="ai-quiz-score"></div>' +
+        '</div>';
+      html += '</div>';
+
+      if (chapter.aiScore) {
+        html += '<div class="ai-quiz-last-score">Last score: ' + chapter.aiScore.correct + ' / ' + chapter.aiScore.total + '</div>';
+      }
+
+      host.innerHTML = html;
+    }
+
+    function checkChapterQuizFromBtn(btn) {
+      var quizEl = btn.closest('.ai-quiz');
+      var wrap = btn.closest('.ai-chapter-tools');
+      if (!quizEl || !wrap) return;
+
+      var bookId = wrap.getAttribute('data-book-id');
+      var chapterId = wrap.getAttribute('data-chapter-id');
+      var books = window.getBooks();
+      var book = books.filter(function(b) { return b.id === bookId; })[0];
+      var chapter = book && (book.chapters || []).find(function(c) { return String(c.id) === String(chapterId); });
+      if (!chapter || !chapter.aiQuiz) return;
+
+      var correct = 0;
+      quizEl.querySelectorAll('.ai-quiz-question').forEach(function(qEl) {
+        var qi = parseInt(qEl.getAttribute('data-qi'), 10);
+        var q = chapter.aiQuiz[qi];
+        if (!q) return;
+        var selected = qEl.querySelector('input[type="radio"]:checked');
+        var selectedIdx = selected ? parseInt(selected.value, 10) : -1;
+        qEl.querySelectorAll('.ai-quiz-choice').forEach(function(lbl, ci) {
+          lbl.classList.remove('correct', 'incorrect');
+          if (ci === q.correctIndex) lbl.classList.add('correct');
+          else if (ci === selectedIdx) lbl.classList.add('incorrect');
+        });
+        var expEl = qEl.querySelector('.ai-quiz-explanation');
+        if (expEl) {
+          expEl.style.display = '';
+          expEl.textContent = (selectedIdx === q.correctIndex ? '✓ Correct. ' : '✗ Not quite. ') + (q.explanation || '');
+        }
+        if (selectedIdx === q.correctIndex) correct++;
+      });
+
+      var total = chapter.aiQuiz.length;
+      chapter.aiScore = { correct: correct, total: total, at: new Date().toISOString() };
+      window.saveBooks();
+
+      var scoreEl = quizEl.querySelector('.ai-quiz-score');
+      if (scoreEl) scoreEl.textContent = 'Score: ' + correct + ' / ' + total;
+    }
+
+    function renderAllChapterAITools() {
+      document.querySelectorAll('.ai-chapter-tools').forEach(function(wrap) {
+        renderChapterAIResults(wrap.getAttribute('data-book-id'), wrap.getAttribute('data-chapter-id'), wrap);
+      });
+    }
+
+    window.loadAIEngine = loadAIEngine;
+    window.generateChapterStudyFromBtn = generateChapterStudyFromBtn;
+    window.checkChapterQuizFromBtn = checkChapterQuizFromBtn;
+    window.renderAllChapterAITools = renderAllChapterAITools;
+
+    initAIModule();
   </script>
 </body>
 </html>
