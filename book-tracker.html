@@ -245,6 +245,7 @@
     }
     .page-content { padding: 2rem 2.5rem; max-width: 1200px; margin: 0 auto; }
     #view-stats .page-content { max-width: 2100px; }
+    #view-library .page-content { max-width: 1600px; }
 
     .library-toolbar {
       display: flex;
@@ -2842,19 +2843,26 @@
       return (
         'You are a study assistant helping a reader review a book chapter titled "' + chapterLabel + '". ' +
         'Using ONLY the source material below (do not invent facts not implied by it), produce:\n' +
-        '1. A concise study guide (150-250 words) that summarizes and reinforces the key ideas.\n' +
-        '2. Exactly 4 multiple-choice quiz questions (4 options each, exactly one correct) testing understanding of the material.\n\n' +
-        'Reply with ONLY the following format, nothing else, no markdown formatting, no extra commentary:\n\n' +
+        '1. A short study guide (under 100 words) that summarizes the key ideas.\n' +
+        '2. Exactly 3 multiple-choice quiz questions (4 options each, exactly one correct) testing understanding of the material.\n\n' +
+        'Reply with ONLY the following format, nothing else, no markdown formatting, no extra commentary. Follow it exactly — each question starts with "QUESTION" on its own, the question text comes right after the colon on the same line, then each option is on its own line:\n\n' +
         'STUDY GUIDE:\n' +
         '<study guide text>\n\n' +
-        'QUESTION 1: <question>\n' +
+        'QUESTION 1: What does the material say about X?\n' +
         'A) <option>\n' +
         'B) <option>\n' +
         'C) <option>\n' +
         'D) <option>\n' +
-        'ANSWER: <A, B, C, or D>\n' +
+        'ANSWER: A\n' +
         'EXPLANATION: <one short sentence>\n\n' +
-        '(repeat through QUESTION 4 in the exact same shape)\n\n' +
+        'QUESTION 2: <next question, same shape>\n' +
+        'A) <option>\n' +
+        'B) <option>\n' +
+        'C) <option>\n' +
+        'D) <option>\n' +
+        'ANSWER: B\n' +
+        'EXPLANATION: <one short sentence>\n\n' +
+        '(then QUESTION 3 in the exact same shape — 3 questions total, no more)\n\n' +
         'SOURCE MATERIAL:\n' + sourceText
       );
     }
@@ -2908,8 +2916,13 @@
       var studyMatch = text.match(/STUDY GUIDE:\s*([\s\S]*?)(?=\n\s*QUESTION\s*1\s*:)/i);
       var study = studyMatch ? studyMatch[1].trim() : '';
 
+      /* Each capture is confined to [^\n]* (never crosses a line) so a model that
+         omits the question text on the QUESTION line (text on the next line
+         instead) can't make a lazy capture run away and swallow the next
+         question's content — only the small, unambiguous \s* gaps around
+         ANSWER's letter are allowed to cross a newline. */
       var quiz = [];
-      var qRe = /QUESTION\s*\d+\s*:\s*(.*?)\n\s*A\)\s*(.*?)\n\s*B\)\s*(.*?)\n\s*C\)\s*(.*?)\n\s*D\)\s*(.*?)\n\s*ANSWER:\s*([ABCD])\b\s*\n\s*EXPLANATION:\s*(.*?)(?=\n\s*QUESTION\s*\d+\s*:|$)/gis;
+      var qRe = /QUESTION\s*\d+\s*:[ \t]*([^\n]*)\n[ \t]*A\)[ \t]*([^\n]*)\n[ \t]*B\)[ \t]*([^\n]*)\n[ \t]*C\)[ \t]*([^\n]*)\n[ \t]*D\)[ \t]*([^\n]*)\n[ \t]*ANSWER:\s*([ABCD])\b[^\n]*\n\s*EXPLANATION:[ \t]*([^\n]*)/gi;
       var m;
       while ((m = qRe.exec(text)) !== null) {
         var letterIdx = { A: 0, B: 1, C: 2, D: 3 }[m[6].toUpperCase()];
@@ -2985,7 +2998,8 @@
             { role: 'system', content: 'You produce study guides and quizzes in a strict text format for a personal reading app.' },
             { role: 'user', content: buildAIStudyPrompt(chapter.label || 'this chapter', combinedSource) }
           ],
-          temperature: 0.7
+          temperature: 0.7,
+          max_tokens: 700
         });
         var text = reply && reply.choices && reply.choices[0] && reply.choices[0].message ? reply.choices[0].message.content : '';
         var parsed = parseAIStudyResponse(text);
