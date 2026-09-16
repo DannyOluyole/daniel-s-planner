@@ -1808,6 +1808,9 @@ const MONTHS = ['January','February','March','April','May','June','July',
                 'August','September','October','November','December'];
 const DAYS   = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
 
+/* Pre-filled onto any day that has never been saved, so recurring tasks just need a checkmark */
+const DEFAULT_DAY_TASKS = ['Prayer', 'Bible Reading', 'Voice Training', 'Flute Lessons', 'Daily Devotional', 'Book Reading', 'Gym'];
+
 let _dayUIBuilt = false;
 let _dayLoading = false;
 let _daySaveTimer = null;
@@ -4060,9 +4063,17 @@ function clearDayFields() {
   }
 }
 
+function applyDefaultDayTasks() {
+  DEFAULT_DAY_TASKS.forEach((task, idx) => {
+    const i = idx + 1;
+    const txt = document.getElementById('dt-txt-' + i);
+    if (txt) txt.value = task;
+  });
+}
+
 async function loadDayData(dk) {
   const data = await storageLoad('day-' + dk);
-  if (!data) return;
+  if (!data) { applyDefaultDayTasks(); return; }
 
   document.getElementById('dayMission').value = data.mission || '';
   document.getElementById('dayNotes').value = data.notes || '';
