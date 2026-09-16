@@ -2733,12 +2733,13 @@
     let aiEngine = null;
     let aiEngineLoading = false;
     let aiModelList = [];
+    let curatedModels = [];
 
     const CURATED_MODELS = [
-      { label: 'Small & fast (~1B)', pattern: /Llama-3\.2-1B-Instruct-q4f/i },
-      { label: 'Balanced (~3B, recommended)', pattern: /Llama-3\.2-3B-Instruct-q4f/i },
-      { label: 'Higher quality (Phi-3.5 mini)', pattern: /Phi-3\.5-mini-instruct-q4f/i },
-      { label: 'Higher quality (Qwen2.5 7B)', pattern: /Qwen2\.5-7B-Instruct-q4f/i }
+      { label: 'Small & fast (~1B, recommended — lowest GPU/VRAM demand)', pattern: /Llama-3\.2-1B-Instruct-q4f/i },
+      { label: 'Balanced (~3B, needs more GPU memory)', pattern: /Llama-3\.2-3B-Instruct-q4f/i },
+      { label: 'Higher quality (Phi-3.5 mini, needs more GPU memory)', pattern: /Phi-3\.5-mini-instruct-q4f/i },
+      { label: 'Higher quality (Qwen2.5 7B, needs a strong GPU)', pattern: /Qwen2\.5-7B-Instruct-q4f/i }
     ];
 
     function setAIStatus(text) {
@@ -2766,21 +2767,21 @@
       }
 
       var sel = document.getElementById('aiModelSelect');
-      var curated = CURATED_MODELS
+      curatedModels = CURATED_MODELS
         .map(function(c) {
           var match = aiModelList.find(function(m) { return c.pattern.test(m.model_id); });
           return match ? { label: c.label, id: match.model_id } : null;
         })
         .filter(Boolean);
 
-      if (!curated.length) {
+      if (!curatedModels.length) {
         setAIStatus('🤖 AI Study Tools: no compatible models found in this library version');
         return;
       }
 
       if (sel) {
-        var defaultEntry = curated.filter(function(c) { return /recommended/i.test(c.label); })[0] || curated[0];
-        sel.innerHTML = curated.map(function(c) {
+        var defaultEntry = curatedModels.filter(function(c) { return /recommended/i.test(c.label); })[0] || curatedModels[0];
+        sel.innerHTML = curatedModels.map(function(c) {
           return '<option value="' + c.id + '"' + (c.id === defaultEntry.id ? ' selected' : '') + '>' + c.label + '</option>';
         }).join('');
         sel.style.display = '';
@@ -2812,7 +2813,23 @@
         if (btn) { btn.textContent = 'Reload AI Model'; btn.disabled = false; }
         if (sel) sel.disabled = false;
       } catch (e) {
-        setAIStatus('🤖 AI Study Tools: failed to load — ' + (e && e.message ? e.message : 'unknown error'));
+        var msg = (e && e.message) || 'unknown error';
+        var isGpuFailure = /device_removed|device removed|requestdevice|gpuadapter/i.test(msg);
+        if (isGpuFailure) {
+          var smallest = curatedModels[0];
+          var switched = false;
+          if (sel && smallest && sel.value !== smallest.id) {
+            sel.value = smallest.id;
+            switched = true;
+          }
+          setAIStatus(
+            '🤖 Your GPU driver reported a failure loading the model' +
+            (switched ? ' — switched to the smallest model for you.' : '.') +
+            ' This usually means low GPU memory or a driver timeout. Try: closing other GPU-heavy tabs/apps, updating your graphics driver, or restarting your browser, then click "Load AI Model" again.'
+          );
+        } else {
+          setAIStatus('🤖 AI Study Tools: failed to load — ' + msg);
+        }
         if (btn) btn.disabled = false;
         if (sel) sel.disabled = false;
         aiEngine = null;
@@ -2984,12 +3001,15 @@
         window.showToast(pdfWarning ? '✅ Generated (PDF unavailable — used notes only)' : '✅ Study guide and quiz generated');
       } catch (e) {
         var msg = (e && e.message) || 'unknown error';
-        if (/disposed|device removed|not loaded before|lost/i.test(msg)) {
+        if (/disposed|device removed|not loaded before|lost|requestdevice|gpuadapter/i.test(msg)) {
           aiEngine = null;
           var loadBtn = document.getElementById('aiLoadBtn');
+          var sel2 = document.getElementById('aiModelSelect');
+          var smallest2 = curatedModels[0];
+          if (sel2 && smallest2) sel2.value = smallest2.id;
           if (loadBtn) { loadBtn.disabled = false; loadBtn.textContent = 'Load AI Model'; }
           setAIStatus('🤖 AI Study Tools: connection to the model was lost — click "Load AI Model" above and try again');
-          renderAIError(resultsHost, 'The AI model\'s connection was lost (this can happen after the device sleeps or under memory pressure). Click "Load AI Model" at the top of this page, then try generating again.');
+          renderAIError(resultsHost, 'The AI model\'s GPU connection was lost — this usually means low GPU memory or a driver timeout. Try the smallest model (now selected above), close other GPU-heavy tabs/apps, or restart your browser, then click "Load AI Model" and try generating again.');
         } else {
           renderAIError(resultsHost, 'Generation failed: ' + msg);
         }
