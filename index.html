@@ -4147,12 +4147,14 @@ function applyDefaultDayTasks() {
 
 async function loadDayData(dk) {
   const data = await storageLoad('day-' + dk);
-  if (!data) { applyDefaultDayTasks(); return; }
+  const hasTaskText = !!(data && Array.isArray(data.tasks) && data.tasks.some(t => (t.text || '').trim()));
+  if (!data || !hasTaskText) applyDefaultDayTasks();
+  if (!data) return;
 
   document.getElementById('dayMission').value = data.mission || '';
   document.getElementById('dayNotes').value = data.notes || '';
 
-  if (data.tasks) {
+  if (hasTaskText) {
     data.tasks.forEach((t, idx) => {
       const i = idx + 1;
       const pri = document.getElementById('dt-pri-' + i); if (pri) { pri.value = t.priority || ''; applyPriStyle(i); }
