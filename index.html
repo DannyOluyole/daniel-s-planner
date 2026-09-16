@@ -1057,11 +1057,31 @@
         <label style="display:block;font-weight:600;margin-bottom:0.4rem;font-size:0.85rem;">Firebase Database URL</label>
         <input type="text" id="firebaseUrlInput" placeholder="https://YOUR-PROJECT.firebaseio.com" style="width:100%;" data-no-autocorrect="1" autocorrect="off" autocapitalize="none" spellcheck="false" />
       </div>
+      <div style="margin-bottom:1rem;padding:0.75rem;border:1px solid rgba(255,255,255,0.12);border-radius:8px;">
+        <label style="display:block;font-weight:600;margin-bottom:0.4rem;font-size:0.85rem;">Sign in with Firebase Authentication (recommended)</label>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;margin-bottom:0.5rem;">
+          <input type="text" id="fbApiKeyInput" placeholder="Web API Key" data-no-autocorrect="1" autocorrect="off" autocapitalize="none" spellcheck="false" />
+          <input type="text" id="fbAuthDomainInput" placeholder="project-id.firebaseapp.com" data-no-autocorrect="1" autocorrect="off" autocapitalize="none" spellcheck="false" />
+        </div>
+        <input type="text" id="fbProjectIdInput" placeholder="Project ID" style="width:100%;margin-bottom:0.5rem;" data-no-autocorrect="1" autocorrect="off" autocapitalize="none" spellcheck="false" />
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;margin-bottom:0.5rem;">
+          <input type="email" id="fbEmailInput" placeholder="you@example.com" autocomplete="username" />
+          <input type="password" id="fbPasswordInput" placeholder="Password" autocomplete="current-password" />
+        </div>
+        <div style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;">
+          <button type="button" class="btn btn-teal btn-sm" onclick="handleFirebaseSignIn()">Sign In</button>
+          <button type="button" class="btn btn-ghost btn-sm" onclick="handleFirebaseSignOut()">Sign Out</button>
+          <span id="fbAuthStatus" style="font-size:0.8rem;color:var(--gray-med);">Not signed in</span>
+        </div>
+        <div style="margin-top:0.5rem;font-size:0.78rem;color:var(--gray-med);line-height:1.4;">
+          Find the Web API Key / Auth Domain / Project ID under Firebase Console → Project Settings → General → Your apps. Create your sign-in account under Authentication → Users first. Nothing here is written to the repo — it's saved only in this browser.
+        </div>
+      </div>
       <div style="margin-bottom:1rem;">
-        <label style="display:block;font-weight:600;margin-bottom:0.4rem;font-size:0.85rem;">Auth token (optional)</label>
-        <input type="password" id="firebaseAuthInput" placeholder="Only needed if your Firebase rules block public access" style="width:100%;" data-no-autocorrect="1" autocorrect="off" autocapitalize="none" spellcheck="false" />
+        <label style="display:block;font-weight:600;margin-bottom:0.4rem;font-size:0.85rem;">Legacy auth token (fallback, optional)</label>
+        <input type="password" id="firebaseAuthInput" placeholder="Only used if not signed in above" style="width:100%;" data-no-autocorrect="1" autocorrect="off" autocapitalize="none" spellcheck="false" />
         <div style="margin-top:0.35rem;font-size:0.8rem;color:var(--gray-med);line-height:1.4;">
-          If you get “Permission denied”, either add a token here or update Firebase Realtime Database rules to allow access for your sync path.
+          If you get “Permission denied” and don't want to sign in, you can paste a database secret here instead — but signing in above is preferred.
         </div>
       </div>
       <div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:1rem;">
@@ -2197,9 +2217,20 @@ function cloudEnabled() {
   return !!(cfg && cfg.enabled);
 }
 
-function withAuth(url) {
+/* Prefers a live Firebase Authentication session (auto-refreshing ID token) over the legacy static token */
+async function getCloudAuthToken() {
+  if (window.fbGetIdToken) {
+    try {
+      const token = await window.fbGetIdToken();
+      if (token) return token;
+    } catch {}
+  }
   const cfg = getSyncConfig();
-  const token = cfg && cfg.authToken ? String(cfg.authToken) : '';
+  return cfg && cfg.authToken ? String(cfg.authToken) : '';
+}
+
+async function withAuth(url) {
+  const token = await getCloudAuthToken();
   if (!token) return url;
   return url + (url.includes('?') ? '&' : '?') + 'auth=' + encodeURIComponent(token);
 }
@@ -2250,7 +2281,7 @@ function cloudKeyUrl(fullKey) {
 async function cloudPut(fullKey, value) {
   const url = cloudKeyUrl(fullKey);
   if (!url) return false;
-  const r = await fetchWithRetry(withAuth(url), {
+  const r = await fetchWithRetry(await withAuth(url), {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(value)
@@ -2269,7 +2300,7 @@ async function cloudPut(fullKey, value) {
 async function cloudGet(fullKey) {
   const url = cloudKeyUrl(fullKey);
   if (!url) return null;
-  const r = await fetchWithRetry(withAuth(url), { method: 'GET' });
+  const r = await fetchWithRetry(await withAuth(url), { method: 'GET' });
   if (!r.ok) {
     let detail = '';
     try { detail = await r.text(); } catch {}
@@ -2306,7 +2337,7 @@ async function pollCloudUpdates(opts) {
   const base = cloudBaseUrl();
   if (!base) return;
   try {
-    const r = await fetchWithRetry(withAuth(base + '.json'), { method: 'GET' }, { attempts: 3, timeoutMs: 10000 });
+    const r = await fetchWithRetry(await withAuth(base + '.json'), { method: 'GET' }, { attempts: 3, timeoutMs: 10000 });
     if (!r.ok) throw new Error('Cloud poll failed (' + r.status + ')');
     const data = await r.json();
     const payload = JSON.stringify(data || {});
@@ -2699,7 +2730,50 @@ function openCloudSyncModal() {
   const authEl = document.getElementById('firebaseAuthInput');
   if (authEl) authEl.value = cfg && cfg.authToken ? cfg.authToken : '';
   document.getElementById('cloudSyncEnabled').checked = cfg ? cfg.enabled : false;
+
+  const webCfg = window.fbGetWebConfig ? window.fbGetWebConfig() : null;
+  document.getElementById('fbApiKeyInput').value = webCfg ? webCfg.apiKey : '';
+  document.getElementById('fbAuthDomainInput').value = webCfg ? webCfg.authDomain : '';
+  document.getElementById('fbProjectIdInput').value = webCfg ? webCfg.projectId : '';
+  document.getElementById('fbPasswordInput').value = '';
+  updateFirebaseAuthStatus();
+
   document.getElementById('cloudSyncOverlay').classList.add('open');
+}
+
+function updateFirebaseAuthStatus() {
+  const el = document.getElementById('fbAuthStatus');
+  if (!el) return;
+  const email = window.fbCurrentEmail ? window.fbCurrentEmail() : '';
+  el.textContent = email ? ('Signed in as ' + email) : 'Not signed in';
+}
+window.addEventListener('fbauth-changed', updateFirebaseAuthStatus);
+
+function handleFirebaseSignIn() {
+  const apiKey = (document.getElementById('fbApiKeyInput').value || '').trim();
+  const authDomain = (document.getElementById('fbAuthDomainInput').value || '').trim();
+  const projectId = (document.getElementById('fbProjectIdInput').value || '').trim();
+  const email = (document.getElementById('fbEmailInput').value || '').trim();
+  const password = document.getElementById('fbPasswordInput').value || '';
+  if (!apiKey || !authDomain || !projectId) { showToast('Enter Web API Key, Auth Domain, and Project ID'); return; }
+  if (!email || !password) { showToast('Enter your email and password'); return; }
+  if (!window.fbSaveWebConfig || !window.fbSignIn) { showToast('Firebase Auth failed to load'); return; }
+  window.fbSaveWebConfig({ apiKey, authDomain, projectId });
+  window.fbSignIn(email, password).then(() => {
+    document.getElementById('fbPasswordInput').value = '';
+    showToast('✅ Signed in to Firebase');
+    updateFirebaseAuthStatus();
+  }).catch((e) => {
+    showToast('Sign-in failed: ' + (e?.message || 'check credentials'));
+  });
+}
+
+function handleFirebaseSignOut() {
+  if (!window.fbSignOut) return;
+  window.fbSignOut().then(() => {
+    showToast('Signed out of Firebase');
+    updateFirebaseAuthStatus();
+  });
 }
 function closeCloudSyncModal() {
   document.getElementById('cloudSyncOverlay').classList.remove('open');
@@ -4310,7 +4384,7 @@ window.addEventListener('beforeunload', function(e) {
 /* ================================================================
    INIT
 ================================================================ */
-window.addEventListener('DOMContentLoaded', () => {
+window.addEventListener('DOMContentLoaded', async () => {
   setupTextAssist();
   buildDayUI();
   renderCalendar();
@@ -4320,6 +4394,15 @@ window.addEventListener('DOMContentLoaded', () => {
   if (cfg && cfg.enabled) {
     document.getElementById('cloudSyncBtn').classList.add('btn-teal');
     document.getElementById('cloudSyncBtn').classList.remove('btn-ghost');
+    if (window.fbGetWebConfig && window.fbGetWebConfig()) {
+      /* Give the Firebase Auth session (restored from IndexedDB) a moment to attach before the first poll */
+      await new Promise((resolve) => {
+        let done = false;
+        const finish = () => { if (done) return; done = true; resolve(); };
+        setTimeout(finish, 1500);
+        window.addEventListener('fbauth-changed', finish, { once: true });
+      });
+    }
     startCloudPolling();
     showToast('☁ Cloud sync connected');
   }
@@ -4335,6 +4418,80 @@ window.addEventListener('DOMContentLoaded', () => {
     if (isTextTarget(t)) _sttLastTarget = t;
   }, true);
 });
+</script>
+
+<!-- Firebase Authentication (client SDK) for Cloud Sync — replaces legacy RTDB "database secrets" -->
+<script type="module">
+  import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js";
+  import {
+    getAuth, setPersistence, browserLocalPersistence,
+    onIdTokenChanged, signInWithEmailAndPassword, signOut
+  } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js";
+
+  const FB_WEB_CONFIG_KEY = 'danielPlanner-v4-firebase-web-config';
+  let authInstance = null;
+  window.__fbUser = null;
+
+  function loadWebConfig() {
+    try {
+      const raw = localStorage.getItem(FB_WEB_CONFIG_KEY);
+      const cfg = raw ? JSON.parse(raw) : null;
+      if (cfg && cfg.apiKey && cfg.authDomain && cfg.projectId) return cfg;
+    } catch {}
+    return null;
+  }
+
+  function ensureAuth() {
+    const cfg = loadWebConfig();
+    if (!cfg) return null;
+    try {
+      const app = getApps().length ? getApp() : initializeApp(cfg);
+      if (!authInstance) {
+        authInstance = getAuth(app);
+        setPersistence(authInstance, browserLocalPersistence).catch(() => {});
+        onIdTokenChanged(authInstance, (user) => {
+          window.__fbUser = user;
+          window.dispatchEvent(new CustomEvent('fbauth-changed', {
+            detail: { signedIn: !!user, email: user ? user.email : '' }
+          }));
+        });
+      }
+      return authInstance;
+    } catch (e) {
+      console.warn('Firebase Auth init failed:', e);
+      return null;
+    }
+  }
+
+  window.fbGetWebConfig = loadWebConfig;
+
+  window.fbSaveWebConfig = function(cfg) {
+    localStorage.setItem(FB_WEB_CONFIG_KEY, JSON.stringify(cfg));
+    authInstance = null;
+    ensureAuth();
+  };
+
+  window.fbSignIn = async function(email, password) {
+    const auth = ensureAuth();
+    if (!auth) throw new Error('Save your Firebase Web API Key, Auth Domain, and Project ID first.');
+    const cred = await signInWithEmailAndPassword(auth, email, password);
+    return cred.user;
+  };
+
+  window.fbSignOut = async function() {
+    if (authInstance) await signOut(authInstance);
+  };
+
+  window.fbGetIdToken = async function() {
+    if (!window.__fbUser) return '';
+    try { return await window.__fbUser.getIdToken(); } catch { return ''; }
+  };
+
+  window.fbCurrentEmail = function() {
+    return window.__fbUser ? window.__fbUser.email : '';
+  };
+
+  ensureAuth();
 </script>
 </body>
 </html>
