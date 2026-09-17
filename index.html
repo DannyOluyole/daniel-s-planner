@@ -1828,8 +1828,18 @@ const MONTHS = ['January','February','March','April','May','June','July',
                 'August','September','October','November','December'];
 const DAYS   = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
 
-/* Pre-filled onto any day that has never been saved, so recurring tasks just need a checkmark */
-const DEFAULT_DAY_TASKS = ['Prayer', 'Bible Reading', 'Voice Training', 'Flute Lessons', 'Daily Devotional', 'Book Reading', 'Gym'];
+/* Pre-filled onto any day that has never been saved, so recurring tasks just need a checkmark.
+   Keyed by slot number (not a plain list) so gaps stay open for work tasks to be added between them. */
+const DAY_PRIORITY_TASK_COUNT = 15;
+const DEFAULT_DAY_TASKS = {
+  1: 'Prayer',
+  2: 'Bible Reading',
+  3: 'Daily Devotional',
+  4: 'Book Reading',
+  12: 'Voice Training',
+  13: 'Flute Lessons',
+  14: 'Gym'
+};
 
 /* Time-Line covers every hour except 12am-5am (sleep) */
 const DAY_TIMELINE_START_HOUR = 5;
@@ -4060,7 +4070,7 @@ function buildDayUI() {
 
   const taskList = document.getElementById('dayTaskList');
   taskList.innerHTML = '';
-  for (let i = 1; i <= 10; i++) {
+  for (let i = 1; i <= DAY_PRIORITY_TASK_COUNT; i++) {
     const row = document.createElement('div');
     row.className = 'task-row';
     row.id = 'dt-row-' + i;
@@ -4146,7 +4156,7 @@ function renderDayView() {
 function clearDayFields() {
   document.getElementById('dayMission').value = '';
   document.getElementById('dayNotes').value = '';
-  for (let i = 1; i <= 10; i++) {
+  for (let i = 1; i <= DAY_PRIORITY_TASK_COUNT; i++) {
     const pri = document.getElementById('dt-pri-' + i); if (pri) { pri.value=''; pri.style.color=''; pri.style.borderColor=''; }
     const txt = document.getElementById('dt-txt-' + i); if (txt) txt.value = '';
     const status = document.getElementById('dt-status-' + i); if (status) status.value = '';
@@ -4159,11 +4169,10 @@ function clearDayFields() {
 }
 
 function applyDefaultDayTasks() {
-  DEFAULT_DAY_TASKS.forEach((task, idx) => {
-    const i = idx + 1;
+  for (const i in DEFAULT_DAY_TASKS) {
     const txt = document.getElementById('dt-txt-' + i);
-    if (txt) txt.value = task;
-  });
+    if (txt) txt.value = DEFAULT_DAY_TASKS[i];
+  }
 }
 
 async function loadDayData(dk) {
@@ -4202,7 +4211,7 @@ async function loadDayData(dk) {
 async function saveDayPlanner() {
   const dk = dateKey(dayViewDate);
   const tasks = [];
-  for (let i = 1; i <= 10; i++) {
+  for (let i = 1; i <= DAY_PRIORITY_TASK_COUNT; i++) {
     const status = (document.getElementById('dt-status-' + i) || {}).value || '';
     tasks.push({
       priority: (document.getElementById('dt-pri-' + i) || {}).value || '',
