@@ -1359,6 +1359,7 @@
     <div class="day-actions">
       <button class="btn btn-teal" onclick="saveDayPlanner()">💾 Save Day</button>
       <button class="btn btn-gold" onclick="loadDayPlanner()">📂 Reload</button>
+      <button class="btn btn-ghost" onclick="refreshDayDefaults()">🔄 Refresh Defaults</button>
       <button class="btn btn-ghost" onclick="clearDayPlanner()">🗑️ Clear</button>
       <button class="btn btn-ghost" onclick="window.print()">🖨️ Print</button>
     </div>
@@ -4294,6 +4295,30 @@ async function loadDayPlanner() {
   await loadDayData(dateKey(dayViewDate));
   _dayLoading = false;
   showToast('📂 Day planner loaded!');
+}
+
+/* Re-applies the current DEFAULT_DAY_TASKS / DEFAULT_TIMELINE onto their fixed slots and saves —
+   for days saved before a default was added or moved, which are otherwise left alone as real data.
+   Also clears any slot that still holds a recognized default value sitting in the wrong place
+   (e.g. a task left over from before the defaults were reordered), without touching real entries. */
+async function refreshDayDefaults() {
+  const defaultTaskValues = new Set(Object.values(DEFAULT_DAY_TASKS));
+  for (let i = 1; i <= DAY_PRIORITY_TASK_COUNT; i++) {
+    const txt = document.getElementById('dt-txt-' + i);
+    if (!txt) continue;
+    if (DEFAULT_DAY_TASKS[i]) txt.value = DEFAULT_DAY_TASKS[i];
+    else if (defaultTaskValues.has(txt.value.trim())) txt.value = '';
+  }
+
+  const defaultTimelineValues = new Set(Object.values(DEFAULT_TIMELINE));
+  for (let h = DAY_TIMELINE_START_HOUR; h <= DAY_TIMELINE_END_HOUR; h++) {
+    const txt = document.getElementById('ds-txt-' + h);
+    if (!txt) continue;
+    if (DEFAULT_TIMELINE[h]) txt.value = DEFAULT_TIMELINE[h];
+    else if (defaultTimelineValues.has(txt.value.trim())) txt.value = '';
+  }
+
+  await saveDayPlanner();
 }
 
 function clearDayPlanner() {
