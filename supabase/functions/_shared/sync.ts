@@ -5,10 +5,20 @@ import { plaid, PlaidAccount, PlaidTransaction } from "./plaid.ts";
  * numbers. This is a starting point, not a finished model — refine once
  * real commitments/goals data exists:
  *
- *  - Available   -> sum of depository (checking) available balances
+ *  - Available   -> sum of depository (checking) available balances,
+ *                   minus any credit card debt already owed
  *  - Protected   -> sum of depository (savings) current balances
  *                   (treated as already "spoken for" until goals exist)
  *  - Future You  -> sum of investment account current balances
+ *
+ * Credit accounts were previously skipped entirely — their transactions
+ * synced (so spending still showed up in category totals/history), but the
+ * card's own balance never touched Available, so someone who spends mainly
+ * on credit saw a "Safe to Spend" number that ignored money they'd already
+ * committed to paying back. Plaid's convention for a credit account's
+ * `current` balance is the amount owed (a positive number), so it comes
+ * straight off Available the same way a debt commitment already does
+ * elsewhere in this app's model — money already spoken for either way.
  */
 function computeMoneyState(accounts: PlaidAccount[]) {
   let availableCents = 0;
@@ -27,6 +37,8 @@ function computeMoneyState(accounts: PlaidAccount[]) {
       protectedCents += currentCents;
     } else if (account.type === "investment") {
       futureYouCents += currentCents;
+    } else if (account.type === "credit") {
+      availableCents -= currentCents;
     }
   }
 
