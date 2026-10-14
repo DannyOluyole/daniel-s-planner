@@ -1858,7 +1858,6 @@ const DEFAULT_TIMELINE = {
 
 let _dayUIBuilt = false;
 let _dayLoading = false;
-let _dayLoadSeq = 0;
 let _daySaveTimer = null;
 let _monthSaveTimer = null;
 let _valuesSaveTimer = null;
@@ -4119,7 +4118,8 @@ const isBlankTaskRow = (r) => !(r && ((r.text || '').trim() || r.priority || r.s
    can't fit without dropping something, the rows are returned untouched. */
 function reconcileTaskRows(rows) {
   const N = DAY_PRIORITY_TASK_COUNT;
-  const src = Array.from({ length: N }, (_, i) => (rows && rows[i]) || null);
+  if (!Array.isArray(rows)) rows = [];
+  const src = Array.from({ length: N }, (_, i) => rows[i] || null);
   const defaultTexts = new Set(Object.values(DEFAULT_DAY_TASKS));
   const textOf = (r) => ((r && r.text) || '').trim();
   const out = new Array(N).fill(null);
@@ -4152,7 +4152,8 @@ function reconcileTaskRows(rows) {
 
 function scheduleByHour(schedule) {
   const byHour = new Map();
-  (schedule || []).forEach((s, idx) => {
+  (Array.isArray(schedule) ? schedule : []).forEach((s, idx) => {
+    if (!s) return;
     const h = Number.isFinite(s.hour) ? s.hour : (6 + idx); // stored hour wins; index fallback only for very old entries
     byHour.set(h, s);
   });
@@ -4246,15 +4247,11 @@ function renderDayView() {
   document.getElementById('dayDateInput').value = dk;
   document.getElementById('dayDayName').value = dayName;
 
-  _dayLoading = true;
-  const seq = ++_dayLoadSeq;
   clearTimeout(_daySaveTimer);
   clearDayFields();
-  loadDayData(dk).finally(() => {
-    if (seq !== _dayLoadSeq) return; // a newer day load is in flight and owns the flag
-    _dayLoading = false;
-    setupDateLinkifyForView('view-day');
-  });
+  renderLocalDay(dk);
+  setupDateLinkifyForView('view-day');
+  refreshDayFromCloud(dk);
   renderDayStreak();
 }
 
@@ -4275,18 +4272,45 @@ function clearDayFields() {
 
 /* Today and later days always get the defaults merged in, whatever was saved before. Past days are
    history, so they're only filled when a section is completely empty. */
-async function loadDayData(dk) {
-  const saved = await storageLoad('day-' + dk);
-  if (dateKey(dayViewDate) !== dk) return; // user moved to another day while this was loading
+function renderDayData(dk, saved) {
   const data = saved || {};
   const isPast = dk < dateKey(TODAY);
   const hasTaskText = Array.isArray(data.tasks) && data.tasks.some(t => (t.text || '').trim());
   const hasScheduleText = Array.isArray(data.schedule) && data.schedule.some(s => (s.text || '').trim());
 
-  document.getElementById('dayMission').value = data.mission || '';
-  document.getElementById('dayNotes').value = data.notes || '';
-  applyTaskRowsToFields(!isPast || !hasTaskText ? reconcileTaskRows(data.tasks) : data.tasks);
-  applyScheduleToFields(!isPast || !hasScheduleText ? fillTimelineDefaults(data.schedule) : data.schedule);
+  _dayLoading = true;
+  try {
+    document.getElementById('dayMission').value = data.mission || '';
+    document.getElementById('dayNotes').value = data.notes || '';
+    applyTaskRowsToFields(!isPast || !hasTaskText ? reconcileTaskRows(data.tasks) : data.tasks);
+    applyScheduleToFields(!isPast || !hasScheduleText ? fillTimelineDefaults(data.schedule) : data.schedule);
+  } finally {
+    _dayLoading = false;
+  }
+}
+
+/* Reads this browser's copy only, so the day (with its defaults) shows instantly with no network wait. */
+function renderLocalDay(dk) {
+  const local = parsePlannerPayload(localStorage.getItem(STORAGE_PREFIX + 'day-' + dk));
+  renderDayData(dk, local.deleted ? null : local.data);
+}
+
+function daySnapshot() {
+  return JSON.stringify([document.getElementById('dayMission').value, document.getElementById('dayNotes').value, collectTaskRows(), collectSchedule()]);
+}
+
+/* Merges in the cloud copy once it arrives, unless you moved to another day or already started editing. */
+async function refreshDayFromCloud(dk) {
+  if (!cloudEnabled()) return;
+  const before = daySnapshot();
+  const merged = await storageLoad('day-' + dk);
+  if (dateKey(dayViewDate) !== dk || daySnapshot() !== before) return;
+  renderDayData(dk, merged);
+}
+
+async function loadDayData(dk) {
+  renderLocalDay(dk);
+  await refreshDayFromCloud(dk);
 }
 
 async function saveDayPlanner() {
@@ -4354,15 +4378,9 @@ function scheduleDaySave() {
 }
 
 async function loadDayPlanner() {
-  _dayLoading = true;
-  const seq = ++_dayLoadSeq;
   clearTimeout(_daySaveTimer);
   clearDayFields();
-  try {
-    await loadDayData(dateKey(dayViewDate));
-  } finally {
-    if (seq === _dayLoadSeq) _dayLoading = false;
-  }
+  await loadDayData(dateKey(dayViewDate));
   showToast('📂 Day planner loaded!');
 }
 
