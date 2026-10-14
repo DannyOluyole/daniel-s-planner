@@ -1858,6 +1858,7 @@ const DEFAULT_TIMELINE = {
 
 let _dayUIBuilt = false;
 let _dayLoading = false;
+let _dayLoadSeq = 0;
 let _daySaveTimer = null;
 let _monthSaveTimer = null;
 let _valuesSaveTimer = null;
@@ -4110,10 +4111,108 @@ function buildDayUI() {
   }
 }
 
-function applyDefaultTimeline() {
-  for (const h in DEFAULT_TIMELINE) {
-    const txt = document.getElementById('ds-txt-' + h);
-    if (txt) txt.value = DEFAULT_TIMELINE[h];
+const blankTaskRow = () => ({ priority: '', text: '', status: '', done: false });
+const isBlankTaskRow = (r) => !(r && ((r.text || '').trim() || r.priority || r.status || r.done));
+
+/* Puts each default task in its slot, moving whole rows (status and priority travel with the task).
+   Custom rows keep their slot unless a default needs it, then move to a free slot. If everything
+   can't fit without dropping something, the rows are returned untouched. */
+function reconcileTaskRows(rows) {
+  const N = DAY_PRIORITY_TASK_COUNT;
+  const src = Array.from({ length: N }, (_, i) => (rows && rows[i]) || null);
+  const defaultTexts = new Set(Object.values(DEFAULT_DAY_TASKS));
+  const textOf = (r) => ((r && r.text) || '').trim();
+  const out = new Array(N).fill(null);
+  const used = new Array(N).fill(false);
+  const leftovers = [];
+
+  src.forEach((r, i) => {
+    if (isBlankTaskRow(r) || defaultTexts.has(textOf(r))) return;
+    used[i] = true;
+    if (DEFAULT_DAY_TASKS[i + 1]) leftovers.push(r); else out[i] = r;
+  });
+
+  Object.keys(DEFAULT_DAY_TASKS).forEach((slot) => {
+    const s = Number(slot) - 1;
+    const d = DEFAULT_DAY_TASKS[slot];
+    let from = (!used[s] && textOf(src[s]) === d) ? s : src.findIndex((r, j) => !used[j] && textOf(r) === d);
+    if (from >= 0) { used[from] = true; out[s] = src[from]; }
+    else out[s] = Object.assign(blankTaskRow(), { text: d });
+  });
+
+  src.forEach((r, i) => {
+    if (!used[i] && !isBlankTaskRow(r) && (r.priority || r.status || r.done)) leftovers.push(r);
+  });
+
+  const free = out.map((r, i) => (r ? -1 : i)).filter((i) => i >= 0);
+  if (leftovers.length > free.length) return rows || [];
+  leftovers.forEach((r, k) => { out[free[k]] = r; });
+  return out.map((r) => r || blankTaskRow());
+}
+
+function scheduleByHour(schedule) {
+  const byHour = new Map();
+  (schedule || []).forEach((s, idx) => {
+    const h = Number.isFinite(s.hour) ? s.hour : (6 + idx); // stored hour wins; index fallback only for very old entries
+    byHour.set(h, s);
+  });
+  return byHour;
+}
+
+/* Fills empty default hours; anything already written is left as is. */
+function fillTimelineDefaults(schedule) {
+  const byHour = scheduleByHour(schedule);
+  const out = [];
+  for (let h = DAY_TIMELINE_START_HOUR; h <= DAY_TIMELINE_END_HOUR; h++) {
+    const s = byHour.get(h) || { text: '', done: false };
+    const needsDefault = DEFAULT_TIMELINE[h] && !(s.text || '').trim();
+    out.push({ hour: h, text: needsDefault ? DEFAULT_TIMELINE[h] : (s.text || ''), done: !!s.done });
+  }
+  return out;
+}
+
+function collectTaskRows() {
+  const rows = [];
+  for (let i = 1; i <= DAY_PRIORITY_TASK_COUNT; i++) {
+    const status = (document.getElementById('dt-status-' + i) || {}).value || '';
+    rows.push({
+      priority: (document.getElementById('dt-pri-' + i) || {}).value || '',
+      text: (document.getElementById('dt-txt-' + i) || {}).value || '',
+      status,
+      done: status === 'completed'
+    });
+  }
+  return rows;
+}
+
+function collectSchedule() {
+  const schedule = [];
+  for (let h = DAY_TIMELINE_START_HOUR; h <= DAY_TIMELINE_END_HOUR; h++) {
+    schedule.push({
+      hour: h,
+      text: (document.getElementById('ds-txt-' + h) || {}).value || '',
+      done: !!(document.getElementById('ds-chk-' + h) || {}).checked
+    });
+  }
+  return schedule;
+}
+
+function applyTaskRowsToFields(rows) {
+  for (let i = 1; i <= DAY_PRIORITY_TASK_COUNT; i++) {
+    const t = (rows && rows[i - 1]) || {};
+    const pri = document.getElementById('dt-pri-' + i); if (pri) { pri.value = t.priority || ''; applyPriStyle(i); }
+    const txt = document.getElementById('dt-txt-' + i); if (txt) txt.value = t.text || '';
+    const status = document.getElementById('dt-status-' + i);
+    if (status) { status.value = t.status || (t.done ? 'completed' : ''); toggleStatusRow(i); }
+  }
+}
+
+function applyScheduleToFields(schedule) {
+  const byHour = scheduleByHour(schedule);
+  for (let h = DAY_TIMELINE_START_HOUR; h <= DAY_TIMELINE_END_HOUR; h++) {
+    const s = byHour.get(h) || {};
+    const txt = document.getElementById('ds-txt-' + h); if (txt) txt.value = s.text || '';
+    const chk = document.getElementById('ds-chk-' + h); if (chk) chk.checked = !!s.done;
   }
 }
 
@@ -4148,9 +4247,14 @@ function renderDayView() {
   document.getElementById('dayDayName').value = dayName;
 
   _dayLoading = true;
+  const seq = ++_dayLoadSeq;
   clearTimeout(_daySaveTimer);
   clearDayFields();
-  loadDayData(dk).then(() => { _dayLoading = false; setupDateLinkifyForView('view-day'); });
+  loadDayData(dk).finally(() => {
+    if (seq !== _dayLoadSeq) return; // a newer day load is in flight and owns the flag
+    _dayLoading = false;
+    setupDateLinkifyForView('view-day');
+  });
   renderDayStreak();
 }
 
@@ -4169,66 +4273,27 @@ function clearDayFields() {
   }
 }
 
-function applyDefaultDayTasks() {
-  for (const i in DEFAULT_DAY_TASKS) {
-    const txt = document.getElementById('dt-txt-' + i);
-    if (txt) txt.value = DEFAULT_DAY_TASKS[i];
-  }
-}
-
+/* Today and later days always get the defaults merged in, whatever was saved before. Past days are
+   history, so they're only filled when a section is completely empty. */
 async function loadDayData(dk) {
-  const data = await storageLoad('day-' + dk);
-  const hasTaskText = !!(data && Array.isArray(data.tasks) && data.tasks.some(t => (t.text || '').trim()));
-  const hasScheduleText = !!(data && Array.isArray(data.schedule) && data.schedule.some(s => (s.text || '').trim()));
-  if (!data || !hasTaskText) applyDefaultDayTasks();
-  if (!data || !hasScheduleText) applyDefaultTimeline();
-  if (!data) return;
+  const saved = await storageLoad('day-' + dk);
+  if (dateKey(dayViewDate) !== dk) return; // user moved to another day while this was loading
+  const data = saved || {};
+  const isPast = dk < dateKey(TODAY);
+  const hasTaskText = Array.isArray(data.tasks) && data.tasks.some(t => (t.text || '').trim());
+  const hasScheduleText = Array.isArray(data.schedule) && data.schedule.some(s => (s.text || '').trim());
 
   document.getElementById('dayMission').value = data.mission || '';
   document.getElementById('dayNotes').value = data.notes || '';
-
-  if (hasTaskText) {
-    data.tasks.forEach((t, idx) => {
-      const i = idx + 1;
-      const pri = document.getElementById('dt-pri-' + i); if (pri) { pri.value = t.priority || ''; applyPriStyle(i); }
-      const txt = document.getElementById('dt-txt-' + i); if (txt) txt.value = t.text || '';
-      const status = document.getElementById('dt-status-' + i);
-      if (status) {
-        status.value = t.status || (t.done ? 'completed' : '');
-        toggleStatusRow(i);
-      }
-    });
-  }
-
-  if (hasScheduleText) {
-    data.schedule.forEach((s, idx) => {
-      const h = Number.isFinite(s.hour) ? s.hour : (6 + idx); // stored hour wins; index fallback only for very old entries
-      const txt = document.getElementById('ds-txt-' + h); if (txt) txt.value = s.text || '';
-      const chk = document.getElementById('ds-chk-' + h); if (chk) chk.checked = !!s.done;
-    });
-  }
+  applyTaskRowsToFields(!isPast || !hasTaskText ? reconcileTaskRows(data.tasks) : data.tasks);
+  applyScheduleToFields(!isPast || !hasScheduleText ? fillTimelineDefaults(data.schedule) : data.schedule);
 }
 
 async function saveDayPlanner() {
+  if (_dayLoading) return; // fields are still being filled in; saving now would store a half-loaded day
   const dk = dateKey(dayViewDate);
-  const tasks = [];
-  for (let i = 1; i <= DAY_PRIORITY_TASK_COUNT; i++) {
-    const status = (document.getElementById('dt-status-' + i) || {}).value || '';
-    tasks.push({
-      priority: (document.getElementById('dt-pri-' + i) || {}).value || '',
-      text: (document.getElementById('dt-txt-' + i) || {}).value || '',
-      status,
-      done: status === 'completed'
-    });
-  }
-  const schedule = [];
-  for (let h = DAY_TIMELINE_START_HOUR; h <= DAY_TIMELINE_END_HOUR; h++) {
-    schedule.push({
-      hour: h,
-      text: (document.getElementById('ds-txt-' + h) || {}).value || '',
-      done: !!(document.getElementById('ds-chk-' + h) || {}).checked
-    });
-  }
+  const tasks = collectTaskRows();
+  const schedule = collectSchedule();
   const obj = {
     date: dk,
     mission: document.getElementById('dayMission').value,
@@ -4290,34 +4355,21 @@ function scheduleDaySave() {
 
 async function loadDayPlanner() {
   _dayLoading = true;
+  const seq = ++_dayLoadSeq;
   clearTimeout(_daySaveTimer);
   clearDayFields();
-  await loadDayData(dateKey(dayViewDate));
-  _dayLoading = false;
+  try {
+    await loadDayData(dateKey(dayViewDate));
+  } finally {
+    if (seq === _dayLoadSeq) _dayLoading = false;
+  }
   showToast('📂 Day planner loaded!');
 }
 
-/* Re-applies the current DEFAULT_DAY_TASKS / DEFAULT_TIMELINE onto their fixed slots and saves —
-   for days saved before a default was added or moved, which are otherwise left alone as real data.
-   Also clears any slot that still holds a recognized default value sitting in the wrong place
-   (e.g. a task left over from before the defaults were reordered), without touching real entries. */
+/* Forces the current day (past days included) onto the current defaults and saves. */
 async function refreshDayDefaults() {
-  const defaultTaskValues = new Set(Object.values(DEFAULT_DAY_TASKS));
-  for (let i = 1; i <= DAY_PRIORITY_TASK_COUNT; i++) {
-    const txt = document.getElementById('dt-txt-' + i);
-    if (!txt) continue;
-    if (DEFAULT_DAY_TASKS[i]) txt.value = DEFAULT_DAY_TASKS[i];
-    else if (defaultTaskValues.has(txt.value.trim())) txt.value = '';
-  }
-
-  const defaultTimelineValues = new Set(Object.values(DEFAULT_TIMELINE));
-  for (let h = DAY_TIMELINE_START_HOUR; h <= DAY_TIMELINE_END_HOUR; h++) {
-    const txt = document.getElementById('ds-txt-' + h);
-    if (!txt) continue;
-    if (DEFAULT_TIMELINE[h]) txt.value = DEFAULT_TIMELINE[h];
-    else if (defaultTimelineValues.has(txt.value.trim())) txt.value = '';
-  }
-
+  applyTaskRowsToFields(reconcileTaskRows(collectTaskRows()));
+  applyScheduleToFields(fillTimelineDefaults(collectSchedule()));
   await saveDayPlanner();
 }
 
