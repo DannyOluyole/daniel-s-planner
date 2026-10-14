@@ -274,6 +274,8 @@
     .badge-want { background: #FFF8E1; color: #F57F17; border: 1.5px solid var(--gold); }
     .badge-completed { background: #E8F5E9; color: var(--green); border: 1.5px solid var(--green); }
     .badge-reread { background: var(--gold-xlight); color: var(--gold); border: 1.5px solid var(--gold-light); margin-left: 0.5rem; vertical-align: middle; }
+    .badge-rereading { background: var(--gold-xlight); color: var(--gold); border: 1.5px solid var(--gold); }
+    .book-item .progress-fill.reread { background: linear-gradient(90deg, var(--gold) 0%, var(--gold-light) 100%); }
 
     .book-item {
       display: grid;
@@ -696,6 +698,9 @@
     .plan-sub { font-size: 0.82rem; color: var(--gray-med); margin-top: 0.25rem; line-height: 1.5; }
     .plan-book { display: grid; grid-template-columns: minmax(0, 1.3fr) 170px minmax(0, 1.6fr); gap: 1rem; align-items: center; padding: 0.9rem 0; border-bottom: 1.5px solid var(--gray-xlight); }
     .plan-book:last-child { border-bottom: none; }
+    .plan-reread-row { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1.5px solid var(--gray-xlight); }
+    .plan-reread-row label { font-weight: 600; color: var(--navy); font-size: 0.9rem; }
+    .plan-reread-row select { width: auto; max-width: 320px; }
     .plan-book-title { font-weight: 700; color: var(--navy); }
     .plan-book-meta { font-size: 0.85rem; color: var(--gray-med); }
     .plan-book-date label, .bible-controls label { display: block; font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--gray-med); margin-bottom: 0.25rem; }
@@ -926,7 +931,8 @@
       <div class="card" style="margin-top:1.5rem;">
         <div class="card-header">Finish a Book by a Date</div>
         <div class="card-body">
-          <p class="plan-help">Pick a finish date for any book you're reading or want to read, and the daily pages (and chapters, if you've set the book's total chapters in Edit) are worked out from what's left.</p>
+          <p class="plan-help">Pick a finish date for any book you're reading, re-reading, or want to read, and the daily pages (and chapters, if you've set the book's total chapters in Edit) are worked out from what's left.</p>
+          <div class="plan-reread-row" id="planRereadPicker"></div>
           <div id="planBooks"></div>
         </div>
       </div>
@@ -1758,10 +1764,15 @@
         var current = Math.min(total, Math.max(0, parseInt(b.currentPage, 10) || 0));
         var pct = bookProgressPct(b);
         if (b.status === 'completed') current = total;
+        var rr = activeReread(b);
+        if (rr) {
+          current = Math.min(total, Math.max(0, parseInt(rr.page, 10) || 0));
+          pct = Math.round((current / total) * 100);
+        }
         var badgeClass = 'badge-reading';
         if (b.status === 'completed') badgeClass = 'badge-completed';
         if (b.status === 'want') badgeClass = 'badge-want';
-        var progressClass = b.status === 'completed' ? 'progress-fill completed' : 'progress-fill';
+        var progressClass = rr ? 'progress-fill reread' : (b.status === 'completed' ? 'progress-fill completed' : 'progress-fill');
         return (
           '<div class="book-item" data-id="' + (b.id || '') + '">' +
             '<div class="book-info">' +
@@ -1777,13 +1788,16 @@
             '<div class="book-progress-wrap">' +
               '<span class="progress-text">' + current + ' / ' + total + '</span>' +
               '<div><span class="badge ' + badgeClass + '">' + (b.status === 'reading' ? 'Reading' : b.status === 'completed' ? 'Completed' : 'Want to read') + '</span></div>' +
+              (rr ? '<div style="margin-top:0.25rem;"><span class="badge badge-rereading">' + (rereadPlanned(rr) ? '📖 Re-read planned' : '📖 Re-reading') + '</span></div>' : '') +
             '</div>' +
             '<div class="book-actions">' +
               (b.linkUrl ? '<a href="' + escapeHtml(b.linkUrl) + '" target="_blank" rel="noopener" class="btn btn-ghost btn-sm">🔗 View Book</a>' : '') +
               (b.pdfUrl ? '<a href="' + escapeHtml(b.pdfUrl) + '" target="_blank" rel="noopener" class="btn btn-ghost btn-sm">Open PDF</a>' : '') +
               '<button type="button" class="btn btn-gold btn-sm" onclick="exportBookAsPdf(\'' + (b.id || '') + '\')">Save as PDF</button>' +
-              '<button type="button" class="btn btn-teal btn-sm" onclick="setCurrentPage(\'' + (b.id || '') + '\')">Update page</button>' +
-              (b.status === 'completed' ? '<button type="button" class="btn btn-ghost btn-sm" onclick="markReread(\'' + (b.id || '') + '\')" title="Log another read-through">🔁 Re-read</button>' : '') +
+              '<button type="button" class="btn btn-teal btn-sm" onclick="' + (rr ? 'setRereadPage' : 'setCurrentPage') + '(\'' + (b.id || '') + '\')" title="' + (rr ? 'Update your re-read page' : 'Update your current page') + '">Update page</button>' +
+              (b.status === 'completed' && !rr ? '<button type="button" class="btn btn-ghost btn-sm" onclick="startReread(\'' + (b.id || '') + '\')" title="Put this book in your Reading Plan to re-read it">📖 Add to re-read plan</button>' : '') +
+              (rr ? '<button type="button" class="btn btn-ghost btn-sm" onclick="cancelReread(\'' + (b.id || '') + '\')" title="' + (rereadPlanned(rr) ? 'Take it out of your Reading Plan' : 'Stop tracking this re-read') + '">' + (rereadPlanned(rr) ? 'Remove from plan' : 'Stop re-read') + '</button>' : '') +
+              (b.status === 'completed' && !rr ? '<button type="button" class="btn btn-ghost btn-sm" onclick="markReread(\'' + (b.id || '') + '\')" title="Just log that you read it again, no page tracking">🔁 Log re-read</button>' : '') +
               '<button type="button" class="btn btn-ghost btn-sm" onclick="editBook(\'' + (b.id || '') + '\')">Edit</button>' +
               '<button type="button" class="btn btn-red btn-sm" onclick="deleteBook(\'' + (b.id || '') + '\')">Delete</button>' +
             '</div>' +
@@ -1902,7 +1916,8 @@
             pdfUrl: pdfUrl,
             chapters: existing.chapters || [],
             rereadCount: existing.rereadCount || 0,
-            rereadDates: Array.isArray(existing.rereadDates) ? existing.rereadDates : []
+            rereadDates: Array.isArray(existing.rereadDates) ? existing.rereadDates : [],
+            reread: (status === 'completed' && existing.reread) ? existing.reread : null
           };
         }
       } else {
@@ -2011,6 +2026,76 @@
         if (document.getElementById('view-stats') && document.getElementById('view-stats').classList.contains('active')) renderStats();
         if (b.status === 'completed' && !wasCompleted) celebrateCompletion(b.title); else showToast('Updated');
       }
+    }
+
+    /* A re-read is tracked as a session on the book ({ page, startDate, targetDate }) while the
+       book itself stays "completed", so it keeps counting as finished in Stats and the monthly goal. */
+    function activeReread(b) {
+      return (b && b.status === 'completed' && b.reread && typeof b.reread === 'object') ? b.reread : null;
+    }
+
+    // A re-read with no pages read yet and no start date is "planned": in the Reading Plan, not begun.
+    function rereadPlanned(rr) {
+      return !!rr && !(parseInt(rr.page, 10) > 0) && !isIsoDate(rr.startDate);
+    }
+
+    function afterRereadChange() {
+      renderBookList();
+      refreshExtrasViews();
+      if (document.getElementById('view-stats') && document.getElementById('view-stats').classList.contains('active')) renderStats();
+    }
+
+    function startReread(id) {
+      var b = books.filter(function(x) { return String(x.id) === String(id); })[0];
+      if (!b) return;
+      if (b.status !== 'completed') { showToast('Only finished books can be re-read'); return; }
+      if (activeReread(b)) return;
+      b.reread = { page: 0, startDate: '', targetDate: '' };
+      saveBooks();
+      afterRereadChange();
+      showToast('📖 Added to your Reading Plan — set a finish date there');
+    }
+
+    function setRereadPage(id) {
+      var b = books.filter(function(x) { return String(x.id) === String(id); })[0];
+      var rr = activeReread(b);
+      if (!rr) return;
+      var total = Math.max(1, parseInt(b.totalPages, 10) || 0);
+      var cur = Math.min(total, Math.max(0, parseInt(rr.page, 10) || 0));
+      var v = window.prompt('Re-read: current page (0–' + total + ')', cur);
+      if (v === null) return;
+      var num = parseInt(v, 10);
+      if (isNaN(num) || num < 0) return;
+      if (num >= total) {
+        b.rereadCount = (b.rereadCount || 0) + 1;
+        if (!Array.isArray(b.rereadDates)) b.rereadDates = [];
+        b.rereadDates.push(isoToday());
+        b.reread = null;
+        saveBooks();
+        afterRereadChange();
+        celebrateCompletion(b.title);
+        return;
+      }
+      rr.page = num;
+      if (num > 0 && !isIsoDate(rr.startDate)) rr.startDate = isoToday();
+      saveBooks();
+      afterRereadChange();
+      showToast('Updated');
+    }
+
+    function cancelReread(id) {
+      var b = books.filter(function(x) { return String(x.id) === String(id); })[0];
+      var rr = activeReread(b);
+      if (!rr) return;
+      var snapshot = { page: rr.page, startDate: rr.startDate, targetDate: rr.targetDate };
+      b.reread = null;
+      saveBooks();
+      afterRereadChange();
+      showToastWithAction(rereadPlanned(snapshot) ? 'Removed from plan' : 'Re-read stopped', 'Undo', function() {
+        b.reread = snapshot;
+        saveBooks();
+        afterRereadChange();
+      }, 5000);
     }
 
     function markReread(id) {
@@ -3145,7 +3230,7 @@
       host.innerHTML = html;
     }
 
-    function planBookOutput(b, total, cur, remaining, target, today) {
+    function planBookOutput(b, total, cur, remaining, target, today, startDate) {
       if (!total) return '<span class="plan-sub">Add this book\'s total pages (Edit) to plan it.</span>';
       if (remaining === 0) return '<span class="plan-sub">Nothing left to read.</span>';
       if (!target) return '<span class="plan-sub">Pick a finish date to see your daily pace.</span>';
@@ -3155,9 +3240,9 @@
       let html = '<div><span class="plan-big">' + Math.ceil(ppd - 1e-9) + '</span> pages/day';
       if (b.totalChapters > 0) html += ' <span class="plan-sub">(≈ ' + fmt1(ppd / (total / b.totalChapters)) + ' chapters/day)</span>';
       html += '</div><div class="plan-sub">' + plural(remaining, 'page') + ' over ' + plural(daysLeft, 'day') + ' · ≈ ' + Math.ceil(ppd * 7 - 1e-9) + ' pages/week</div>';
-      if (b.status === 'reading' && isIsoDate(b.startDate) && b.startDate <= today && cur > 0) {
-        const actual = cur / (dayDiff(b.startDate, today) + 1);
-        html += '<div class="plan-sub">You\'ve averaged ' + fmt1(actual) + ' pages/day since ' + fmtDate(b.startDate) + ' — ' +
+      if (isIsoDate(startDate) && startDate <= today && cur > 0) {
+        const actual = cur / (dayDiff(startDate, today) + 1);
+        html += '<div class="plan-sub">You\'ve averaged ' + fmt1(actual) + ' pages/day since ' + fmtDate(startDate) + ' — ' +
           (actual >= ppd ? '<span class="good">faster than the pace you need.</span>' : '<span class="bad">about ' + Math.ceil(ppd - actual) + ' pages/day short of the pace you need.</span>') + '</div>';
       }
       return html;
@@ -3167,25 +3252,50 @@
       const host = document.getElementById('planBooks');
       if (!host) return;
       const today = isoToday();
-      const list = books.filter(function(b) { return b.status === 'reading' || b.status === 'want'; }).sort(function(a, b) {
-        return (a.status === b.status ? 0 : (a.status === 'reading' ? -1 : 1)) || String(a.title || '').localeCompare(String(b.title || ''));
+      // Reading first, then re-reads in progress, then want-to-read.
+      const rank = function(b) { return activeReread(b) ? 1 : (b.status === 'reading' ? 0 : 2); };
+      const list = books.filter(function(b) { return b.status === 'reading' || b.status === 'want' || activeReread(b); }).sort(function(a, b) {
+        return (rank(a) - rank(b)) || String(a.title || '').localeCompare(String(b.title || ''));
       });
       if (!list.length) {
-        host.innerHTML = '<p class="chapter-notes-empty">No books in progress or on your want-to-read list yet.</p>';
+        host.innerHTML = '<p class="chapter-notes-empty">No books in progress, re-reads, or want-to-read books yet.</p>';
         return;
       }
       host.innerHTML = list.map(function(b) {
+        const rr = activeReread(b);
         const total = parseInt(b.totalPages, 10) || 0;
-        const cur = b.status === 'want' ? 0 : Math.min(total, Math.max(0, parseInt(b.currentPage, 10) || 0));
+        const rawCur = rr ? rr.page : b.currentPage;
+        const cur = (b.status === 'want') ? 0 : Math.min(total, Math.max(0, parseInt(rawCur, 10) || 0));
         const remaining = Math.max(0, total - cur);
-        const target = isIsoDate(b.targetDate) ? b.targetDate : '';
+        const holder = rr || b;
+        const target = isIsoDate(holder.targetDate) ? holder.targetDate : '';
+        const startDate = rr ? rr.startDate : (b.status === 'reading' ? b.startDate : '');
         return '<div class="plan-book" data-id="' + escapeHtml(b.id) + '">' +
-          '<div><div class="plan-book-title">' + escapeHtml(b.title || 'Untitled') + '</div>' +
-            '<div class="plan-book-meta">' + (b.author ? escapeHtml(b.author) + ' · ' : '') + (b.status === 'want' ? 'Not started' : cur + ' / ' + total + ' pages') + '</div></div>' +
+          '<div><div class="plan-book-title">' + escapeHtml(b.title || 'Untitled') + (rr ? ' <span class="badge badge-rereading">📖 Re-read</span>' : '') + '</div>' +
+            '<div class="plan-book-meta">' + (b.author ? escapeHtml(b.author) + ' · ' : '') + ((b.status === 'want' || rereadPlanned(rr)) ? 'Not started' : cur + ' / ' + total + ' pages') + '</div></div>' +
           '<div class="plan-book-date"><label>Finish by</label><input type="date" class="plan-date" min="' + today + '" value="' + target + '" onchange="onPlanTargetChange(this)" /></div>' +
-          '<div class="plan-book-out">' + planBookOutput(b, total, cur, remaining, target, today) + '</div>' +
+          '<div class="plan-book-out">' + planBookOutput(b, total, cur, remaining, target, today, startDate) + '</div>' +
         '</div>';
       }).join('');
+    }
+
+    function renderPlanRereadPicker() {
+      const host = document.getElementById('planRereadPicker');
+      if (!host) return;
+      const finished = books.filter(function(b) { return b.status === 'completed' && !activeReread(b); })
+        .sort(function(a, b) { return String(a.title || '').localeCompare(String(b.title || '')); });
+      if (!finished.length) { host.innerHTML = ''; host.style.display = 'none'; return; }
+      host.style.display = '';
+      host.innerHTML = '<label for="planRereadSelect">Want to re-read a finished book?</label>' +
+        '<select id="planRereadSelect"><option value="">— Choose a book —</option>' +
+        finished.map(function(b) { return '<option value="' + escapeHtml(b.id) + '">' + escapeHtml(b.title || 'Untitled') + '</option>'; }).join('') +
+        '</select><button type="button" class="btn btn-teal btn-sm" onclick="onPlanStartReread()">+ Add to plan</button>';
+    }
+
+    function onPlanStartReread() {
+      const sel = document.getElementById('planRereadSelect');
+      if (!sel || !sel.value) { showToast('Choose a book first'); return; }
+      startReread(sel.value);
     }
 
     function renderPlan() {
@@ -3196,6 +3306,7 @@
       const input = document.getElementById('planMonthGoal');
       if (input) input.value = trackerExtras.monthlyGoals[ym] || '';
       renderPlanMonthOut();
+      renderPlanRereadPicker();
       renderPlanBooks();
     }
 
@@ -3213,7 +3324,7 @@
       const id = row && row.getAttribute('data-id');
       const b = books.filter(function(x) { return String(x.id) === String(id); })[0];
       if (!b) return;
-      b.targetDate = isIsoDate(el.value) ? el.value : '';
+      (activeReread(b) || b).targetDate = isIsoDate(el.value) ? el.value : '';
       saveBooks();
       renderPlanBooks();
     }
