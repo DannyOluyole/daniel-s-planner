@@ -717,6 +717,7 @@
     details.bible-book > summary::before { content: '▸'; color: var(--teal); transition: transform 0.15s ease; }
     details.bible-book[open] > summary::before { transform: rotate(90deg); }
     .bible-book-name { font-weight: 700; color: var(--navy); flex: 1; }
+    .bible-tag { font-family: 'IBM Plex Mono', monospace; font-size: 0.6rem; font-weight: 600; color: var(--teal); border: 1px solid currentColor; border-radius: 4px; padding: 0 0.3rem; margin-left: 0.3rem; vertical-align: middle; opacity: 0.8; }
     details.bible-book.complete .bible-book-name::after { content: ' ✓'; color: var(--green); }
     .bible-book-count { font-family: 'IBM Plex Mono', monospace; font-size: 0.8rem; color: var(--gray-med); min-width: 64px; text-align: right; }
     .bible-book-bar { width: 110px; }
@@ -960,6 +961,13 @@
             <div>
               <label for="bibleLogDate">Log chapters as read on</label>
               <input type="date" id="bibleLogDate" class="plan-date" />
+            </div>
+            <div>
+              <label for="bibleOrder">List books in</label>
+              <select id="bibleOrder" class="plan-date" onchange="onBibleOrderChange(this)">
+                <option value="chrono">Chronological order</option>
+                <option value="canon">Bible order</option>
+              </select>
             </div>
             <div id="bibleNext"></div>
           </div>
@@ -2925,6 +2933,27 @@
       ['1 Peter', 5, 'NT'], ['2 Peter', 3, 'NT'], ['1 John', 5, 'NT'], ['2 John', 1, 'NT'], ['3 John', 1, 'NT'],
       ['Jude', 1, 'NT'], ['Revelation', 22, 'NT']
     ].map(function(r) { return { n: r[0], c: r[1], t: r[2] }; });
+    /* Books in the order they're generally thought to have been written or to have happened. Dating is
+       debated for some books, so this is a common reading-plan order, not the only possible one. */
+    const BIBLE_CHRONO_NAMES = [
+      'Genesis', 'Job', 'Exodus', 'Leviticus', 'Numbers', 'Deuteronomy', 'Joshua', 'Judges', 'Ruth', '1 Samuel', '2 Samuel',
+      '1 Chronicles', 'Psalms', 'Song of Solomon', 'Proverbs', 'Ecclesiastes', '1 Kings', '2 Kings', '2 Chronicles',
+      'Obadiah', 'Joel', 'Jonah', 'Amos', 'Hosea', 'Micah', 'Isaiah', 'Nahum', 'Zephaniah', 'Habakkuk', 'Jeremiah',
+      'Lamentations', 'Ezekiel', 'Daniel', 'Ezra', 'Haggai', 'Zechariah', 'Esther', 'Nehemiah', 'Malachi',
+      'Luke', 'Matthew', 'Mark', 'John', 'Acts', 'James', 'Galatians', '1 Thessalonians', '2 Thessalonians', '1 Corinthians',
+      '2 Corinthians', 'Romans', 'Ephesians', 'Philippians', 'Colossians', 'Philemon', '1 Timothy', 'Titus', '1 Peter',
+      'Hebrews', '2 Timothy', '2 Peter', 'Jude', '1 John', '2 John', '3 John', 'Revelation'
+    ];
+    const BIBLE_CHRONO = BIBLE_CHRONO_NAMES.map(function(n) {
+      return BIBLE_BOOKS.findIndex(function(b) { return b.n === n; });
+    });
+    const BIBLE_ORDER_KEY = 'booktracker-bible-order';
+    function bibleOrderMode() {
+      try { return localStorage.getItem(BIBLE_ORDER_KEY) === 'canon' ? 'canon' : 'chrono'; } catch (e) { return 'chrono'; }
+    }
+    function bibleOrderIndexes() {
+      return bibleOrderMode() === 'chrono' ? BIBLE_CHRONO : BIBLE_BOOKS.map(function(_, i) { return i; });
+    }
     const BIBLE_TOTAL = BIBLE_BOOKS.reduce(function(s, b) { return s + b.c; }, 0);
 
     function bibleHas(bi, ch) {
@@ -3009,7 +3038,9 @@
     }
 
     function bibleNextUnread() {
-      for (let bi = 0; bi < BIBLE_BOOKS.length; bi++) {
+      const order = bibleOrderIndexes();
+      for (let k = 0; k < order.length; k++) {
+        const bi = order[k];
         for (let ch = 1; ch <= BIBLE_BOOKS[bi].c; ch++) if (!bibleHas(bi, ch)) return { bi: bi, ch: ch };
       }
       return null;
@@ -3072,12 +3103,11 @@
           : '';
       }
 
-      const otEl = document.getElementById('bibleTc-OT'), ntEl = document.getElementById('bibleTc-NT');
-      if (otEl) otEl.textContent = s.ot + ' / 929';
-      if (ntEl) ntEl.textContent = s.nt + ' / 260';
+      document.querySelectorAll('[data-tc="OT"]').forEach(function(el) { el.textContent = s.ot + ' / 929'; });
+      document.querySelectorAll('[data-tc="NT"]').forEach(function(el) { el.textContent = s.nt + ' / 260'; });
     }
 
-    function bibleBookHtml(bi, open) {
+    function bibleBookHtml(bi, open, showTestament) {
       const bk = BIBLE_BOOKS[bi];
       const count = bibleBookCount(bi);
       let btns = '';
@@ -3085,7 +3115,7 @@
         btns += '<button type="button" class="bible-ch' + (bibleHas(bi, ch) ? ' on' : '') + '" data-bi="' + bi + '" data-ch="' + ch + '">' + ch + '</button>';
       }
       return '<details class="bible-book' + (count === bk.c ? ' complete' : '') + '" data-bi="' + bi + '"' + (open ? ' open' : '') + '>' +
-        '<summary><span class="bible-book-name">' + escapeHtml(bk.n) + '</span>' +
+        '<summary><span class="bible-book-name">' + escapeHtml(bk.n) + (showTestament ? ' <span class="bible-tag">' + bk.t + '</span>' : '') + '</span>' +
           '<span class="bible-book-count">' + count + ' / ' + bk.c + '</span>' +
           '<span class="plan-bar mini bible-book-bar' + (count === bk.c ? ' done' : '') + '"><div style="width:' + (count / bk.c * 100) + '%"></div></span></summary>' +
         '<div class="bible-ch-grid">' + btns + '</div>' +
@@ -3116,12 +3146,22 @@
       const open = {};
       host.querySelectorAll('details[open]').forEach(function(d) { open[d.getAttribute('data-bi')] = true; });
       let html = '';
-      ['OT', 'NT'].forEach(function(t) {
-        html += '<div class="card" style="margin-top:1.5rem;"><div class="card-header' + (t === 'OT' ? '' : ' gold') + '"><span>' + (t === 'OT' ? 'Old Testament' : 'New Testament') + '</span><span class="bible-testament-count" id="bibleTc-' + t + '"></span></div>' +
+      const sel = document.getElementById('bibleOrder');
+      if (sel) sel.value = bibleOrderMode();
+      if (bibleOrderMode() === 'chrono') {
+        html += '<div class="card" style="margin-top:1.5rem;"><div class="card-header"><span>Chronological order</span>' +
+          '<span class="bible-testament-count">OT <span data-tc="OT"></span> · NT <span data-tc="NT"></span></span></div>' +
           '<div class="card-body" style="padding-top:0.5rem; padding-bottom:0.5rem;">';
-        BIBLE_BOOKS.forEach(function(bk, bi) { if (bk.t === t) html += bibleBookHtml(bi, !!open[bi]); });
+        BIBLE_CHRONO.forEach(function(bi) { html += bibleBookHtml(bi, !!open[bi], true); });
         html += '</div></div>';
-      });
+      } else {
+        ['OT', 'NT'].forEach(function(t) {
+          html += '<div class="card" style="margin-top:1.5rem;"><div class="card-header' + (t === 'OT' ? '' : ' gold') + '"><span>' + (t === 'OT' ? 'Old Testament' : 'New Testament') + '</span><span class="bible-testament-count" data-tc="' + t + '"></span></div>' +
+            '<div class="card-body" style="padding-top:0.5rem; padding-bottom:0.5rem;">';
+          BIBLE_BOOKS.forEach(function(bk, bi) { if (bk.t === t) html += bibleBookHtml(bi, !!open[bi], false); });
+          html += '</div></div>';
+        });
+      }
       host.innerHTML = html;
       const ld = document.getElementById('bibleLogDate');
       if (ld) { ld.max = isoToday(); if (!ld.value) ld.value = isoToday(); }
@@ -3159,6 +3199,11 @@
       renderBibleSummary();
       scheduleExtrasSave();
       showToast('✓ ' + BIBLE_BOOKS[next.bi].n + ' ' + next.ch);
+    }
+
+    function onBibleOrderChange(el) {
+      try { localStorage.setItem(BIBLE_ORDER_KEY, el.value === 'canon' ? 'canon' : 'chrono'); } catch (e) {}
+      renderBible();
     }
 
     function onBibleTargetChange(el) {
