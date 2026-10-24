@@ -4,3 +4,6 @@ precinct/
 three/
 fb/
 models/
+wrapped.html
+# screenshots written by the t*.js tests
+/*.png
