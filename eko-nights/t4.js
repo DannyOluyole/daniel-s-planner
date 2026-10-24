@@ -1,9 +1,11 @@
+// Creating an officer and chapter 1's traffic duty: refusing and taking bribes, reporting back. Traffic visuals.
 const { chromium } = require('/opt/node-tools/node_modules/playwright');
-const fs=require('fs');
+const http=require('http'),fs=require('fs'),path=require('path');const ROOT=path.join(__dirname,'site/public');
+const srv=http.createServer((q,r)=>{let f=path.join(ROOT,q.url.split('?')[0]);if(f.endsWith('/'))f+='index.html';if(!fs.existsSync(f)){r.writeHead(404);r.end();return;}r.writeHead(200,{'Content-Type':f.endsWith('.js')?'application/javascript':f.endsWith('.json')?'application/json':'text/html'});r.end(fs.readFileSync(f));}).listen(8095,'127.0.0.1');
+const ok=(c,m)=>{console.log((c?'PASS ':'FAIL ')+m);if(!c)process.exitCode=1;};
 (async()=>{
   const b=await chromium.launch({executablePath:'/opt/pw-browsers/chromium',args:['--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader','--ignore-gpu-blocklist']});
   const pg=await b.newPage({viewport:{width:1100,height:700}});
-  await pg.route('**/three.min.js',r=>r.fulfill({body:fs.readFileSync('three/package/build/three.min.js'),contentType:'application/javascript'}));
   await pg.route('https://fonts.**',r=>r.abort());
   const errs=[];pg.on('pageerror',e=>errs.push('PAGEERR '+e.message+' @ '+(e.stack||'').split('\n').slice(1,3).join(' | ')));pg.on('console',m=>{if(m.type()==='error')errs.push(m.text())});
   const ev=(f,a)=>pg.evaluate(f,a);const wait=ms=>pg.waitForTimeout(ms);
@@ -11,18 +13,18 @@ const fs=require('fs');
   const talkThrough=async(choice=0)=>{for(let i=0;i<14;i++){const st=await ev(()=>DLG?{last:DLG.i===DLG.lines.length-1&&DLG.ch>=DLG.lines[DLG.i].text.length,n:DLG.choices.length}:null);if(!st)return;if(st.last){await pg.click(`#dlg [data-ch="${choice}"]`);await wait(150);return;}await pg.keyboard.press('KeyE');await wait(80);}};
   const goTo=async(loc)=>{await ev(l=>{const p=LOC[l]||l;inCar=false;pl.mesh.visible=true;pl.x=p.x+1;pl.z=p.z+.5;_step(3);},loc);};
   const E=async()=>{await pg.keyboard.press('KeyE');await wait(250);};
-  await pg.goto('file://'+process.cwd()+'/wrapped.html');await wait(500);
+  await pg.goto('http://127.0.0.1:8095/');await wait(500);
   await pg.screenshot({path:'g_title.png'});
-  await pg.click('#startBtn');await wait(200);console.log('msg',await pg.innerText('#loadMsg'));
+  await pg.click('#startBtn');await wait(200);ok(/first name and surname/.test(await pg.innerText('#loadMsg')),'starting without a name asks for one');
   await pg.fill('#cFirst','ngozi');await pg.fill('#cLast','adebayo');await pg.click('[data-g="f"]');await pg.click('.sw >> nth=3');
-  await pg.click('#startBtn');await wait(4500);
+  await pg.click('#startBtn');await pg.waitForFunction(()=>started,null,{timeout:60000});await wait(1500);await ev(()=>{PERF.off=true;CB.incT=1e9;});
   await ev(()=>{window._step=(n)=>{const r=renderer.render;renderer.render=()=>{};clock3.getDelta=()=>.05;for(let i=0;i<n;i++)frame();renderer.render=r;};clock3.getDelta=()=>.05;});
   await pg.screenshot({path:'g_chap1.png'});
-  console.log('officer',await ev(()=>JSON.stringify(career.officer)),await ev(()=>ST().step));
+  ok(await ev(()=>{const o=career.officer;return o.first==='Ngozi'&&o.last==='Adebayo'&&o.gender==='f'&&o.skin===SKIN[3];}),'the officer is created as entered: name, female, skin tone');
   await ev(()=>{$('#chap').hidden=true;});await step(10);await pg.screenshot({path:'g_street.png'});
   // ch1
-  await goTo('bisi');console.log('near',await ev(()=>nearest&&nearest.label));await E();await wait(600);await pg.screenshot({path:'g_bisi.png'});await talkThrough();
-  console.log('step',await ev(()=>ST().step));
+  await goTo('bisi');ok(/Bisi Okafor/.test(await ev(()=>nearest&&nearest.label)),'chapter 1 starts with Sgt Bisi Okafor');await E();await wait(600);await pg.screenshot({path:'g_bisi.png'});await talkThrough();
+  ok(await ev(()=>CH[1].steps[ST().i].k==='duty'),'her briefing sends you on traffic duty');
   // forced bribe stop
   const doStop=async(choice)=>{
     await ev(()=>{inCar=true;pl.mesh.visible=false;const c=aiCars.find(c=>c.seg==='edge'&&c.mode==='drive'&&!c.small);window._c=c;c.cruise=c.speed=20;c.speeding=true;c.runsRed=false;c.willFlee=false;pc.x=c.x-Math.sin(c.h)*15;pc.z=c.z-Math.cos(c.h)*15;pc.h=c.h;pc.vx=Math.sin(c.h)*c.speed;pc.vz=Math.cos(c.h)*c.speed;_step(2);});
@@ -30,58 +32,23 @@ const fs=require('fs');
     for(let i=0;i<70;i++){await ev(()=>{const s=suspect;if(s&&s.mode==='drive'){pc.x=s.x-Math.sin(s.h)*14;pc.z=s.z-Math.cos(s.h)*14;pc.h=s.h;pc.vx=Math.sin(s.h)*s.speed;pc.vz=Math.cos(s.h)*s.speed;}else{pc.vx*=.5;pc.vz*=.5;}_step(4);});if(await ev(()=>suspect&&suspect.mode==='stopped'))break;}
     await ev(()=>{pc.vx=pc.vz=0;const s=suspect;pc.x=s.x-Math.sin(s.h)*9;pc.z=s.z-Math.cos(s.h)*9;_step(1);});await pg.keyboard.press('KeyF');
     await ev(()=>{const s=suspect;pl.x=s.rx+Math.cos(s.h)*1.8;pl.z=s.rz-Math.sin(s.h)*1.8;_step(2);});await E();await wait(500);
-    const lines=await ev(()=>DLG&&DLG.lines.map(l=>l.text).join(' | '));console.log('stop:',lines);
+    
     await pg.screenshot({path:'g_stop.png'});
     await talkThrough(choice);await wait(300);
     if(await pg.$('#stopForm')){await pg.click('#chkLic');await pg.click('#chkPlate');await pg.click('#tier-t2');await pg.click('#stopSubmit');await wait(200);await pg.screenshot({path:'g_ticket.png'});await pg.click('#stopSubmit');}
     await wait(200);
   };
-  await doStop(0);console.log('after stop1',await ev(()=>[ST().refused,ST().taken,career.rep,shift.stops]));
-  await ev(()=>{ST().flags.forceBribe=true;});await doStop(1);console.log('after stop2',await ev(()=>[ST().refused,ST().taken,career.rep,shift.stops]));
-  await doStop(0);await step(12);console.log('after stop3 step',await ev(()=>ST().step));
-  await goTo('bisi');await E();await wait(400);await talkThrough();await wait(500);console.log('ch',await ev(()=>[ST().ch,ST().step]));
+  await doStop(0);const s1=await ev(()=>[ST().refused,ST().taken,career.rep,shift.stops]);ok(s1[0]===1&&s1[1]===0&&s1[3]===1,'first stop: the driver offers a bribe and you refuse it');
+  await ev(()=>{ST().flags.forceBribe=true;});await doStop(1);const s2=await ev(()=>[ST().refused,ST().taken,career.rep,shift.stops]);ok(s2[1]===1&&s2[2]<s1[2]&&s2[3]===2,'second stop: taking the bribe costs public trust');
+  await doStop(0);for(let i=0;i<30&&await ev(()=>ST().i<2);i++){await step(4);await wait(100);}
+  ok(await ev(()=>ST().i===2),'three stops finish traffic duty');
+  await goTo('bisi');await E();await wait(400);await talkThrough();await wait(500);
+  ok(await ev(()=>{const st=CH[1].steps[ST().i];return st.k==='talk'&&st.who==='grace';}),'reporting back to Bisi leads on to Mrs. Grace Eze');
+  // the rest of the story is played through in t6
   await ev(()=>{$('#chap').hidden=true;});
-  // ch2
-  await goTo('coker');console.log('near',await ev(()=>nearest&&nearest.label));await E();await wait(500);await pg.screenshot({path:'g_coker.png'});await talkThrough();
-  console.log('case',await ev(()=>curCase&&curCase.title),await ev(()=>ST().step));
-  await ev(()=>{curCase.custody.push(curCase.C.id);_step(15);});
-  await pg.keyboard.press('Tab');await wait(200);await pg.screenshot({path:'g_mdt.png'});await pg.click('#closeCase');await wait(200);await pg.click('#rOk');await wait(200);
-  console.log('step',await ev(()=>ST().step));
-  await goTo('coker');await E();await wait(300);await talkThrough();await wait(600);await pg.screenshot({path:'g_lawyer.png'});await talkThrough(0);await wait(1600);
-  console.log('ch3',await ev(()=>[ST().ch,ST().step,ST().refused]));await ev(()=>{$('#chap').hidden=true;});
-  // ch3
-  await goTo('coker');await E();await wait(300);await talkThrough();
-  await ev(()=>{curCase.flags.rescued=true;_step(15);});await pg.keyboard.press('Tab');await wait(200);await pg.click('#closeCase');await wait(200);await pg.click('#rOk');await wait(200);
-  await goTo('bisi');await E();await wait(300);await talkThrough();await wait(500);console.log('ch4',await ev(()=>[ST().ch,ST().step]));await ev(()=>{$('#chap').hidden=true;});
-  // ch4
-  await goTo('bisi');await E();await wait(300);await talkThrough();console.log('leak',await ev(()=>curCase&&curCase.type));
-  await goTo('logTerm');console.log('near',await ev(()=>nearest&&nearest.label));await E();await wait(300);await pg.screenshot({path:'g_log.png'});await pg.click('#lgOk');
-  await goTo('carpark');await E();await wait(600);
-  await ev(()=>{cctv.t=9;_step(1);});await wait(300);await pg.screenshot({path:'g_cctv_leak.png'});
-  const pt=await ev(()=>{const a=cctv.R.actors.find(a=>a.clue&&a.clue[0]==='tallOfficer');camera.updateMatrixWorld();camera.matrixWorldInverse.copy(camera.matrixWorld).invert();const v=a.mesh.position.clone();v.y=1.2;v.project(camera);return {x:(v.x+1)/2*innerWidth,y:(1-v.y)/2*innerHeight};});
-  await pg.mouse.click(pt.x,pt.y);await wait(200);console.log('cmsg',(await pg.innerText('#cMsg')).slice(0,100));await pg.click('#cDone');
-  await pg.keyboard.press('Tab');await wait(200);const lt=await pg.$$eval('.lead b',x=>x.map(y=>y.textContent));console.log(lt);
-  await pg.click(`[data-l="${lt.findIndex(t=>t.includes('payments'))}"]`);await wait(200);await pg.screenshot({path:'g_bank.png'});
-  const rows=await pg.$$eval('tbody tr',trs=>trs.map(t=>t.innerText));await pg.click(`[data-r="${rows.findIndex(r=>r.includes('Coker'))}"]`);await pg.click('#bDone');
-  console.log('ev',await ev(()=>curCase.evidence.map(e=>e.id)));
-  await goTo('interview');console.log('near',await ev(()=>nearest&&nearest.label));await E();await wait(200);
-  await pg.click('[data-o="o_Coker"]');await wait(1200);await pg.screenshot({path:'g_confront.png'});await talkThrough(0);await wait(300);await talkThrough(0);await wait(300);
-  await step(30);await wait(1500);console.log('modal',await ev(()=>modalOpen()&&$('#modal').innerText.slice(0,80)));
-  if(await pg.$('#rOk'))await pg.click('#rOk');await wait(200);
-  console.log('after leak',await ev(()=>[ST().step,ST().flags.cokerArrested]));
-  await goTo('bisi');await E();await wait(300);await talkThrough();await wait(500);await ev(()=>{$('#chap').hidden=true;});
-  // ch5
-  await goTo('bisi');await E();await wait(300);await talkThrough();console.log('finale',await ev(()=>curCase&&[curCase.type,curCase.flags.informant,career.rep]));
-  if(await ev(()=>curCase.flags.informant)){await goTo('informant');await E();await wait(300);await pg.screenshot({path:'g_informant.png'});await talkThrough();}
-  await ev(()=>{const m=LOC.motels['Wharf Warehouse 7'];pl.x=m.x+m.nx*3;pl.z=m.z+m.nz*3;_step(3);});console.log('near',await ev(()=>nearest&&nearest.label));
-  await E();await wait(400);await talkThrough(1);await wait(500);console.log('raid',await ev(()=>!!raidS));
-  for(let k=0;k<20;k++){const r=await ev(()=>{if(!raidS)return 'none';const a=raidS.actors.find(a=>a.state!=='cuffed'&&a.state!=='escaped'&&a.state!=='rescued'&&a.kind!=='civ');if(!a)return 'done';pl.x=a.x+.6;pl.z=a.z;return a.kind;});if(r==='none'||r==='done')break;await step(2);await pg.keyboard.press('KeyE');await step(2);}
-  for(let i=0;i<15&&await ev(()=>!!raidS);i++)await step(10);
-  await step(30);await wait(1500);if(await pg.$('#rOk'))await pg.click('#rOk');await wait(800);
-  await pg.screenshot({path:'g_ending.png'});console.log('end',await ev(()=>[ST().step,modalOpen()&&$('#modal').innerText.slice(0,60)]));
   // traffic visuals
   if(await pg.$('#eOk'))await pg.click('#eOk');
-  await ev(()=>{const c=aiCars.find(c=>c.model==='Danfo');if(c){inCar=true;pl.mesh.visible=false;pc.x=c.x-Math.sin(c.h)*12;pc.z=c.z-Math.cos(c.h)*12;pc.h=c.h;pc.vx=pc.vz=0;camPos.init=false;}});await wait(1200);await pg.screenshot({path:'g_danfo.png'});
-  await ev(()=>{const c=aiCars.find(c=>c.model==='Okada')||aiCars.find(c=>c.model==='Keke');if(c){pc.x=c.x-Math.sin(c.h)*9;pc.z=c.z-Math.cos(c.h)*9;pc.h=c.h;camPos.init=false;}});await wait(1200);await pg.screenshot({path:'g_okada.png'});
-  console.log('ERRORS',errs);await b.close();
+  await ev(()=>{const c=aiCars.find(c=>c.model==='Danfo');if(c){inCar=true;pl.mesh.visible=false;pc.x=c.x-Math.sin(c.h)*12;pc.z=c.z-Math.cos(c.h)*12;pc.h=c.h;pc.vx=pc.vz=0;camPos.init=false;}});await wait(1200);await pg.screenshot({path:'g_danfo.png'});ok(await ev(()=>aiCars.some(c=>c.model==='Danfo')),'danfo buses are in traffic');
+  await ev(()=>{const c=aiCars.find(c=>c.model==='Okada')||aiCars.find(c=>c.model==='Keke');if(c){pc.x=c.x-Math.sin(c.h)*9;pc.z=c.z-Math.cos(c.h)*9;pc.h=c.h;camPos.init=false;}});await wait(1200);await pg.screenshot({path:'g_okada.png'});ok(await ev(()=>aiCars.some(c=>c.model==='Okada'||c.model==='Keke')),'okadas or kekes are in traffic');
+  ok(errs.filter(e=>!/status of 404/.test(e)).length===0,'no page errors: '+JSON.stringify(errs.filter(e=>!/status of 404/.test(e))));await b.close();srv.close();
 })();
