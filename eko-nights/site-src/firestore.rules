@@ -1,0 +1,36 @@
+rules_version = '2';
+// Eko Nights · verified mode (with Cloud Functions, Blaze plan).
+// Rank, XP, case stats, names and friend codes are written only by the Cloud Functions.
+// A player can only update their own presence fields: when they were last seen, their current case, and their squad.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() { return request.auth != null; }
+    function isMe(uid) { return signedIn() && request.auth.uid == uid; }
+    function onlyChanges(keys) { return request.resource.data.diff(resource.data).affectedKeys().hasOnly(keys); }
+
+    match /officers/{uid} {
+      allow read: if signedIn();
+      allow create, delete: if false;
+      allow update: if isMe(uid)
+        && onlyChanges(['seen', 'onCase', 'open', 'squad', 'v'])
+        && request.resource.data.seen is int
+        && (request.resource.data.onCase == null || (request.resource.data.onCase is string && request.resource.data.onCase.size() <= 80))
+        && request.resource.data.open is bool
+        && (request.resource.data.squad == null || request.resource.data.squad is map);
+    }
+    // Case tickets, credits and friend codes: server only. Players can read their own tickets.
+    match /tickets/{id} { allow read: if signedIn() && resource.data.uid == request.auth.uid; allow write: if false; }
+    match /credits/{id} { allow read, write: if false; }
+    match /codes/{code} { allow read, write: if false; }
+    // Each player's inbox (squad invites, backup credits) is written by the server and read by its owner.
+    match /inbox/{uid} { allow read: if isMe(uid); allow write: if false; }
+
+    match /squadstate/{uid} {
+      allow read: if signedIn();
+      allow write: if isMe(uid) && (request.resource == null || request.resource.data.blob.size() < 200000);
+    }
+    // Remote switches (online, squads, message, minVersion). Edited only in the Firebase console.
+    match /config/{doc} { allow read: if true; allow write: if false; }
+    match /data/users/{uid}/{doc} { allow read, write: if isMe(uid); }
+  }
+}

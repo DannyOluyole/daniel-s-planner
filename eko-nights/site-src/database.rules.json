@@ -1,0 +1,13 @@
+{
+  "rules": {
+    "rooms": {
+      "$room": {
+        ".read": "auth != null",
+        "$peer": {
+          ".write": "auth != null && $peer.beginsWith(auth.uid + '-')",
+          ".validate": "!newData.exists() || (newData.child('uid').val() === auth.uid && newData.hasChildren(['uid', 'at']))"
+        }
+      }
+    }
+  }
+}

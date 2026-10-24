@@ -1,0 +1,87 @@
+const { chromium } = require('/opt/node-tools/node_modules/playwright');
+const fs=require('fs');
+(async()=>{
+  const b=await chromium.launch({executablePath:'/opt/pw-browsers/chromium',args:['--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader','--ignore-gpu-blocklist']});
+  const pg=await b.newPage({viewport:{width:1100,height:700}});
+  await pg.route('**/three.min.js',r=>r.fulfill({body:fs.readFileSync('three/package/build/three.min.js'),contentType:'application/javascript'}));
+  await pg.route('https://fonts.**',r=>r.abort());
+  const errs=[];pg.on('pageerror',e=>errs.push('PAGEERR '+e.message+' @ '+(e.stack||'').split('\n').slice(1,3).join(' | ')));pg.on('console',m=>{if(m.type()==='error')errs.push(m.text())});
+  const ev=(f,a)=>pg.evaluate(f,a);const wait=ms=>pg.waitForTimeout(ms);const step=n=>ev(n=>_step(n),n);
+  const log=(...a)=>console.log(...a);
+  const talkThrough=async(choice=0)=>{for(let i=0;i<20;i++){const st=await ev(()=>DLG?{last:DLG.i===DLG.lines.length-1&&DLG.ch>=DLG.lines[DLG.i].text.length}:null);if(!st)return;if(st.last){await pg.click(`#dlg [data-ch="${choice}"]`);await wait(150);return;}await pg.keyboard.press('KeyE');await wait(60);}};
+  const goTo=async(p)=>{await ev(p=>{inCar=false;pl.mesh.visible=true;pl.x=p.x+1;pl.z=p.z+.5;_step(3);},p);};
+  const npcAt=w=>ev(w=>NPCS[w].pos,w);
+  const E=async()=>{await pg.keyboard.press('KeyE');await wait(250);};
+  const near=()=>ev(()=>nearest&&nearest.label);
+  const talkNPC=async(w,choice=0,shot)=>{await wait(700);await goTo(await npcAt(w));const n=await near();await E();await wait(400);if(shot)await pg.screenshot({path:shot});await talkThrough(choice);await wait(300);return n;};
+  const hideChap=()=>ev(()=>{$('#chap').hidden=true;});
+  const state=()=>ev(()=>[ST().ch,ST().i,CH[ST().ch].steps[ST().i]&&CH[ST().ch].steps[ST().i].k,curCase&&curCase.type,career.rep]);
+  const mdtLead=async(sub)=>{await pg.keyboard.press('Tab');await wait(200);const lt=await pg.$$eval('.lead b',x=>x.map(y=>y.textContent));const i=lt.findIndex(t=>t.includes(sub));if(i<0){log('NO LEAD',sub,lt);await pg.keyboard.press('Escape');return false;}await pg.click(`[data-l="${i}"]`);await wait(250);return true;};
+  const flagFile=async(key,extraNormal)=>{const rows=await ev(k=>curCase['rows_'+k].map(r=>r.k),key);for(let i=0;i<rows.length;i++){if(rows[i]!=='normal'||(extraNormal&&i===rows.indexOf('normal'))){await pg.click(`[data-r="${i}"]`);await wait(80);}}};
+  const closeCase=async()=>{await step(4);await pg.keyboard.press('Tab');await wait(200);await pg.click('#closeCase');await wait(200);await pg.click('#rOk');await wait(900);};
+  const waitReport=async()=>{for(let i=0;i<20&&!(await pg.$('#rOk'));i++)await step(5);await pg.click('#rOk');await wait(900);};
+  await pg.goto('file://'+process.cwd()+'/wrapped.html');await wait(500);
+  await pg.fill('#cFirst','tunde');await pg.fill('#cLast','bakare');await pg.click('#startBtn');await wait(4500);
+  await ev(()=>{window._step=(n)=>{const r=renderer.render;renderer.render=()=>{};clock3.getDelta=()=>.05;for(let i=0;i<n;i++)frame();renderer.render=r;};clock3.getDelta=()=>.05;});
+  await hideChap();log('start',await state());
+  // ---- chapter 1
+  log('n',await talkNPC('bisi'));log('duty',await state(),await ev(()=>storyObj().b));
+  await ev(()=>{shift.stops+=3;});await step(12);await wait(700);log('after duty',await state());
+  log('n',await talkNPC('bisi'));log(await state());
+  log('n',await talkNPC('grace',0,'h_grace.png'));log('romance',await state());
+  await mdtLead('chats');await flagFile('chats',true);await pg.screenshot({path:'h_chats.png'});await pg.click('#fDone');
+  await mdtLead('KYC');log('ev',await ev(()=>curCase.evidence.map(e=>e.id)));
+  await ev(()=>{curCase.fleeChance[curCase.M.id]=0;});await mdtLead('Arrest');await ev(()=>{const d=curCase.M.door;pl.x=d.x+.8;pl.z=d.z+.6;inCar=false;_step(3);});log('near',await near());
+  await E();await wait(400);await talkThrough(0);await wait(200);await pg.screenshot({path:'h_mama.png'});await talkThrough(0);
+  log('prisoner',await ev(()=>prisoner&&prisoner.p.name),await ev(()=>[ST().refused,career.rep]));
+  await ev(()=>{book();_step(2);});await goTo(await ev(()=>LOC.interview));log('near',await near());await E();await wait(200);await pg.click('[data-q]');await wait(900);
+  const kyc=await ev(()=>curCase.evidence.findIndex(e=>e.id==='kyc'));await pg.click(`[data-e="${kyc}"]`);await wait(700);await pg.screenshot({path:'h_crack.png'});await pg.click('#ivDone');await wait(200);
+  log('hkLead',await ev(()=>ST().flags.hkLead));await closeCase();log('after case',await state());
+  log('n',await talkNPC('bisi'));await wait(500);await hideChap();log('ch2',await state());
+  // ---- chapter 2
+  log('n',await talkNPC('coker'));await ev(()=>{curCase.custody.push(curCase.C.id);});await closeCase();
+  log('n',await talkNPC('coker'));log('n',await talkNPC('ogidi',0));log('sweep step',await state());await step(4);
+  await goTo(await npcAt('bulus'));await step(3);log('near',await near());await pg.screenshot({path:'h_checkpoint.png'});
+  await E();await wait(400);await talkThrough(0);await wait(300);await pg.screenshot({path:'h_sweep.png'});await talkThrough(0);await wait(300);await talkThrough(0);await wait(300);
+  log('sweep',await ev(()=>[ST().flags.sweep,ST().flags.tobiTip,career.rep]),await state());
+  log('n',await talkNPC('bisi'));await wait(500);await hideChap();log('ch3',await state());
+  // ---- chapter 3
+  log('n',await talkNPC('bisi'));log('yahoo ev',await ev(()=>curCase.evidence.map(e=>e.id)));
+  await mdtLead('Interpol');await flagFile('emails');await pg.screenshot({path:'h_emails.png'});await pg.click('#fDone');
+  await mdtLead('group');await flagFile('group');await pg.click('#fDone');
+  await mdtLead('268');await flagFile('bank');await pg.screenshot({path:'h_ybank.png'});await pg.click('#fDone');
+  log('hk',await ev(()=>[curCase.flags.hkKnown,curCase.flags.hideout,curCase.named[curCase.C.id]]));
+  await goTo(await ev(()=>curCase.landlordAt));log('near',await near());await E();await wait(400);await talkThrough();
+  await ev(()=>{const m=HK_DOOR;pl.x=m.x+m.nx*6;pl.z=m.z+m.nz*6;pl.h=Math.atan2(-m.nx,-m.nz);camPos.init=false;_step(4);});await wait(300);await pg.screenshot({path:'h_hk.png'});
+  await ev(()=>{const m=HK_DOOR;pl.x=m.x+m.nx*2.6;pl.z=m.z+m.nz*2.6;_step(3);});log('near',await near());
+  await E();await wait(400);await talkThrough(1);await wait(500);log('raid',await ev(()=>!!raidS&&raidS.alert));
+  for(let k=0;k<20;k++){const r=await ev(()=>{if(!raidS)return 'none';const a=raidS.actors.find(a=>a.state!=='cuffed'&&a.state!=='escaped'&&a.state!=='rescued'&&a.kind!=='civ');if(!a)return 'done';pl.x=a.x+.6;pl.z=a.z;return a.kind;});if(r==='none'||r==='done')break;await step(2);await pg.keyboard.press('KeyE');await step(2);}
+  for(let i=0;i<15&&await ev(()=>!!raidS);i++)await step(10);
+  log('custody',await ev(()=>curCase.custody.includes(curCase.C.id)));await step(6);await wait(1000);await step(2);
+  await pg.screenshot({path:'h_offer.png'});log('offer',await ev(()=>DLG&&DLG.lines[0].name));await talkThrough(0);await wait(300);
+  await goTo(await ev(()=>LOC.interview));await E();await wait(200);await pg.click('[data-q]');await wait(900);
+  const ip=await ev(()=>curCase.evidence.findIndex(e=>e.id==='ip'));await pg.click(`[data-e="${ip}"]`);await wait(600);await pg.click('#ivDone');await wait(200);
+  log('honLink',await ev(()=>ST().flags.honLink));await closeCase();
+  log('n',await talkNPC('bisi'));await wait(500);await hideChap();log('ch4',await state());
+  // ---- chapter 4
+  log('n',await talkNPC('bisi'));log('n',await talkNPC('coker',1));await talkThrough(0);await wait(300);log('contract',await state());
+  await goTo(await ev(()=>LOC.site));log('near',await near());await E();await wait(500);await pg.screenshot({path:'h_site.png'});await talkThrough();
+  await goTo(await ev(()=>LOC.iyaloja));log('near',await near());await E();await wait(400);await pg.screenshot({path:'h_iyaloja.png'});await talkThrough();
+  await mdtLead('contract file');await flagFile('docs');await pg.screenshot({path:'h_docs.png'});await pg.click('#fDone');
+  await mdtLead('850');await flagFile('bank');await pg.click('#fDone');await step(4);
+  log('warrant',await ev(()=>[curCase.flags.warrant,curCase.evidence.map(e=>e.id).join(',')]));
+  await ev(()=>{const m=MANSION;pl.x=m.x+m.nx*7;pl.z=m.z+m.nz*7;pl.h=Math.atan2(-m.nx,-m.nz);camPos.init=false;_step(4);});await wait(300);await pg.screenshot({path:'h_mansion.png'});
+  await ev(()=>{const m=MANSION;pl.x=m.x+m.nx*1;pl.z=m.z+m.nz*1;_step(3);});log('near',await near());await E();await wait(400);
+  await ev(()=>{DLG.i=DLG.lines.length-1;DLG.ch=999;renderDlg();});await pg.screenshot({path:'h_hon.png'});await talkThrough(0);await wait(900);await step(2);
+  log('chase',await ev(()=>chase&&chase.p.name));
+  await ev(()=>{const c=chase.car;endChase();removeAICar(c);spawnAICar();curCase.custody.push('hon');});await closeCase();
+  log('n',await talkNPC('bisi'));await wait(500);await hideChap();log('ch5',await state());
+  // ---- chapters 5 to 7, fast
+  log('n',await talkNPC('coker'));await ev(()=>{curCase.flags.rescued=true;});await closeCase();
+  log('n',await talkNPC('bisi'));await wait(500);await hideChap();
+  log('n',await talkNPC('bisi'));await ev(()=>{curCase.flags.confronted=true;ST().flags.cokerArrested=true;curCase.custody.push(curCase.C.id);});await waitReport();
+  log('n',await talkNPC('bisi'));await wait(500);await hideChap();log('ch7',await state());
+  log('n',await talkNPC('bisi'));await ev(()=>{curCase.custody.push(curCase.C.id);});await waitReport();await wait(600);
+  await pg.screenshot({path:'h_ending.png'});log('end',await ev(()=>[ST().step,$('#modal').innerText.slice(0,500)]));
+  console.log('ERRORS',errs);await b.close();
+})();

@@ -1,0 +1,40 @@
+rules_version = '2';
+// FREE-PLAN VERSION: players write their own stats. Use firestore.rules (with Cloud Functions) for a public launch.
+// Eko Nights: every signed-in officer can read the shared directory, squads, invites and credits,
+// but can only ever write their own documents. Saves are private to their owner.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() { return request.auth != null; }
+    function isMe(uid) { return signedIn() && request.auth.uid == uid; }
+    function smallDoc() { return request.resource.size() < 60; }
+
+    match /officers/{uid} {
+      allow read: if signedIn();
+      allow delete: if isMe(uid);
+      allow create, update: if isMe(uid) && smallDoc()
+        && request.resource.data.name is string && request.resource.data.name.size() <= 60
+        && request.resource.data.rating is number && request.resource.data.rating >= 0 && request.resource.data.rating <= 100
+        && request.resource.data.code is string && request.resource.data.code.size() <= 12;
+    }
+    match /squadstate/{uid} {
+      allow read: if signedIn();
+      allow write: if isMe(uid) && (request.resource == null || request.resource.data.blob.size() < 200000);
+    }
+    match /invites/{uid} {
+      allow read: if signedIn();
+      allow write: if isMe(uid) && (request.resource == null || request.resource.data.to.size() <= 12);
+    }
+    match /assists/{uid} {
+      allow read: if signedIn();
+      allow write: if isMe(uid) && (request.resource == null || request.resource.data.list.size() <= 20);
+    }
+    // Remote switches (online, squads, message, minVersion). Edited only in the Firebase console.
+    match /config/{doc} {
+      allow read: if true;
+      allow write: if false;
+    }
+    match /data/users/{uid}/{doc} {
+      allow read, write: if isMe(uid);
+    }
+  }
+}

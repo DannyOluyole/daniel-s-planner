@@ -1,0 +1,11 @@
+const { chromium } = require('/opt/node-tools/node_modules/playwright');
+const http=require('http'),fs=require('fs'),path=require('path');const ROOT=path.join(__dirname,'site/public');
+const srv=http.createServer((q,r)=>{let f=path.join(ROOT,q.url.split('?')[0]);if(f.endsWith('/'))f+='index.html';if(!fs.existsSync(f)){r.writeHead(404);r.end();return;}r.writeHead(200,{'Content-Type':f.endsWith('.js')?'application/javascript':f.endsWith('.png')?'image/png':f.endsWith('.webmanifest')?'application/manifest+json':'text/html'});r.end(fs.readFileSync(f));}).listen(8084,'127.0.0.1');
+(async()=>{const b=await chromium.launch({executablePath:'/opt/pw-browsers/chromium',args:['--use-angle=swiftshader','--enable-unsafe-swiftshader']});
+ const ctx=await b.newContext({viewport:{width:390,height:844},deviceScaleFactor:2,isMobile:true,hasTouch:true});const pg=await ctx.newPage();await pg.route('https://fonts.**',r=>r.abort());
+ await pg.goto('http://127.0.0.1:8084/');await pg.waitForTimeout(800);console.log('portrait rotate shown',await pg.evaluate(()=>getComputedStyle(document.getElementById('rotate')).display));await pg.screenshot({path:'p_portrait.png'});
+ await pg.setViewportSize({width:844,height:390});await pg.waitForTimeout(300);console.log('landscape rotate shown',await pg.evaluate(()=>getComputedStyle(document.getElementById('rotate')).display));
+ const m=await (await pg.request.get('http://127.0.0.1:8084/manifest.webmanifest')).json();console.log('manifest',m.orientation,m.display,m.icons.length);
+ const dctx=await b.newContext({viewport:{width:1280,height:720}});const d=await dctx.newPage();await d.route('https://fonts.**',r=>r.abort());await d.goto('http://127.0.0.1:8084/');await d.waitForTimeout(500);
+ console.log('desktop rotate shown',await d.evaluate(()=>getComputedStyle(document.getElementById('rotate')).display));
+ await b.close();srv.close();})();

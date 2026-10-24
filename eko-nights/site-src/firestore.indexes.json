@@ -1,0 +1,6 @@
+{
+  "indexes": [
+    {"collectionGroup": "officers", "queryScope": "COLLECTION", "fields": [{"fieldPath": "flagged", "order": "ASCENDING"}, {"fieldPath": "rating", "order": "DESCENDING"}]}
+  ],
+  "fieldOverrides": []
+}

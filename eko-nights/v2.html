@@ -1,0 +1,1706 @@
+<title>Precinct 9</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;500;600&family=Saira+Condensed:wght@600;700;800&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<style>
+/* Layout: full-screen 3D city with a patrol-car HUD laid over it (status top-left, minimap top-right, dash bottom-left, prompts bottom-centre). The MDT and case screens open as panels on top. Single dark look by design. */
+:root{
+  --night:#0b1220;
+  --panel:#121c2f;
+  --panel2:#18253d;
+  --line:#2a3b5c;
+  --ink:#e6ecf6;
+  --muted:#94a2bc;
+  --amber:#f4b740;
+  --amber-ink:#1d1406;
+  --red:#ff4d5e;
+  --blue:#4b8dff;
+  --ok:#47cf8b;
+  --glass:rgba(10,16,30,.78);
+  --f-disp:'Saira Condensed','Arial Narrow',Impact,sans-serif;
+  --f-body:'IBM Plex Sans',system-ui,-apple-system,Segoe UI,sans-serif;
+  --f-mono:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;
+  color-scheme:dark;
+}
+*,*::before,*::after{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{height:100%;overflow:hidden}
+body{background:var(--night);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.5;overscroll-behavior:none}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
+.mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+h1,h2,h3{font-family:var(--f-disp);text-transform:uppercase;letter-spacing:.04em;line-height:1.05;margin:0;text-wrap:balance}
+.eyebrow{font-family:var(--f-mono);font-size:12px;color:var(--amber);letter-spacing:.12em;text-transform:uppercase}
+.muted{color:var(--muted)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:1px solid var(--amber);background:var(--amber);color:var(--amber-ink);font-weight:600;padding:9px 16px;border-radius:4px;letter-spacing:.02em}
+.btn:hover{filter:brightness(1.08)}
+.btn.ghost{background:transparent;color:var(--ink);border-color:var(--line)}
+.btn.ghost:hover{border-color:var(--muted)}
+.btn.red{background:var(--red);border-color:var(--red);color:#fff}
+.btn.sm{padding:5px 10px;font-size:13px}
+.btn:disabled{opacity:.4;cursor:not-allowed;filter:none}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.row.end{justify-content:flex-end}
+.chip{display:inline-block;font-family:var(--f-mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;padding:2px 7px;border-radius:3px;border:1px solid var(--line);color:var(--muted);white-space:nowrap}
+.chip.amber{color:var(--amber);border-color:rgba(244,183,64,.5)}
+.chip.red{color:var(--red);border-color:rgba(255,77,94,.5)}
+.chip.ok{color:var(--ok);border-color:rgba(71,207,139,.5)}
+
+/* game + HUD */
+#game{position:fixed;inset:0}
+#gl{display:block;width:100%;height:100%;touch-action:none}
+.hud{position:absolute;inset:0;pointer-events:none}
+.hud > *{pointer-events:auto}
+.tl{position:absolute;top:calc(10px + env(safe-area-inset-top,0px));left:max(12px,env(safe-area-inset-left,0px));display:grid;gap:8px;width:min(330px,calc(100% - 200px))}
+.card{background:var(--glass);border:1px solid var(--line);border-radius:6px;padding:8px 12px;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+.status{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.status .rank{font-family:var(--f-disp);font-size:17px;letter-spacing:.05em;text-transform:uppercase;line-height:1}
+.xpbar{width:100px;height:5px;background:var(--panel2);border-radius:3px;overflow:hidden;margin-top:4px}
+.xpbar i{display:block;height:100%;background:var(--amber)}
+.status .clk{margin-left:auto;text-align:right;font-family:var(--f-mono);font-size:13px;line-height:1.25}
+.status .clk small{display:block;color:var(--muted);font-size:11px}
+.obj .eyebrow{font-size:10.5px}
+.obj b{display:block;font-family:var(--f-disp);font-size:18px;letter-spacing:.03em;text-transform:uppercase;line-height:1.15;margin-top:2px}
+.obj p{margin:2px 0 0;font-size:13px;color:var(--muted)}
+.obj .gps{font-family:var(--f-mono);font-size:12px;color:var(--amber);margin-top:4px}
+.tr{position:absolute;top:calc(10px + env(safe-area-inset-top,0px));right:max(12px,env(safe-area-inset-right,0px));display:grid;gap:8px;justify-items:end}
+#mini{width:170px;height:170px;border-radius:6px;border:1px solid var(--line);background:#0e1726;display:block}
+.mdtbtn{background:var(--glass);border:1px solid var(--amber);color:var(--amber);border-radius:5px;padding:7px 12px;font-family:var(--f-disp);font-size:16px;letter-spacing:.08em}
+.dash{position:absolute;left:max(12px,env(safe-area-inset-left,0px));bottom:calc(12px + env(safe-area-inset-bottom,0px));display:flex;gap:8px;align-items:stretch}
+.dash .cell{background:var(--glass);border:1px solid var(--line);border-radius:5px;padding:5px 10px;text-align:center;min-width:72px}
+.dash .lbl{display:block;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em}
+.dash b{font-family:var(--f-mono);font-size:22px;line-height:1.15;display:block}
+.dash .radar b{color:var(--amber);font-size:15px;line-height:1.5}
+.dash .radar b.fast{color:var(--red)}
+.limit{background:#f3f3ee;color:#111;border:2px solid #111;outline:2px solid #f3f3ee;border-radius:5px;padding:3px 7px;text-align:center;font-family:var(--f-disp);line-height:1;display:flex;flex-direction:column;justify-content:center;align-self:center}
+.limit span{font-size:8px;letter-spacing:.06em}
+.limit b{font-size:24px}
+.dmg{height:4px;background:var(--panel2);border-radius:2px;margin-top:4px;overflow:hidden}
+.dmg i{display:block;height:100%;background:var(--red)}
+.prompt{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(96px + env(safe-area-inset-bottom,0px));background:var(--glass);border:1px solid var(--amber);border-radius:5px;padding:7px 14px;font-size:15px;white-space:nowrap;max-width:calc(100% - 24px);overflow:hidden;text-overflow:ellipsis}
+.prompt kbd{font-family:var(--f-mono);background:var(--amber);color:var(--amber-ink);border-radius:3px;padding:0 6px;margin-right:6px;font-weight:600}
+.meter{position:absolute;left:50%;transform:translateX(-50%);top:calc(14px + env(safe-area-inset-top,0px));width:min(320px,40%);height:16px;background:var(--glass);border:1px solid var(--red);border-radius:3px;overflow:hidden}
+.meter span{display:block;height:100%;width:0;background:var(--red)}
+.meter i{position:absolute;inset:0;text-align:center;font-style:normal;font-family:var(--f-mono);font-size:10.5px;letter-spacing:.1em;line-height:16px;color:#fff}
+.flash{position:absolute;inset:0;pointer-events:none;background:radial-gradient(transparent 55%,rgba(255,77,94,.35));opacity:0;transition:opacity .2s}
+.flash.blue{background:radial-gradient(transparent 55%,rgba(75,141,255,.35))}
+.touch{position:absolute;inset:auto 0 calc(10px + env(safe-area-inset-bottom,0px)) 0;display:flex;justify-content:space-between;padding-inline:max(10px,env(safe-area-inset-left,0px)) max(10px,env(safe-area-inset-right,0px));pointer-events:none;user-select:none;-webkit-user-select:none}
+.touch > div{pointer-events:auto;display:grid;gap:6px}
+.dpad{grid-template-columns:repeat(3,52px);grid-template-rows:repeat(2,52px)}
+.acts{grid-template-columns:repeat(2,62px);grid-template-rows:repeat(2,52px)}
+.touch button{background:rgba(18,28,47,.7);border:1px solid var(--line);border-radius:8px;font-family:var(--f-disp);font-size:15px;letter-spacing:.05em;touch-action:none}
+.touch button.on{background:var(--line)}
+.touch .e{border-color:var(--amber);color:var(--amber)}
+body.touchmode .dash{bottom:calc(132px + env(safe-area-inset-bottom,0px))}
+body.touchmode .prompt{bottom:calc(196px + env(safe-area-inset-bottom,0px))}
+
+/* title */
+.title{position:fixed;inset:0;z-index:15;display:grid;place-items:center;background:linear-gradient(180deg,rgba(11,18,32,.55),rgba(11,18,32,.92));padding:calc(16px + env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) calc(16px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));overflow:auto}
+.title .in{max-width:640px}
+.title h1{font-size:clamp(52px,12vw,104px);font-weight:800;line-height:.9}
+.title .bar{height:6px;width:180px;background:linear-gradient(90deg,var(--red) 50%,var(--blue) 50%);margin:14px 0}
+.title p{color:var(--muted);max-width:56ch}
+.keys{display:grid;grid-template-columns:auto 1fr;gap:4px 14px;font-size:14px;margin:16px 0 20px}
+.keys kbd{font-family:var(--f-mono);font-size:12px;border:1px solid var(--line);border-radius:3px;padding:1px 6px;background:var(--panel2);white-space:nowrap;justify-self:start}
+.loaderr{color:var(--red)}
+
+/* modal */
+.modal{position:fixed;inset:0;z-index:20;background:rgba(4,8,16,.72);display:flex;align-items:flex-start;justify-content:center;overflow:auto;padding:calc(16px + env(safe-area-inset-top,0px)) max(12px,env(safe-area-inset-right,0px)) calc(16px + env(safe-area-inset-bottom,0px)) max(12px,env(safe-area-inset-left,0px))}
+.sheet{background:var(--panel);border:1px solid var(--line);border-radius:8px;width:100%;max-width:720px;padding:20px;margin-block:auto;box-shadow:0 30px 80px rgba(0,0,0,.5)}
+.sheet.wide{max-width:1020px}
+.sheet > header{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:14px}
+.sheet h2{font-size:26px}
+.x{background:none;border:1px solid var(--line);border-radius:4px;width:34px;height:34px;flex:none}
+.toasts{position:fixed;left:0;right:0;bottom:calc(150px + env(safe-area-inset-bottom,0px));display:grid;justify-items:center;gap:8px;z-index:40;pointer-events:none;padding-inline:16px}
+.toast{background:var(--panel2);border:1px solid var(--line);border-left:4px solid var(--blue);padding:8px 14px;border-radius:4px;font-size:14px;max-width:520px;box-shadow:0 10px 30px rgba(0,0,0,.4)}
+.toast.bad{border-left-color:var(--red)}
+.toast.good{border-left-color:var(--ok)}
+.toast.promo{border-left-color:var(--amber);font-weight:600}
+body.touchmode .toasts{bottom:calc(250px + env(safe-area-inset-bottom,0px))}
+
+/* forms + stops */
+.driver{display:flex;gap:14px;align-items:center}
+.ava{border-radius:6px;flex:none}
+.slip{background:#f1ecd9;color:#1b1a14;font-family:var(--f-mono);font-size:13px;padding:10px 12px;border-radius:3px;margin:14px 0;display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.quote{margin:0 0 14px;padding:8px 12px;border-left:3px solid var(--line);color:var(--muted);font-style:italic}
+.checks{display:grid;grid-template-columns:auto minmax(0,1fr);gap:8px 12px;align-items:center;margin-bottom:14px}
+.checks output{font-family:var(--f-mono);font-size:13px}
+fieldset{border:1px solid var(--line);border-radius:6px;margin:0 0 12px;padding:10px 12px}
+legend{font-family:var(--f-mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--amber);padding:0 6px}
+.opt{display:flex;gap:10px;align-items:flex-start;padding:4px 0;font-size:14px;cursor:pointer}
+.opt input{margin-top:4px;accent-color:var(--amber)}
+.opt .fine{margin-left:auto;font-family:var(--f-mono);color:var(--muted);white-space:nowrap}
+.results{list-style:none;padding:0;margin:12px 0;display:grid;gap:6px;font-size:14px}
+.results li{padding:6px 10px;border-radius:4px;background:var(--panel2);border-left:3px solid var(--line)}
+.results li.good{border-left-color:var(--ok)}
+.results li.bad{border-left-color:var(--red)}
+
+/* MDT */
+.tabs{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap}
+.tabs button{background:var(--panel2);border:1px solid var(--line);border-radius:4px;padding:6px 12px;font-family:var(--f-mono);font-size:12px}
+.tabs button[aria-pressed="true"]{border-color:var(--amber);color:var(--amber)}
+.board{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:22px}
+.col h3{font-size:17px;margin-bottom:8px;color:var(--muted)}
+.leads{display:grid;gap:8px}
+.lead{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 12px;background:var(--panel2);border:1px solid var(--line);border-radius:5px;padding:10px 12px}
+.lead b{font-weight:600}
+.lead .cost{font-family:var(--f-mono);font-size:12px;color:var(--amber);white-space:nowrap}
+.lead p{grid-column:1/2;margin:0;font-size:13px;color:var(--muted)}
+.lead .go{grid-column:2;grid-row:1/3;align-self:center}
+.lead.hot{border-color:var(--red);background:linear-gradient(90deg,rgba(255,77,94,.12),transparent)}
+.suspects{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-bottom:16px}
+.slot{background:var(--panel2);border:1px solid var(--line);border-radius:5px;padding:8px;text-align:center;font-size:13px;min-width:0}
+.slot .role{font-family:var(--f-mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.slot .nm{font-weight:600;margin:4px 0;overflow-wrap:anywhere}
+.slot.custody{border-color:rgba(71,207,139,.6)}
+.slot svg{display:block;margin:4px auto}
+.evidence{display:grid;gap:8px}
+.ev{background:#efe9d6;color:#22201a;border-radius:3px;padding:8px 12px;font-size:13.5px;box-shadow:2px 3px 0 rgba(0,0,0,.35)}
+.ev:nth-child(odd){transform:rotate(-.4deg)}
+.ev:nth-child(even){transform:rotate(.35deg)}
+.ev b{display:block;font-family:var(--f-disp);text-transform:uppercase;letter-spacing:.04em;font-size:15px}
+.ev small{font-family:var(--f-mono);font-size:10px;color:#6b6655;text-transform:uppercase;letter-spacing:.08em}
+.empty{color:var(--muted);font-size:14px;border:1px dashed var(--line);border-radius:5px;padding:14px}
+.caselog{margin-top:16px;font-family:var(--f-mono);font-size:12px;color:var(--muted);display:grid;gap:3px;max-height:150px;overflow:auto;border-top:1px solid var(--line);padding-top:10px}
+.offers{display:grid;gap:12px}
+.offer{display:grid;grid-template-columns:110px minmax(0,1fr) auto;gap:16px;align-items:center;background:var(--panel2);border:1px solid var(--line);border-radius:6px;padding:14px 16px}
+.offer .code{font-family:var(--f-mono);font-size:12px;color:var(--muted);line-height:1.35}
+.offer .code b{display:block;font-family:var(--f-disp);font-size:28px;color:var(--ink)}
+.offer.urgent .code b{color:var(--red)}
+.offer h3{font-size:21px}
+.offer p{margin:4px 0 6px;color:var(--muted);font-size:14px}
+.stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px 14px;margin:0}
+.stats div{border-top:1px solid var(--line);padding-top:6px}
+.stats dt{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em}
+.stats dd{margin:0;font-family:var(--f-disp);font-size:24px}
+.log{list-style:none;margin:16px 0 0;padding:0;display:grid;gap:8px;font-size:13px}
+.log li{border-left:2px solid var(--line);padding-left:10px;color:var(--muted)}
+
+/* witness / interrogation */
+.talk{display:grid;gap:10px;max-height:46vh;overflow:auto;padding:4px 2px;margin-bottom:12px}
+.line{max-width:85%;padding:9px 12px;border-radius:8px;font-size:14.5px}
+.line.them{background:var(--panel2);border:1px solid var(--line)}
+.line.you{background:rgba(244,183,64,.12);border:1px solid rgba(244,183,64,.4);justify-self:end}
+.line.sys{justify-self:center;font-family:var(--f-mono);font-size:12px;color:var(--amber);background:none;padding:2px}
+.patience{display:flex;gap:4px;align-items:center}
+.patience i{width:10px;height:10px;border-radius:50%;background:var(--amber)}
+.patience i.off{background:var(--panel2);border:1px solid var(--line)}
+.evbtns{display:flex;flex-wrap:wrap;gap:6px}
+
+/* cctv / bank / db / trace / raid */
+.cctv canvas{width:100%;aspect-ratio:400/225;display:block;border-radius:4px;border:1px solid var(--line);cursor:crosshair;background:#000}
+.transport{display:flex;gap:8px;align-items:center;margin-top:10px}
+.transport input{flex:1;accent-color:var(--amber);min-width:0}
+.cmsg{min-height:44px;margin:10px 0;font-size:14px;padding:8px 12px;background:var(--panel2);border-radius:4px;border-left:3px solid var(--line)}
+.cmsg.hit{border-left-color:var(--ok)}
+.cmsg.miss{border-left-color:var(--amber)}
+.tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:5px}
+table{border-collapse:collapse;width:100%;font-size:13px;min-width:640px}
+th,td{padding:7px 10px;text-align:left;border-bottom:1px solid var(--line);white-space:nowrap}
+th{font-family:var(--f-mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);background:var(--panel2)}
+td.amt{text-align:right;font-family:var(--f-mono)}
+td.memo{white-space:normal;min-width:180px}
+tr.flag-hit td{background:rgba(71,207,139,.12)}
+tr.flag-miss td{background:rgba(255,77,94,.08);color:var(--muted)}
+.filters{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-bottom:12px}
+.filters label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;display:grid;gap:3px}
+.filters input,.filters select{background:var(--panel2);border:1px solid var(--line);border-radius:4px;padding:7px 8px;font-size:14px;text-transform:none;letter-spacing:0;width:100%;min-width:0}
+.dbres{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;max-height:50vh;overflow:auto;padding-right:2px}
+.person{display:grid;grid-template-columns:64px minmax(0,1fr);gap:10px;background:var(--panel2);border:1px solid var(--line);border-radius:5px;padding:10px;font-size:13px}
+.person h3{font-family:var(--f-body);text-transform:none;letter-spacing:0;font-size:15px;font-weight:600}
+.person dl{display:grid;grid-template-columns:auto minmax(0,1fr);gap:1px 8px;margin:4px 0 8px}
+.person dt{color:var(--muted)}
+.person dd{margin:0;overflow-wrap:anywhere}
+.map{width:100%;max-width:560px;display:block;margin:0 auto;border:1px solid var(--line);border-radius:5px;background:#0e1828;cursor:crosshair}
+.raidgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;max-width:480px;margin:12px auto}
+.door{aspect-ratio:3/4;background:linear-gradient(#1a2235,#0f1626);border:3px solid #3a4560;border-bottom-width:6px;border-radius:4px 4px 0 0;position:relative;overflow:hidden;padding:0}
+.door svg{position:absolute;left:50%;bottom:0;transform:translate(-50%,100%);transition:transform .12s ease-out;width:70%}
+.door.up svg{transform:translate(-50%,0)}
+.door.hit{border-color:var(--ok)}
+.door.oops{border-color:var(--red)}
+.raidhud{display:flex;justify-content:center;gap:18px;font-family:var(--f-mono);font-size:14px;flex-wrap:wrap}
+.choices{display:grid;gap:10px}
+.choice{text-align:left;background:var(--panel2);border:1px solid var(--line);border-radius:5px;padding:12px 14px}
+.choice:hover{border-color:var(--amber)}
+.choice b{display:block;font-family:var(--f-disp);font-size:19px;text-transform:uppercase;letter-spacing:.04em}
+.choice span{font-size:13.5px;color:var(--muted)}
+.report h1{font-size:44px;font-weight:800}
+.report .big{font-family:var(--f-disp);font-size:56px;color:var(--amber);line-height:1}
+
+@media (max-width:760px){
+  .board{grid-template-columns:1fr}
+  .offer{grid-template-columns:1fr;gap:8px}
+  .offer .code b{display:inline;margin-right:8px;font-size:22px}
+  .filters{grid-template-columns:1fr 1fr}
+  .dbres{grid-template-columns:1fr}
+  .stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+  #mini{width:118px;height:118px}
+  .tl{width:calc(100% - 150px)}
+  .obj p{display:none}
+  .status .xpbar{display:none}
+  .dash .cell{min-width:60px;padding:4px 7px}
+  .dash b{font-size:18px}
+}
+</style>
+
+<div id="game">
+  <canvas id="gl" aria-label="3D city view"></canvas>
+  <div class="flash" id="flash"></div>
+  <div class="hud">
+    <div class="tl">
+      <div class="card status" id="status"></div>
+      <div class="card obj" id="obj"></div>
+    </div>
+    <div class="tr">
+      <canvas id="mini" width="340" height="340" aria-label="Minimap"></canvas>
+      <button class="mdtbtn" id="mdtBtn">MDT · Tab</button>
+    </div>
+    <div class="meter" id="meter" hidden><span></span><i>BOX IN</i></div>
+    <div class="dash" id="dash"></div>
+    <div class="prompt" id="prompt" hidden></div>
+    <div class="touch" id="touch" hidden>
+      <div class="dpad">
+        <span></span><button data-k="up">GAS</button><span></span>
+        <button data-k="left" aria-label="Turn left">&#9664;</button><button data-k="down">BRAKE</button><button data-k="right" aria-label="Turn right">&#9654;</button>
+      </div>
+      <div class="acts">
+        <button class="e" data-act="e">E · USE</button><button data-act="f">CAR</button>
+        <button data-act="lights">LIGHTS</button><button data-k="sprint">RUN</button>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="title" id="title">
+  <div class="in">
+    <div class="eyebrow">Unit 9-Adam · City police department</div>
+    <h1>Precinct 9</h1>
+    <div class="bar"></div>
+    <p>Patrol the city in your cruiser. Clock speeders with the radar, pull them over and walk up to the driver's window. Take robbery and kidnapping cases, gather clues at the scene, chase suspects down, and bring them back to the station.</p>
+    <div class="keys">
+      <kbd>W A S D</kbd><span>Drive or walk (arrow keys work too)</span>
+      <kbd>Shift</kbd><span>Run on foot</span>
+      <kbd>F</kbd><span>Get in or out of the cruiser</span>
+      <kbd>E</kbd><span>Talk, inspect, arrest</span>
+      <kbd>Space</kbd><span>Lights and siren. Pulls over the car your radar is locked on</span>
+      <kbd>Tab</kbd><span>MDT: dispatch, case board, records database</span>
+      <kbd>Drag</kbd><span>Look around</span>
+    </div>
+    <div class="row"><button class="btn" id="startBtn">Start patrol</button><span class="muted" id="loadMsg" style="font-size:13px"></span></div>
+  </div>
+</div>
+<div id="modal" class="modal" hidden></div>
+<div class="toasts" id="toasts" aria-live="polite"></div>
+
+<script>
+// ================= helpers
+const $=(s,r=document)=>r.querySelector(s);
+const $$=(s,r=document)=>[...r.querySelectorAll(s)];
+const rnd=(a,b)=>a+Math.random()*(b-a);
+const ri=(a,b)=>Math.floor(rnd(a,b+1));
+const pick=a=>a[Math.floor(Math.random()*a.length)];
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const lower=s=>s.toLowerCase();
+function rr(ctx,x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath();}
+const fmtMin=m=>{m=Math.max(0,Math.round(m));const h=Math.floor(m/60),mm=m%60;return h?`${h} h ${mm?mm+' min':''}`.trim():`${mm} min`;};
+const angDiff=(a,b)=>{let d=a-b;while(d>Math.PI)d-=Math.PI*2;while(d<-Math.PI)d+=Math.PI*2;return d;};
+
+// ================= data pools
+const FIRST=['Marcus','Dana','Leon','Priya','Tomas','Kezia','Andre','Nina','Victor','Rosa','Owen','Imani','Felix','Grace','Dmitri','Lena','Caleb','Aisha','Reggie','Mona','Hugo','Talia','Silas','Bianca','Jalen','Yara','Curtis','Esme','Wade','Ingrid'];
+const LAST=['Okafor','Reyes','Brandt','Kowalski','Nguyen','Hale','Duarte','Fischer','Mensah','Costa','Novak','Byrne','Adeyemi','Larsen','Moreau','Petrov','Quinn','Salazar','Tran','Whitlock','Achebe','Ivanova','Lund','Okoro'];
+const NICKS=['Viper','Ghost','Tiny','Sparks','Doc','Ace','Mouse','Smokey','Rook','Jinx','Buzz','Moth','Kingpin','Slick','Duke','Fox','Brick','Echo','Patch','Wire','Shadow','Lucky'];
+const COLORS=[{n:'Black',h:'#1c1f26'},{n:'White',h:'#e8ebee'},{n:'Silver',h:'#a8b0ba'},{n:'Red',h:'#c8323c'},{n:'Blue',h:'#2f5fb8'},{n:'Green',h:'#2f7d4f'},{n:'Maroon',h:'#6e1f2c'},{n:'Yellow',h:'#e0b52b'}];
+const MODELS=['Sedan','SUV','Pickup','Hatchback','Van','Coupe'];
+const TATTOOS=['Snake on neck','Rose on hand','Skull on forearm','Barcode on neck','Star under eye','Anchor on wrist','Dragon on arm','Spider web on elbow'];
+const HAIR=[{n:'Black',h:'#1a1410'},{n:'Brown',h:'#5a3a22'},{n:'Blond',h:'#d8b56a'},{n:'Red',h:'#a2462a'},{n:'Grey',h:'#9a9a9a'},{n:'Shaved',h:null}];
+const SKIN=['#f1d0b3','#e0ac85','#c68a5e','#9a6440','#6e4429','#4a2e1c'];
+const SHIRTS=['#3d4f6e','#6e3d3d','#3d6e55','#5d5d6e','#7a6a3a','#2f2f38','#4b3d6e','#8a5a2b','#2b6f8a'];
+const DISTRICTS=['Harbor','Old Town','Eastgate','Riverside','Northfield','Ironworks'];
+const JOBS=['Mechanic','Warehouse worker','Barber','Delivery driver','Line cook','Unemployed','Electrician','Security guard','Bartender','Painter','Courier','Plumber','Forklift operator'];
+const BANKS=['First Harbor Bank','Union Savings','Meridian Trust','Old Town Federal'];
+const PRIORS=['None','None','None','Shoplifting (2019)','Assault (2017)','Car theft (2020)','Burglary (2016)','Fraud (2021)','Possession (2018)','DUI (2022)'];
+const RANKS=[[0,'Probationary Officer'],[150,'Officer'],[400,'Senior Officer'],[800,'Sergeant'],[1400,'Detective'],[2200,'Detective Sergeant'],[3200,'Lieutenant'],[4500,'Captain']];
+const LIMIT=35;
+
+function makePlate(){const L='ABCDEFGHJKLMNPRSTUVWXYZ';return L[ri(0,22)]+L[ri(0,22)]+L[ri(0,22)]+'-'+ri(1000,9999);}
+function matchPlate(plate,pat){pat=pat.toUpperCase().replace(/\*/g,'?');for(let i=0;i<pat.length;i++){if(pat[i]!=='?'&&pat[i]!==plate[i])return false;}return true;}
+function makePeople(n){
+  const f=shuffle(FIRST.slice()),l=shuffle(LAST.slice()),k=shuffle(NICKS.slice());
+  const out=[];
+  for(let i=0;i<n;i++){
+    out.push({id:'p'+i+'_'+ri(100,999),first:f[i%f.length],last:l[i%l.length],name:f[i%f.length]+' '+l[i%l.length],nick:k[i%k.length],
+      age:ri(21,58),height:ri(162,186),hair:pick(HAIR),skin:pick(SKIN),shirt:pick(SHIRTS),
+      tattoo:Math.random()<.45?pick(TATTOOS):'None',
+      car:{color:pick(COLORS),model:pick(MODELS),plate:makePlate()},
+      district:pick(DISTRICTS),address:'',job:pick(JOBS),prior:pick(PRIORS),acct:String(ri(1000,9999))});
+  }
+  return out;
+}
+function avatar(p,size=64){
+  const hair=p.hair&&p.hair.h;
+  return `<svg class="ava" viewBox="0 0 64 64" width="${size}" height="${size}" aria-hidden="true">
+  <rect width="64" height="64" rx="6" fill="#1d2a44"/>
+  <g stroke="#2c3b5c" stroke-width="1">${[14,24,34,44,54].map(y=>`<line x1="0" x2="64" y1="${y}" y2="${y}"/>`).join('')}</g>
+  <path d="M8 64c2-13 12-19 24-19s22 6 24 19z" fill="${p.shirt||'#3d4f6e'}"/>
+  <rect x="27" y="37" width="10" height="9" fill="${p.skin}"/>
+  <ellipse cx="32" cy="28" rx="12.5" ry="14.5" fill="${p.skin}"/>
+  ${hair?`<path d="M19.5 27c-1-11 5-16.5 12.5-16.5S45.5 16 44.5 27c-2.5-5-6.5-7.5-12.5-7.5S22 22 19.5 27z" fill="${hair}"/>`:''}
+  <circle cx="27" cy="29" r="1.6" fill="#141414"/><circle cx="37" cy="29" r="1.6" fill="#141414"/>
+  <path d="M28 36.5q4 2.4 8 0" stroke="#4a261c" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+  </svg>`;
+}
+const lookOf=p=>({shirt:p.shirt,skin:p.skin,hair:p.hair&&p.hair.h});
+const randLook=()=>({shirt:pick(SHIRTS),skin:pick(SKIN),hair:pick(HAIR).h,pants:pick(['#262a33','#3b3f4a','#2d3b55','#4a3b2a'])});
+
+// ================= career
+let career=loadCareer();
+function loadCareer(){
+  try{const s=JSON.parse(localStorage.getItem('p9-career'));if(s&&typeof s.xp==='number')return s;}catch(e){}
+  return {badge:ri(1100,9899),xp:0,rep:60,tickets:0,warnings:0,arrests:0,cases:0,failed:0,falseArrests:0,log:[]};
+}
+function saveCareer(){try{localStorage.setItem('p9-career',JSON.stringify(career));}catch(e){}}
+function rankOf(xp){let i=0;RANKS.forEach((r,j)=>{if(xp>=r[0])i=j;});return {name:RANKS[i][1],floor:RANKS[i][0],next:RANKS[i+1]||null};}
+function gainXP(n){
+  const before=rankOf(career.xp).name;career.xp=Math.max(0,career.xp+n);const after=rankOf(career.xp).name;
+  if(n>0&&after!==before)toast('Promoted to '+after+'.','promo');
+  saveCareer();
+}
+function addRep(n){career.rep=clamp(career.rep+n,0,100);saveCareer();}
+function logEntry(t){career.log.unshift(t);career.log=career.log.slice(0,7);saveCareer();}
+function toast(msg,kind=''){
+  const t=document.createElement('div');t.className='toast '+kind;t.textContent=msg;$('#toasts').appendChild(t);
+  while($('#toasts').children.length>3)$('#toasts').firstChild.remove();
+  setTimeout(()=>t.remove(),4200);
+}
+
+// ================= modal
+const keys={up:0,down:0,left:0,right:0,sprint:0};
+function openModal(html,{wide=false,dismiss=true}={}){
+  const m=$('#modal');if(m._cleanup){m._cleanup();m._cleanup=null;}
+  m.innerHTML=`<div class="sheet${wide?' wide':''}" role="dialog" aria-modal="true">${html}</div>`;m.hidden=false;
+  m.onclick=e=>{if(dismiss&&e.target===m)closeModal();};
+  m._dismiss=dismiss;
+  for(const k in keys)keys[k]=0;
+  return m.firstElementChild;
+}
+function closeModal(){const m=$('#modal');m.hidden=true;m.innerHTML='';if(m._cleanup){m._cleanup();m._cleanup=null;}}
+const modalOpen=()=>!$('#modal').hidden;
+
+// ================= city layout (pure data, planned before the 3D scene is built)
+const S=80,NB=6,CITY=S*NB,LANE=3.4,CURB=6.4;
+const AVES=['1st Ave','2nd Ave','3rd Ave','4th Ave','5th Ave','6th Ave','7th Ave'];
+const STS=['Canal St','Mill St','Larch Rd','Foundry Ln','Bishop Ave','Quarry Rd','Dock Rd'];
+const SPECIAL={
+  '2,2':{kind:'station',side:[0,1],W:42,D:30,H:13,color:'#c9ccd2',sign:'POLICE · PRECINCT 9'},
+  '3,1':{kind:'bank',side:[0,1],W:38,D:28,H:17,color:'#b8ad98'},
+  '1,4':{kind:'school',side:[1,0],W:50,D:26,H:9,color:'#b5654a'},
+  '4,4':{kind:'park'},'1,2':{kind:'park'},
+  '5,4':{kind:'motel',name:'Bluebird Motel',side:[-1,0],W:46,D:16,H:7,color:'#8fb3c9'},
+  '4,0':{kind:'motel',name:'Starlite Motor Inn',side:[0,1],W:46,D:16,H:7,color:'#d1b37a'},
+  '0,1':{kind:'motel',name:'Harbor View Lodge',side:[1,0],W:46,D:16,H:7,color:'#9fb59a'},
+};
+const MOTELS=['Bluebird Motel','Starlite Motor Inn','Harbor View Lodge'];
+function districtAt(x,z){const bi=clamp(Math.floor(x/S),0,NB-1),bj=clamp(Math.floor(z/S),0,NB-1);return DISTRICTS[(bj<3?0:1)*3+(bi<2?0:bi<4?1:2)];}
+const LOC={motels:{}};const RES_DOORS=[];const BOXES=[];const BUILD_LIST=[];const TREES=[];
+function planCity(){
+  for(let bi=0;bi<NB;bi++)for(let bj=0;bj<NB;bj++){
+    const cx=(bi+.5)*S,cz=(bj+.5)*S;const sp=SPECIAL[bi+','+bj];
+    if(sp&&sp.kind==='park'){for(let k=0;k<14;k++)TREES.push([cx+rnd(-26,26),cz+rnd(-26,26)]);continue;}
+    if(sp){
+      const n=sp.side,t=[-n[1],n[0]];
+      const bx=cx-n[0]*4,bz=cz-n[1]*4;
+      const sx=n[0]?sp.D:sp.W,sz=n[0]?sp.W:sp.D;
+      BUILD_LIST.push({x:bx,z:bz,w:sx,d:sz,h:sp.H,color:sp.color,special:sp});
+      const door={x:bx+n[0]*(sp.D/2+1.6),z:bz+n[1]*(sp.D/2+1.6),nx:n[0],nz:n[1],tx:t[0],tz:t[1],cx,cz};
+      sp.door=door;
+      if(sp.kind==='station')LOC.station=door;
+      if(sp.kind==='bank')LOC.bank=door;
+      if(sp.kind==='school')LOC.school=door;
+      if(sp.kind==='motel')LOC.motels[sp.name]={...door,district:districtAt(cx,cz)};
+      continue;
+    }
+    const down=(bi>=2&&bi<=3&&bj>=1&&bj<=3);
+    [[-1,-1],[1,-1],[-1,1],[1,1]].forEach(([sx,sz])=>{
+      const lx=cx+sx*14.5,lz=cz+sz*14.5;
+      const w=down?rnd(20,26):rnd(13,22),d=down?rnd(20,26):rnd(13,22),h=down?rnd(20,52):rnd(6,15);
+      BUILD_LIST.push({x:lx,z:lz,w,d,h,color:pick(down?['#8c94a3','#a39a8c','#6f7c8f','#9aa3ad','#7b8696']:['#c9b79c','#b58b6e','#a6b0a0','#d5c8b0','#9c7f6a','#b9a089'])});
+      const n=Math.random()<.5?[sx,0]:[0,sz];
+      const half=n[0]?w/2:d/2;
+      const door={x:lx+n[0]*(half+1.3),z:lz+n[1]*(half+1.3),nx:n[0],nz:n[1]};
+      let addr;
+      if(n[0]){const road=bi+(n[0]>0?1:0);addr=(100+bj*100+(sz<0?12:58)+(n[0]>0?1:0))+' '+AVES[road];}
+      else{const road=bj+(n[1]>0?1:0);addr=(100+bi*100+(sx<0?12:58)+(n[1]>0?1:0))+' '+STS[road];}
+      door.address=addr;door.district=districtAt(lx,lz);
+      RES_DOORS.push(door);
+    });
+    if(Math.random()<.5)TREES.push([cx+31,cz+31]);if(Math.random()<.5)TREES.push([cx-31,cz+31]);
+  }
+  BUILD_LIST.forEach(b=>BOXES.push({x0:b.x-b.w/2,x1:b.x+b.w/2,z0:b.z-b.d/2,z1:b.z+b.d/2}));
+  const st=LOC.station;
+  LOC.interview={x:st.x+st.tx*4,z:st.z+st.tz*4};
+  LOC.book={x:st.cx+st.nx*34,z:st.cz+st.nz*34};
+  LOC.spawnCar={x:st.cx+st.nx*34+st.tx*10,z:st.cz+st.nz*34+st.tz*10,h:Math.atan2(st.tx,st.tz)};
+  const b=LOC.bank;
+  LOC.bankCam={x:b.x+b.tx*5,z:b.z+b.tz*5};
+  LOC.bankGuard={x:b.x-b.tx*3,z:b.z-b.tz*3};
+  LOC.bankManager={x:b.x+b.tx*1.6+b.nx*.4,z:b.z+b.tz*1.6+b.nz*.4};
+  LOC.bankVendor={x:b.cx+b.nx*50+b.tx*6,z:b.cz+b.nz*50+b.tz*6};
+  const s=LOC.school;
+  LOC.schoolCam={x:s.x+s.tx*5,z:s.z+s.tz*5};
+  LOC.schoolParent={x:s.x-s.tx*2.5,z:s.z-s.tz*2.5};
+  LOC.schoolGuard={x:s.cx+s.nx*31+s.tx*31,z:s.cz+s.nz*31+s.tz*31};
+}
+planCity();
+const faceOf=d=>Math.atan2(d.nx,d.nz);
+
+// ================= case generation (uses the city's doors)
+function assignHomes(P){
+  const pool=shuffle(RES_DOORS.slice());
+  P.forEach((p,i)=>{const d=pool[i];p.door=d;p.address=d.address;p.district=d.district;});
+  return pool.slice(P.length);
+}
+function plantVehicle(P,A,model){
+  for(let tries=0;tries<80;tries++){
+    A.car.model=model||pick(['Van','SUV','Sedan','Pickup']);
+    A.car.plate=makePlate();
+    P[3].car.color=A.car.color;P[3].car.model=A.car.model;P[3].car.plate=makePlate();
+    P[4].car.color=A.car.color;P[4].car.model=A.car.model;P[4].car.plate=makePlate();
+    const reveal=shuffle([0,1,2,4,5,6,7]).slice(0,4);
+    const pattern=A.car.plate.split('').map((c,i)=>i===3||reveal.includes(i)?c:'?').join('');
+    P[5].car.model=A.car.model;P[5].car.color=pick(COLORS.filter(c=>c!==A.car.color));
+    P[5].car.plate=P[5].car.plate.split('').map((c,i)=>reveal.includes(i)?A.car.plate[i]:c).join('');
+    const m=P.filter(p=>p.car.color===A.car.color&&p.car.model===A.car.model&&matchPlate(p.car.plate,pattern));
+    if(m.length===1&&m[0]===A)return pattern;
+  }
+  return A.car.plate;
+}
+function baseCase(extra){
+  return Object.assign({evidence:[],flags:{},custody:[],cracked:{},lawyered:{},done:{},named:{},falseArrests:0,used:0,logs:[],startMin:0},extra);
+}
+function genRobbery(){
+  const P=makePeople(14);const [A,B,C]=P;
+  const bank=pick(BANKS);
+  A.role='driver';B.role='insider';C.role='boss';
+  assignHomes(P);
+  const pattern=plantVehicle(P,A);
+  B.job='Teller, '+bank;
+  const tat=pick(TATTOOS);
+  P.forEach(p=>{if(p.tattoo===tat)p.tattoo='None';});
+  C.tattoo=tat;C.height=ri(191,197);
+  P[6].tattoo=tat;P[6].height=ri(165,181);P[7].tattoo=tat;P[7].height=ri(165,181);
+  if(Math.random()<.5)P[8].height=ri(191,195);
+  const place=pick(MOTELS);const hide={place,district:LOC.motels[place].district};
+  const cs=baseCase({type:'robbery',bank,title:bank+' robbery',code:'10-31',people:P,db:P,gang:[A.id,B.id,C.id],A,B,C,pattern,tat,hide,
+    limit:840,fleeChance:{[A.id]:.7,[B.id]:0},
+    roles:[[A,'Getaway driver'],[B,'Inside help'],[C,'Ringleader']]});
+  cs.logs.push(`Assigned. ${bank} was robbed at 18:05 last night by three masked suspects who left in a vehicle.`);
+  cs.scripts={
+    [A.id]:{alibi:`My ${lower(A.car.color.n)} ${lower(A.car.model)}? It never left my garage last night. I was home watching the game.`,correct:['plate'],
+      crack:['...Okay. Okay! I just drove the car.',`The whole plan was the boss's. Everyone calls him "${C.nick}". He had somebody on the inside at the bank too.`],
+      onCrack(){addEv(cs,'bossNick',`Driver: the boss is "${C.nick}"`,`${A.name} says the ringleader goes by "${C.nick}" and had help inside the bank.`,'Interrogation');cs.flags.insider=true;}},
+    [B.id]:{alibi:'Those deposits are my savings. I keep cash at home and pay it in bit by bit. That isn\'t a crime.',correct:['deposits'],
+      crack:['I only switched off the silent alarm delay. That\'s all I did!',`${C.first}... "${C.nick}"... said he'd lie low at the ${place} in ${hide.district} until things cool off. He always sits facing the front door.`],
+      onCrack(){cs.flags.hideout=true;markBossKnown(cs);addEv(cs,'hideout',`Hideout: ${place}`,`${C.name} ("${C.nick}") is lying low at the ${place}, ${hide.district}. Watches the front door.`,'Interrogation');cs.flags.backIntel=true;}}
+  };
+  return cs;
+}
+function genKidnap(){
+  const P=makePeople(14);const [A,B,C]=P;
+  A.role='driver';B.role='mule';C.role='guard';
+  const rest=assignHomes(P);
+  const pattern=plantVehicle(P,A,'Van');
+  const victim={first:pick(['Maya','Leo','Zara','Eli','Noah','Ada','Kofi','Ruby','Iris','Theo']),age:ri(8,11)};
+  const parent={name:pick(FIRST.filter(f=>f!==A.first&&f!==B.first))+' '+pick(LAST.filter(l=>l!==A.last&&l!==B.last)),look:randLook()};
+  victim.last=parent.name.split(' ')[1];
+  const safeDoor=rest[0];
+  const neighbor=rest.slice(1).find(d=>d.district===safeDoor.district)||rest[1];
+  const safe={address:safeDoor.address,district:safeDoor.district,door:safeDoor};
+  const school=pick(['Northfield Elementary','St. Brigid\'s Primary','Riverside Elementary','Lincoln Park School']);
+  const cs=baseCase({type:'kidnap',title:`Missing: ${victim.first} ${victim.last}`,code:'10-57',people:P,db:P.filter(p=>p!==C),gang:[A.id,B.id,C.id],A,B,C,pattern,victim,parent,safe,school,neighbor,
+    limit:660,fleeChance:{[A.id]:.6,[B.id]:.35},
+    roles:[[A,'Van driver'],[B,'Money handler'],[C,'Unknown accomplice']]});
+  cs.logs.push(`Assigned. ${victim.first} ${victim.last} (${victim.age}) was taken outside ${school} 45 minutes ago. A ransom call followed.`);
+  cs.scripts={
+    [A.id]:{alibi:'I sold that van months ago. Ask anyone. Check the paperwork.',correct:['plate','abductor'],
+      crack:['I only drove! Nobody was supposed to get hurt.',`The money guy calls himself "${B.nick}". The kid is being held somewhere in ${safe.district}. That's all I know, I swear.`],
+      onCrack(){addEv(cs,'bNick',`Driver: money handler is "${B.nick}"`,`${A.name} says the ransom money is handled by someone called "${B.nick}".`,'Interrogation');addEv(cs,'district',`Held in ${safe.district}`,`${A.name} says ${victim.first} is being held in ${safe.district}.`,'Interrogation');cs.flags.district=true;}},
+    [B.id]:{alibi:'Forty grand? A friend paid back a loan. Lots of people have friends.',correct:['transfer'],
+      crack:[`Fine. ${safe.address}, ${safe.district}. The basement.`,'They watch the street out front. The back door sticks, but it\'s never locked.'],
+      onCrack(){cs.flags.safehouse=true;cs.flags.backIntel=true;addEv(cs,'safehouse',`Safehouse: ${safe.address}`,`${B.name} gave the address: ${safe.address}, ${safe.district}. Basement. Back door is unlocked; they watch the front.`,'Interrogation');}}
+  };
+  return cs;
+}
+function addEv(cs,id,title,detail,src){
+  if(cs.evidence.some(e=>e.id===id))return false;
+  cs.evidence.push({id,title,detail,src});clog(cs,'Evidence logged: '+title+'.');return true;
+}
+function markBossKnown(cs){cs.flags.bossKnown=true;cs.named[cs.C.id]=true;}
+function clog(cs,t){cs.logs.push(t);}
+function person(cs,id){return cs.people.find(p=>p.id===id);}
+
+// ================= game state
+let curCase=null,nextCases=null,worldMin=9*60,gps=null,gpsPerson=null,prisoner=null;
+const shift={stops:0,tickets:0,warnings:0,arrests:0,xp:0};
+function freshCases(){nextCases={robbery:genRobbery(),kidnap:genKidnap()};}
+function clockStr(cs,m=cs.used){const t=cs.startMin+m;const day=1+Math.floor(t/1440);const hh=Math.floor(t%1440/60),mm=Math.floor(t%60);return `Day ${day} · ${String(hh).padStart(2,'0')}:${String(mm).padStart(2,'0')}`;}
+function worldClock(){const t=curCase?curCase.startMin+curCase.used:worldMin;const day=1+Math.floor(t/1440);return `Day ${day} · ${String(Math.floor(t%1440/60)).padStart(2,'0')}:${String(Math.floor(t%60)).padStart(2,'0')}`;}
+function spend(cs,min){
+  cs.used+=min;
+  if(cs.used>=cs.limit){cs.used=cs.limit;closeModal();endCase(cs,'timeout');return false;}
+  return true;
+}
+function setGPS(x,z,label,pid=null){gps={x,z,label};gpsPerson=pid;}
+
+// ================= leads (MDT case board + HUD objective)
+function leads(cs){
+  const L=[];const {C}=cs;const inC=id=>cs.custody.includes(id);
+  const at=(p,label)=>({x:p.x,z:p.z,label});
+  if(prisoner)L.push({t:`Book ${prisoner.p.name} at the station`,d:'Drive up to the front of Precinct 9.',at:at(LOC.book,'Precinct 9 booking'),hot:true});
+  cs.custody.forEach(id=>{if(!cs.cracked[id]&&!cs.lawyered[id]&&cs.scripts[id]){const p=person(cs,id);L.push({t:`Interrogate ${p.name}`,d:'Interview room at the station entrance.',c:20,at:at(LOC.interview,'Interview room'),hot:true});}});
+  if(cs.type==='robbery'){
+    if(cs.flags.hideout&&!inC(C.id))L.push({t:`Raid the ${cs.hide.place}`,d:`Arrest "${C.nick}" in ${cs.hide.district}.`,at:at(LOC.motels[cs.hide.place],cs.hide.place),hot:true});
+    L.push({t:'Review the bank cameras',d:`Security terminal outside ${cs.bank}.`,c:cs.done.cctv?0:15,at:at(LOC.bankCam,cs.bank+' cameras')});
+    if(!cs.done.w1)L.push({t:'Talk to the security guard',d:'Hal Brennan is by the bank door.',c:10,at:at(LOC.bankGuard,'Security guard')});
+    if(!cs.done.w3)L.push({t:'Talk to the branch manager',d:'Gloria Haynes is at the bank entrance.',c:10,at:at(LOC.bankManager,'Branch manager')});
+    if(!cs.done.w2)L.push({t:'Talk to the coffee cart owner',d:'Across the street from the bank.',c:10,at:at(LOC.bankVendor,'Coffee cart')});
+    if(!cs.done.bank)L.push({t:'Review flagged cash activity',d:cs.flags.insider?'The alarm was disabled from inside. Someone on staff may have been paid.':'Financial crimes sent this morning\'s flagged transactions.',c:cs.done.bankOpen?0:30,run:()=>openBank(cs),onRun:()=>{cs.done.bankOpen=true;}});
+    if(cs.flags.bossKnown&&!cs.flags.hideout&&!inC(C.id))L.push({t:`Monitor ${C.name}'s bank card`,d:'The bank alerts us the next time the card is used.',c:90,run:()=>monitorCard(cs)});
+  }else{
+    if(cs.flags.safehouse&&!cs.flags.rescued)L.push({t:`Raid ${cs.safe.address}`,d:`Bring ${cs.victim.first} home.`,at:at(cs.safe.door,'Safehouse'),hot:true});
+    L.push({t:'Check the school gate camera',d:`Terminal at the gate of ${cs.school}. Includes a traffic camera feed.`,c:cs.done.cctv?0:15,at:at(LOC.schoolCam,cs.school)});
+    if(!cs.done.parent)L.push({t:`Talk to ${cs.parent.name}`,d:`${cs.victim.first}'s parent is waiting at the school gate.`,c:10,at:at(LOC.schoolParent,cs.parent.name)});
+    if(!cs.done.guard)L.push({t:'Talk to the crossing guard',d:'On the corner by the school.',c:10,at:at(LOC.schoolGuard,'Crossing guard')});
+    if(cs.flags.parent&&!cs.done.trace)L.push({t:'Trace the ransom call',d:'Signal readings from three cell towers.',c:20,run:()=>openTrace(cs)});
+    if(cs.flags.parent&&!cs.done.bank)L.push({t:'Follow the ransom money',d:'The bank froze the receiving account.',c:cs.done.bankOpen?0:30,run:()=>openBank(cs),onRun:()=>{cs.done.bankOpen=true;}});
+    if(cs.flags.district&&!cs.flags.safehouse)L.push({t:`Canvass ${cs.safe.district}`,d:`A neighbour on ${cs.neighbor.address.replace(/^\d+ /,'')} called in about a van.`,at:at(cs.neighbor,'Neighbour')});
+  }
+  L.push({t:'Search the records database',d:'Match clues to a person, set GPS to their home and arrest them there.',db:true});
+  return L;
+}
+
+// ================= MDT
+let mdtTab='dispatch';
+function openMDT(tab){
+  mdtTab=tab||(curCase?'case':'dispatch');
+  const el=openModal(`<header><div><div class="eyebrow">Mobile data terminal · Unit 9-Adam-${career.badge%100}</div><h2>MDT</h2></div><button class="x" aria-label="Close">✕</button></header>
+    <div class="tabs">${[['case','Case'],['records','Records'],['dispatch','Dispatch'],['service','Service record'],['help','Controls']].map(([k,l])=>`<button data-t="${k}" aria-pressed="${k===mdtTab}">${l}</button>`).join('')}</div>
+    <div id="mdtBody"></div>`,{wide:true});
+  el.dataset.mdt='1';
+  $('.x',el).onclick=closeModal;
+  $$('[data-t]',el).forEach(b=>b.onclick=()=>{mdtTab=b.dataset.t;$$('[data-t]',el).forEach(x=>x.setAttribute('aria-pressed',x===b));drawMDT(el);});
+  drawMDT(el);
+}
+function drawMDT(el){
+  const body=$('#mdtBody',el);const cs=curCase;
+  if(mdtTab==='dispatch'){
+    if(!nextCases)freshCases();
+    const R=nextCases.robbery,K=nextCases.kidnap;
+    body.innerHTML=`${cs?`<div class="empty" style="margin-bottom:12px">You're on <b>${esc(cs.title)}</b>. Close it or hand it back before taking another case.</div>`:''}
+    <div class="offers">
+      <article class="offer"><div class="code"><b>10-8</b>Traffic</div><div><h3>Speed enforcement, citywide</h3><p>Always on while you patrol. The limit is ${LIMIT} mph everywhere. Lock the radar on a car ahead, hit Space, follow until it pulls over, then walk to the driver's window.</p><span class="chip">This shift: ${shift.stops} stops · ${shift.tickets} tickets</span></div><span></span></article>
+      <article class="offer"><div class="code"><b>10-31</b>Robbery</div><div><h3>${esc(R.bank)} robbery</h3><p>Three masked suspects, one getaway car. Work the scene, follow the money, and turn each arrest into the next.</p><span class="chip amber">14 case hours</span></div><button class="btn" data-take="robbery" ${cs?'disabled':''}>Take the case</button></article>
+      <article class="offer urgent"><div class="code"><b>10-57</b>Missing child</div><div><h3>${esc(K.victim.first)}, ${K.victim.age}, taken outside school</h3><p>A ransom call came in. Trace it, follow the money, find the safehouse and bring ${esc(K.victim.first)} home.</p><span class="chip red">11 case hours · urgent</span></div><button class="btn red" data-take="kidnap" ${cs?'disabled':''}>Take the case</button></article>
+    </div>`;
+    $$('[data-take]',body).forEach(b=>b.onclick=()=>startCase(nextCases[b.dataset.take]));
+  }else if(mdtTab==='case'){
+    if(!cs){body.innerHTML='<div class="empty">No active case. Take one from Dispatch.</div>';return;}
+    const L=leads(cs);const left=cs.limit-cs.used;
+    const canClose=cs.type==='robbery'?cs.custody.includes(cs.C.id):cs.flags.rescued;
+    body.innerHTML=`<div class="row" style="justify-content:space-between;margin-bottom:12px"><div><div class="eyebrow">${cs.code} · ${cs.type==='robbery'?'Armed robbery':'Kidnapping'}</div><h2>${esc(cs.title)}</h2></div><div class="mono" style="text-align:right">${clockStr(cs)}<br><span style="color:${left<cs.limit*.25?'var(--red)':'var(--amber)'}">${fmtMin(left)} left</span></div></div>
+    <div class="board"><div class="col"><h3>Leads</h3><div class="leads">${L.map((l,i)=>`<div class="lead${l.hot?' hot':''}"><b>${esc(l.t)}</b><p>${esc(l.d)}${l.c?` <span class="cost">· ${fmtMin(l.c)}</span>`:''}</p><button class="btn sm ${l.at?'ghost':''} go" data-l="${i}">${l.at?'Set GPS':'Open'}</button></div>`).join('')}</div>
+      <div class="row" style="margin-top:12px">${canClose?'<button class="btn" id="closeCase">Close the case</button>':''}<button class="btn ghost" id="abandon">Hand the case back</button></div></div>
+    <div class="col">${cs.type==='kidnap'?`<h3>Victim</h3><div class="slot${cs.flags.rescued?' custody':''}" style="display:flex;gap:12px;align-items:center;text-align:left;margin-bottom:14px">${avatar({skin:SKIN[1],hair:HAIR[1],shirt:'#c9a227'},44)}<div><div class="nm">${esc(cs.victim.first+' '+cs.victim.last)}, ${cs.victim.age}</div><span class="chip ${cs.flags.rescued?'ok':'red'}">${cs.flags.rescued?'Rescued':'Missing'}</span></div></div>`:''}
+      <h3>Suspects</h3><div class="suspects">${cs.roles.map(([p,r])=>{const inC=cs.custody.includes(p.id);const known=inC||cs.named[p.id];return `<div class="slot${inC?' custody':''}"><div class="role">${r}</div>${known?avatar(p,40):`<svg width="40" height="40" viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="6" fill="#1d2a44"/><circle cx="32" cy="26" r="12" fill="#2c3b5c"/><path d="M10 64c2-13 12-19 22-19s20 6 22 19z" fill="#2c3b5c"/></svg>`}<div class="nm">${known?esc(p.name):'Unidentified'}</div><span class="chip ${inC?'ok':known?'amber':''}">${inC?'In custody':prisoner&&prisoner.p===p?'In your car':known?'Identified':'At large'}</span></div>`;}).join('')}</div>
+      <h3>Evidence board</h3><div class="evidence">${cs.evidence.length?cs.evidence.map(e=>`<div class="ev"><small>${esc(e.src)}</small><b>${esc(e.title)}</b>${esc(e.detail)}</div>`).join(''):'<div class="empty">No evidence yet. Go to the scene first.</div>'}</div></div></div>
+    <div class="caselog">${cs.logs.slice().reverse().map(l=>`<div>${esc(l)}</div>`).join('')}</div>`;
+    $$('[data-l]',body).forEach(b=>b.onclick=()=>{const l=L[+b.dataset.l];
+      if(l.at){setGPS(l.at.x,l.at.z,l.at.label);closeModal();toast('GPS set: '+l.at.label);return;}
+      if(l.db){mdtTab='records';$$('[data-t]',el).forEach(x=>x.setAttribute('aria-pressed',x.dataset.t==='records'));drawMDT(el);return;}
+      if(l.c&&!spend(cs,l.c))return;if(l.onRun)l.onRun();l.run();});
+    const cc=$('#closeCase',body);if(cc)cc.onclick=()=>endCase(cs,'closed');
+    $('#abandon',body).onclick=()=>{if($('#ab2',body))return;body.insertAdjacentHTML('afterbegin',`<div class="empty" style="border-color:var(--red);margin-bottom:12px">Hand the case back? It counts as lost, reputation −10. <button class="btn sm red" id="ab2">Hand it back</button></div>`);$('#ab2',body).onclick=()=>endCase(cs,'abandoned');};
+  }else if(mdtTab==='records'){
+    if(!cs){body.innerHTML='<div class="empty">Records are tied to an active case. Take a case from Dispatch first.</div>';return;}
+    dbPanel(body,cs);
+  }else if(mdtTab==='service'){
+    const r=rankOf(career.xp);
+    body.innerHTML=`<div class="eyebrow">Badge #${career.badge}</div><h2 style="margin-bottom:12px">${r.name} · ${career.xp} XP</h2>
+      <dl class="stats"><div><dt>Tickets</dt><dd>${career.tickets}</dd></div><div><dt>Warnings</dt><dd>${career.warnings}</dd></div><div><dt>Arrests</dt><dd>${career.arrests}</dd></div><div><dt>Cases closed</dt><dd>${career.cases}</dd></div><div><dt>Cases lost</dt><dd>${career.failed}</dd></div><div><dt>Reputation</dt><dd>${career.rep}</dd></div></dl>
+      ${career.log.length?`<ul class="log">${career.log.map(l=>`<li>${esc(l)}</li>`).join('')}</ul>`:''}
+      ${r.next?`<p class="muted" style="font-size:13px">${r.next[0]-career.xp} XP to ${r.next[1]}.</p>`:''}`;
+  }else{
+    body.innerHTML=`<div class="keys" style="margin-top:0">
+      <kbd>W A S D / arrows</kbd><span>Drive or walk. A and D turn.</span><kbd>Shift</kbd><span>Run on foot</span><kbd>F</kbd><span>Get in or out of the cruiser (stop first)</span>
+      <kbd>E</kbd><span>Talk, inspect, arrest. Look for the yellow diamonds.</span><kbd>Space</kbd><span>Lights. With a radar lock it starts a traffic stop.</span><kbd>Tab / M</kbd><span>Open or close this MDT</span><kbd>Drag</kbd><span>Look around</span></div>
+      <p class="muted">Traffic stop: get behind a car so the radar locks on (amber arrow above it), hit Space and stay close until it pulls over. Get out, walk to the driver's door, press E. Runners must be boxed in: stay within a few car lengths until the meter fills.</p>
+      <p class="muted">Arrests on a case: find the suspect in Records, set GPS to their home, walk up and press E. Some will run. Once cuffed they ride in your car until you book them at Precinct 9.</p>`;
+  }
+}
+function startCase(cs){
+  curCase=cs;nextCases=null;cs.startMin=worldMin;
+  const L=leads(cs).find(l=>l.at);if(L)setGPS(L.at.x,L.at.z,L.at.label);
+  closeModal();toast(`${cs.code}: ${cs.title}. GPS set to the scene.`,'good');
+}
+function endCase(cs,how){
+  if(cs.ended)return;cs.ended=true;
+  closeModal();
+  const caught=cs.gang.filter(id=>cs.custody.includes(id)).length;
+  const success=how!=='abandoned'&&(cs.type==='robbery'?cs.custody.includes(cs.C.id):!!cs.flags.rescued);
+  const left=cs.limit-cs.used;
+  let xp,rep;
+  if(success){xp=(cs.type==='robbery'?250:350)+Math.round(left/4)+caught*50-cs.falseArrests*40;xp=Math.max(60,xp);rep=8+(caught===3?4:0);career.cases++;}
+  else{xp=Math.max(0,caught*25-cs.falseArrests*40);rep=-10;career.failed++;}
+  gainXP(xp);addRep(rep);
+  worldMin=cs.startMin+cs.used;
+  const head=success?'Case closed':how==='abandoned'?'Case handed back':'Out of time';
+  const sub=success?(cs.type==='robbery'?`${caught} of 3 robbers in custody${cs.flags.loot?' and the cash recovered':''}.`:`${cs.victim.first} is home safe. ${caught} of 3 kidnappers in custody.`)
+    :cs.type==='robbery'?'The ringleader slipped out of the city. The case goes to the state task force.':`The kidnappers moved ${cs.victim.first} before you found the safehouse. The FBI has taken over.`;
+  logEntry(`${cs.title}: ${head.toLowerCase()}, ${caught}/3 in custody${cs.falseArrests?`, ${cs.falseArrests} false arrest${cs.falseArrests>1?'s':''}`:''} (+${xp} XP).`);
+  if(prisoner&&prisoner.cs===cs)prisoner=null;
+  curCase=null;gps=null;gpsPerson=null;
+  if(chase&&chase.cs===cs){const c=chase.car;endChase();removeAICar(c);spawnAICar();}
+  if(runner&&runner.cs===cs){scene.remove(runner.mesh);runner=null;}
+  const el=openModal(`<div class="report">
+    <div class="eyebrow">${cs.code} · ${clockStr(cs)}</div>
+    <h1>${head}</h1><p class="muted">${esc(sub)}</p>
+    <dl class="stats" style="grid-template-columns:repeat(4,1fr);margin:16px 0">
+      <div><dt>In custody</dt><dd>${caught}/3</dd></div><div><dt>Time used</dt><dd>${fmtMin(cs.used)}</dd></div><div><dt>Evidence</dt><dd>${cs.evidence.length}</dd></div><div><dt>False arrests</dt><dd>${cs.falseArrests}</dd></div>
+    </dl>
+    <div class="big">+${xp} XP</div><p class="mono muted">Reputation ${rep>0?'+':''}${rep}</p>
+    <div class="row end"><button class="btn" id="rOk">Back on patrol</button></div></div>`,{dismiss:false});
+  $('#rOk',el).onclick=closeModal;
+}
+
+// ================= witnesses & quick leads
+function witness(cs,id){
+  const {A}=cs;let who,lines,after;
+  if(cs.type==='robbery'){
+    if(id==='w1'){who='Hal Brennan, security guard';lines=['There were three of them, all masked. They had me on the floor in seconds.',`The tallest one was huge, six-four easy. When he grabbed the bag his sleeve rode up and I saw a tattoo: ${lower(cs.tat)}.`];
+      after=()=>addEv(cs,'tattoo',`Tall robber's tattoo: ${cs.tat}`,'Seen by the guard on the tallest robber, who stood about six-four.','Witness');}
+    if(id==='w2'){who='Rina Patel, coffee cart owner';lines=['I heard the alarm bell, then three people ran out with bags.',`They jumped into a ${lower(A.car.color.n)} ${lower(A.car.model)} and floored it. I didn't get the plate, sorry.`];
+      after=()=>addEv(cs,'vehicle',`Getaway: ${A.car.color.n} ${A.car.model}`,'Coffee cart owner saw the robbers drive off. No plate.','Witness');}
+    if(id==='w3'){who='Gloria Haynes, branch manager';lines=['The silent alarm never went off. It has a staff override with a delay code.','Only tellers and managers know that code. Somebody on my staff helped them. I\'d bet my job on it.'];
+      after=()=>{cs.flags.insider=true;addEv(cs,'insider','Alarm disabled from inside','The silent alarm was switched off with a staff code. An employee is likely involved.','Witness');};}
+  }else{
+    if(id==='parent'){who=cs.parent.name+', parent';lines=[`${cs.victim.first} always walks out of this gate at three. Today, nothing.`,'Then my phone rang. A distorted voice wanted $250,000 wired to an account. I paid it. The bank has every detail. Please find my child.'];
+      after=()=>{cs.flags.parent=true;addEv(cs,'ransom','Ransom: $250,000 wired','Paid into an account the kidnappers named. The call came from a mobile phone. Trace and bank leads are now on the MDT.','Witness');};}
+    if(id==='guard'){who='Earl Simms, crossing guard';lines=[`A ${lower(A.car.color.n)} van was idling on the corner with the engine running. I nearly told them to move.`,'A man in a red hoodie walked right up to the kid, said something, and they got in the van. It happened so fast.'];
+      after=()=>addEv(cs,'vehicle',`Van: ${A.car.color.n}`,'Crossing guard saw a man in a red hoodie walk the child to a van.','Witness');}
+  }
+  cs.done[id]=true;after();
+  const el=openModal(`<header><div><div class="eyebrow">Witness statement</div><h2>${esc(who)}</h2></div><button class="x" aria-label="Close">✕</button></header>
+    <div class="talk">${lines.map(l=>`<div class="line them">${esc(l)}</div>`).join('')}</div>
+    <div class="row end"><button class="btn" id="wOk">Add to the case file</button></div>`);
+  $('.x',el).onclick=$('#wOk',el).onclick=closeModal;
+}
+function monitorCard(cs){
+  cs.flags.hideout=true;closeModal();
+  addEv(cs,'hideout',`Card used: ${cs.hide.place}`,`${cs.C.name}'s card paid for a room at the ${cs.hide.place}, ${cs.hide.district}.`,'Bank');
+  const m=LOC.motels[cs.hide.place];setGPS(m.x,m.z,cs.hide.place);
+  toast(`Card hit: ${cs.C.first} is at the ${cs.hide.place}. GPS set.`,'good');
+}
+function canvass(cs){
+  cs.flags.safehouse=true;
+  addEv(cs,'safehouse',`Safehouse: ${cs.safe.address}`,`A neighbour saw a ${lower(cs.A.car.color.n)} van unload a child into ${cs.safe.address} this afternoon.`,'Canvass');
+  const el=openModal(`<header><div><div class="eyebrow">Canvass · ${esc(cs.safe.district)}</div><h2>Worried neighbour</h2></div><button class="x" aria-label="Close">✕</button></header>
+    <div class="talk"><div class="line them">I called it in! A ${esc(lower(cs.A.car.color.n))} van pulled up at ${esc(cs.safe.address)} this afternoon. Two men carried a kid inside. Nobody's come out since.</div></div>
+    <div class="row end"><button class="btn" id="cOk">Set GPS to the safehouse</button></div>`);
+  $('.x',el).onclick=closeModal;
+  $('#cOk',el).onclick=()=>{setGPS(cs.safe.door.x,cs.safe.door.z,'Safehouse');closeModal();};
+}
+
+// ================= traffic stop paperwork
+const EXCUSES={fast:['I\'m late for my sister\'s wedding, officer!','My speedometer must be broken.','Everyone else was going this fast.','I really need a bathroom.','I didn\'t see a sign.','My boss will fire me if I\'m late again.'],slow:['Was I doing something wrong? I had the cruise on 35.','I was going the limit, I promise.','Is there a problem, officer?'],fled:['I panicked, okay? I panicked.','I didn\'t see your lights!','...I want a lawyer.']};
+const TIERS=[['none','No speeding citation','warning'],['t1','1–10 mph over','$150'],['t2','11–20 mph over','$250'],['t3','21–30 mph over','$400'],['t4','31+ mph over','$600 + court']];
+function trafficStop(car,fled,done){
+  if(!car.driver){const d=makePeople(1)[0];d.lic=Math.random()<.1?'Suspended':Math.random()<.12?'Expired':'Valid';d.reg=Math.random()<.12?'Expired':'Valid';d.warrant=Math.random()<(fled?.45:.06);d.stolen=!d.warrant&&Math.random()<(fled?.3:.04);car.driver=d;}
+  const d=car.driver;
+  const colName=(COLORS.find(c=>c.h===car.color)||{n:''}).n;
+  const over=car.clocked-LIMIT;
+  const correct=over<=0?'none':over<=10?'t1':over<=20?'t2':over<=30?'t3':'t4';
+  const excuse=pick(fled?EXCUSES.fled:over>0?EXCUSES.fast:EXCUSES.slow);
+  const el=openModal(`
+    <header><div class="driver">${avatar(d,64)}<div><div class="eyebrow">${fled?'Felony stop':'Traffic stop'}</div><h2>${esc(d.name)}</h2><div class="muted" style="font-size:13px">${esc(colName+' '+car.model)} · plate <span class="mono">${car.plate}</span></div></div></div></header>
+    <div class="slip"><span>RADAR ${car.clocked} MPH</span><span>POSTED ${LIMIT}</span><span>${over>0?'+'+over+' OVER':'AT OR UNDER LIMIT'}</span>${fled?'<span>FLED FROM OFFICER</span>':''}</div>
+    <p class="quote">"${esc(excuse)}"</p>
+    <div class="checks">
+      <button class="btn ghost sm" id="chkLic">Check license</button><output id="licOut" class="muted">Not checked</output>
+      <button class="btn ghost sm" id="chkPlate">Run plate</button><output id="plateOut" class="muted">Not checked</output>
+    </div>
+    <form id="stopForm">
+      <fieldset><legend>Speeding</legend>
+        ${TIERS.map(([v,l,f])=>`<label class="opt"><input type="radio" name="tier" value="${v}" id="tier-${v}"><span>${l}</span><span class="fine">${f}</span></label>`).join('')}
+      </fieldset>
+      <fieldset><legend>Other violations</legend>
+        <label class="opt"><input type="checkbox" id="vLic"><span>Driving on a suspended or expired license</span><span class="fine">$200</span></label>
+        <label class="opt"><input type="checkbox" id="vReg"><span>Expired registration</span><span class="fine">$100</span></label>
+        <label class="opt"><input type="checkbox" id="vEvade"><span>Evading a police officer</span><span class="fine">felony</span></label>
+        <label class="opt"><input type="checkbox" id="vArrest"><span>Take the driver into custody</span><span class="fine">arrest</span></label>
+      </fieldset>
+      <div id="stopRes"></div>
+      <div class="row end"><button class="btn" type="submit" id="stopSubmit">Issue citation</button></div>
+    </form>`,{dismiss:false});
+  $('#chkLic',el).onclick=()=>{const o=$('#licOut',el);o.textContent=`License ${d.lic.toUpperCase()} · ${d.name}, age ${d.age}`;o.style.color=d.lic==='Valid'?'var(--ok)':'var(--red)';};
+  $('#chkPlate',el).onclick=()=>{const o=$('#plateOut',el);const bad=[];if(d.reg!=='Valid')bad.push('REGISTRATION EXPIRED');if(d.stolen)bad.push('REPORTED STOLEN');if(d.warrant)bad.push('OWNER HAS OUTSTANDING WARRANT');o.textContent=car.plate+' · '+(bad.length?bad.join(' · '):'REGISTRATION VALID · NO FLAGS');o.style.color=bad.length?'var(--red)':'var(--ok)';};
+  $('#stopForm',el).onsubmit=e=>{
+    e.preventDefault();
+    const tierEl=el.querySelector('input[name="tier"]:checked');
+    if(!tierEl){$('#stopRes',el).innerHTML='<p class="muted">Pick a speeding option first. Choose "No speeding citation" if they weren\'t over the limit.</p>';return;}
+    const tier=tierEl.value;const res=[];let xp=0,rep=0;
+    const lbl=v=>TIERS.find(t=>t[0]===v)[1];
+    if(tier===correct){xp+=20;rep+=1;res.push(['good',tier==='none'?'Correct: no speeding ticket for a driver at the limit.':`Correct bracket: ${over} over is "${lbl(correct)}".`]);}
+    else if(correct==='none'){xp-=10;rep-=4;res.push(['bad','You ticketed a driver doing the limit. A complaint has been filed.']);}
+    else{xp-=8;res.push(['bad',`Wrong bracket. ${over} mph over is "${lbl(correct)}".`]);}
+    const grade=(checked,actual,goodT,falseT,missT,pts)=>{
+      if(checked&&actual){xp+=pts;res.push(['good',goodT]);}
+      else if(checked&&!actual){xp-=10;rep-=3;res.push(['bad',falseT]);}
+      else if(!checked&&actual){xp-=5;res.push(['bad',missT]);}
+    };
+    const mustArrest=fled||d.warrant||d.stolen;
+    grade($('#vLic',el).checked,d.lic!=='Valid','License violation cited.','Their license was valid. That citation will be thrown out.',`Missed it: the license was ${lower(d.lic)}. Always check papers.`,10);
+    grade($('#vReg',el).checked,d.reg!=='Valid','Expired registration cited.','The registration was valid.','Missed the expired registration. Run every plate.',10);
+    grade($('#vEvade',el).checked,fled,'Evading charge filed.','They never ran from you.','They fled from you. That\'s an evading charge.',15);
+    grade($('#vArrest',el).checked,mustArrest,`Driver booked${d.warrant?' on an outstanding warrant':d.stolen?' for a stolen vehicle':' for evading'}. Backup is transporting.`,'No grounds for an arrest. The driver was released and complained.',`You let them go, but ${d.warrant?'there was an outstanding warrant':d.stolen?'the car was stolen':'they fled from police'}.`,30);
+    const cited=tier!=='none'||$('#vLic',el).checked||$('#vReg',el).checked;
+    shift.stops++;
+    if(cited){shift.tickets++;career.tickets++;}else{shift.warnings++;career.warnings++;}
+    const arrested=$('#vArrest',el).checked&&mustArrest;
+    if(arrested){shift.arrests++;career.arrests++;}
+    shift.xp+=xp;gainXP(xp);if(rep)addRep(rep);
+    $('#stopRes',el).innerHTML=`<ul class="results">${res.map(([k,t])=>`<li class="${k}">${esc(t)}</li>`).join('')}</ul><p class="mono" style="color:${xp>=0?'var(--ok)':'var(--red)'}">${xp>=0?'+':''}${xp} XP${rep?` · reputation ${rep>0?'+':''}${rep}`:''}</p>`;
+    $$('input,#chkLic,#chkPlate',el).forEach(i=>i.disabled=true);
+    const b=$('#stopSubmit',el);b.textContent='Back on patrol';b.type='button';
+    b.onclick=()=>{closeModal();done(arrested);};
+  };
+}
+
+// ================= CCTV
+function camsFor(cs){
+  const A=cs.A;
+  const carObj=(extra)=>Object.assign({kind:'car',color:A.car.color.h,model:A.car.model,plate:cs.pattern},extra);
+  if(cs.type==='robbery'){
+    return [
+      {name:'CAM 01 · Bank entrance',scene:'bank',stamp:'YESTERDAY 18:0',dur:24,light:[150,250],lamp:200,objs:[
+        {kind:'person',jacket:'#6a7a50',skin:'#c68a5e',t0:0,t1:12,from:[430,178],to:[-20,178],msg:'A passer-by, walking past before the robbers come out. Not involved.'},
+        {kind:'person',jacket:'#2d2d33',masked:true,t0:6,t1:13,from:[200,178],to:[440,178],msg:'Masked robber, average height. Nothing identifying.'},
+        {kind:'person',jacket:'#3a2a24',masked:true,tall:true,t0:7,t1:14.5,from:[200,178],to:[440,178],clue:['tall','CCTV: one robber is very tall','Measured against the door frame, the second robber stands about 192 cm (6\'4").']},
+        {kind:'person',jacket:'#23314a',masked:true,t0:8.2,t1:15,from:[200,178],to:[440,178],msg:'Masked robber carrying a bag. Gloves on. Nothing identifying.'}]},
+      {name:'CAM 02 · Street corner',scene:'street',stamp:'YESTERDAY 18:0',dur:24,light:[228,312],lamp:270,objs:[
+        {kind:'car',color:'#a8b0ba',model:'Sedan',dir:-1,plate:'????????',t0:2,t1:7,from:[480,200],to:[-110,200],msg:'A silver sedan heading the other way, before the robbery.'},
+        {kind:'person',jacket:'#7a3d3d',skin:'#e0ac85',t0:4,t1:20,from:[-20,176],to:[420,176],msg:'A pedestrian walking a dog. Not involved.'},
+        carObj({t0:13,t1:17,from:[-110,214],to:[480,214],clue:['plate','CCTV: getaway vehicle',`${A.car.color.n} ${A.car.model}, partial plate ${cs.pattern}. Leaving at 18:06.`]})]}
+    ];
+  }
+  return [
+    {name:'CAM 01 · School gate',scene:'school',stamp:'TODAY 15:0',dur:22,light:[60,165],lamp:110,objs:[
+      {kind:'child',jacket:'#c9a227',skin:SKIN[1],backpack:true,t0:3,t1:13,from:[110,178],to:[330,178],msg:`That's ${cs.victim.first}, leaving through the gate.`},
+      {kind:'person',jacket:'#b0302f',skin:A.skin,hood:true,t0:4.5,t1:13.5,from:[30,178],to:[318,178],clue:['abductor','CCTV: man in a red hoodie',`Walks ${cs.victim.first} toward the van. About ${A.height} cm, ${A.hair.h?lower(A.hair.n)+' hair':'shaved head'}.`]},
+      carObj({t0:0,t1:15,from:[365,212],to:[365,212],msg:'The van is parked outside the light. Too dark to read the plate on this camera.'}),
+      carObj({t0:15,t1:17.5,from:[365,212],to:[520,212],msg:'Too dark and too fast. Try the traffic camera.'})]},
+    {name:'CAM 02 · Traffic camera',scene:'street',stamp:'TODAY 15:0',dur:22,light:[180,262],lamp:221,objs:[
+      {kind:'car',color:'#2f5fb8',model:'Hatchback',plate:'????????',t0:3,t1:7,from:[-110,214],to:[480,214],msg:'A blue hatchback. Not the van.'},
+      carObj({t0:9,t1:12.5,from:[-110,214],to:[480,214],clue:['plate','CCTV: kidnapper\'s van',`${A.car.color.n} van, partial plate ${cs.pattern}. Passed the camera at 15:04.`]}),
+      {kind:'person',jacket:'#3d6e55',skin:'#9a6440',t0:1,t1:18,from:[420,176],to:[-20,176],msg:'A jogger. Not involved.'}]}
+  ];
+}
+function openCCTV(cs){
+  const cams=camsFor(cs);let ci=0,t=0,playing=false,raf=0,last=0;
+  const el=openModal(`<header><div><div class="eyebrow">Video evidence</div><h2>CCTV review</h2></div><button class="x" aria-label="Close">✕</button></header>
+    <div class="cctv">
+      <div class="tabs">${cams.map((c,i)=>`<button data-c="${i}" aria-pressed="${i===0}">${c.name}</button>`).join('')}</div>
+      <canvas width="800" height="450" aria-label="CCTV footage. Tap a person or vehicle to enhance."></canvas>
+      <div class="transport"><button class="btn sm" id="cPlay">Play</button><button class="btn ghost sm" id="cBack" aria-label="Back 0.2 seconds">−0.2s</button><input type="range" id="cScrub" min="0" max="24" step="0.05" value="0" aria-label="Timeline"><button class="btn ghost sm" id="cFwd" aria-label="Forward 0.2 seconds">+0.2s</button></div>
+      <div class="cmsg" id="cMsg">Play the footage, pause on a good frame, then tap a person or vehicle to enhance it. Only things under the light are sharp enough.</div>
+    </div>
+    <div class="row end"><button class="btn" id="cDone">Done</button></div>`,{wide:true});
+  const cv=$('canvas',el),ctx=cv.getContext('2d');ctx.setTransform(2,0,0,2,0,0);
+  const scrub=$('#cScrub',el);
+  const pos=o=>{const k=o.t1===o.t0?0:clamp((t-o.t0)/(o.t1-o.t0),0,1);return [o.from[0]+(o.to[0]-o.from[0])*k,o.from[1]+(o.to[1]-o.from[1])*k];};
+  const vis=o=>t>=o.t0&&t<=o.t1;
+  function drawPerson(o,x,y){
+    const s=o.tall?1.22:o.kind==='child'?.68:1;
+    ctx.save();ctx.translate(x,y);ctx.scale(s,s);
+    const step=Math.sin(t*9+(o.t0*3))*3;
+    ctx.fillStyle='#15171c';ctx.fillRect(-5+step*.3,-16,4,16);ctx.fillRect(1-step*.3,-16,4,16);
+    ctx.fillStyle=o.jacket;rr(ctx,-7,-31,14,17,3);ctx.fill();
+    if(o.backpack){ctx.fillStyle='#e6b422';ctx.fillRect(-10,-30,4,12);}
+    ctx.fillStyle=o.masked?'#101115':o.skin||'#c68a5e';ctx.beginPath();ctx.arc(0,-36,5.5,0,7);ctx.fill();
+    if(o.hood){ctx.fillStyle=o.jacket;ctx.beginPath();ctx.arc(0,-37,6.5,Math.PI,0);ctx.fill();}
+    if(o.masked){ctx.fillStyle='#d8d8d8';ctx.fillRect(-3.5,-38,7,1.6);}
+    ctx.restore();
+  }
+  function drawCar(o,x,y,lit){
+    const dir=o.dir||1,tall=o.model==='Van'||o.model==='SUV',L=o.model==='Van'?96:88,bh=tall?28:18;
+    ctx.save();ctx.translate(x,y);ctx.scale(dir,1);
+    ctx.fillStyle=o.color;rr(ctx,-L/2,-10-bh,L,bh,5);ctx.fill();
+    if(tall){rr(ctx,-L/2,-10-bh-10,L-18,14,4);ctx.fill();ctx.fillStyle='#0d121b';ctx.fillRect(L/2-30,-10-bh-6,14,9);ctx.fillRect(-L/2+8,-10-bh-6,L-44,9);}
+    else{ctx.beginPath();ctx.moveTo(-L/2+16,-10-bh);ctx.lineTo(-L/2+28,-10-bh-12);ctx.lineTo(L/2-26,-10-bh-12);ctx.lineTo(L/2-12,-10-bh);ctx.fill();ctx.fillStyle='#0d121b';ctx.fillRect(-L/2+27,-10-bh-9,L-56,8);}
+    ctx.fillStyle='#0b0c0f';[-L/2+16,L/2-16].forEach(wx=>{ctx.beginPath();ctx.arc(wx,-9,8,0,7);ctx.fill();});
+    ctx.fillStyle='#555';[-L/2+16,L/2-16].forEach(wx=>{ctx.beginPath();ctx.arc(wx,-9,3,0,7);ctx.fill();});
+    ctx.fillStyle='#fff2b0';ctx.fillRect(L/2-4,-10-bh+4,4,5);
+    ctx.fillStyle='#b01c28';ctx.fillRect(-L/2,-10-bh+4,3,6);
+    ctx.fillStyle='#e6e1cc';ctx.fillRect(-L/2+2,-22,24,8);
+    ctx.restore();
+    const px=x-dir*(L/2-14);
+    if(lit&&o.plate&&o.plate!=='????????'){ctx.fillStyle='#16161a';ctx.font='600 5.5px IBM Plex Mono, monospace';ctx.textAlign='center';ctx.fillText(o.plate,px,-15.8+y);}
+  }
+  function scene(cam){
+    const g=ctx;
+    if(cam.scene==='bank'){
+      g.fillStyle='#10151f';g.fillRect(0,0,400,225);g.fillStyle='#262b35';g.fillRect(20,18,360,134);
+      g.fillStyle='#323845';for(let x=40;x<380;x+=52)if(x<170||x>222)g.fillRect(x,44,14,108);
+      g.fillStyle='#1b202b';g.fillRect(118,22,164,16);g.fillStyle='#8c95a5';g.font='600 9px IBM Plex Mono, monospace';g.textAlign='center';g.fillText(cs.bank.toUpperCase(),200,33);
+      g.fillStyle='#0a0d13';g.fillRect(180,96,40,56);g.fillStyle='#3a4150';g.fillRect(199,96,2,56);
+    }else if(cam.scene==='school'){
+      g.fillStyle='#121a26';g.fillRect(0,0,400,225);g.fillStyle='#2a3242';g.fillRect(0,60,400,92);
+      g.fillStyle='#384256';for(let x=0;x<400;x+=10)if(x<88||x>132)g.fillRect(x,110,2,42);g.fillRect(0,110,88,2);g.fillRect(132,110,268,2);
+      g.fillStyle='#1b2230';g.fillRect(55,66,120,16);g.fillStyle='#8c95a5';g.font='600 8px IBM Plex Mono, monospace';g.textAlign='center';g.fillText(cs.school.toUpperCase(),115,77);
+    }else{
+      g.fillStyle='#10151f';g.fillRect(0,0,400,225);
+      [[10,40,90],[110,55,110],[230,30,80],[320,48,80]].forEach(([x,y,w],i)=>{g.fillStyle=i%2?'#232a36':'#1e2430';g.fillRect(x,y,w,152-y);g.fillStyle='rgba(244,183,64,.12)';for(let wy=y+10;wy<140;wy+=20)for(let wx=x+8;wx<x+w-10;wx+=18)if((wx*wy)%7<3)g.fillRect(wx,wy,8,10);});
+    }
+    g.fillStyle='#34373d';g.fillRect(0,152,400,38);g.fillStyle='#1d2026';g.fillRect(0,190,400,35);
+    g.fillStyle='rgba(220,220,200,.25)';for(let x=0;x<400;x+=40)g.fillRect(x,206,20,2);
+    g.fillStyle='#4a505c';if(cam.scene!=='bank'){g.fillRect(cam.lamp-1,70,3,84);g.fillRect(cam.lamp-12,70,14,3);}
+    g.fillStyle='#ffe2a8';g.fillRect(cam.lamp-(cam.scene==='bank'?6:14),cam.scene==='bank'?88:72,10,3);
+  }
+  function draw(){
+    const cam=cams[ci];
+    ctx.save();scene(cam);
+    const [l0,l1]=cam.light,lc=(l0+l1)/2;
+    for(const o of cam.objs){if(!vis(o))continue;const [x,y]=pos(o);const lit=x>=l0&&x<=l1;
+      ctx.save();if(!lit){ctx.globalAlpha=.55;ctx.filter='blur(1.4px) brightness(.55)';}
+      o.kind==='car'?drawCar(o,x,y,lit):drawPerson(o,x,y);ctx.restore();}
+    ctx.globalCompositeOperation='lighter';
+    const gr=ctx.createRadialGradient(lc,170,4,lc,170,(l1-l0)*.75);gr.addColorStop(0,'rgba(255,214,150,.22)');gr.addColorStop(1,'rgba(255,214,150,0)');
+    ctx.fillStyle=gr;ctx.fillRect(0,60,400,165);ctx.globalCompositeOperation='source-over';
+    const dk=ctx.createLinearGradient(0,0,400,0);
+    dk.addColorStop(0,'rgba(0,0,8,.45)');dk.addColorStop(Math.max(0,(l0-30)/400),'rgba(0,0,8,.4)');dk.addColorStop(l0/400,'rgba(0,0,8,0)');dk.addColorStop(l1/400,'rgba(0,0,8,0)');dk.addColorStop(Math.min(1,(l1+30)/400),'rgba(0,0,8,.4)');dk.addColorStop(1,'rgba(0,0,8,.45)');
+    ctx.fillStyle=dk;ctx.fillRect(0,0,400,225);
+    ctx.fillStyle='rgba(0,0,0,.16)';for(let y=0;y<225;y+=3)ctx.fillRect(0,y,400,1);
+    for(let i=0;i<90;i++){ctx.fillStyle=`rgba(255,255,255,${Math.random()*.06})`;ctx.fillRect(Math.random()*400,Math.random()*225,1.5,1.5);}
+    const v=ctx.createRadialGradient(200,112,90,200,112,260);v.addColorStop(0,'rgba(0,0,0,0)');v.addColorStop(1,'rgba(0,0,0,.6)');ctx.fillStyle=v;ctx.fillRect(0,0,400,225);
+    ctx.font='600 9px IBM Plex Mono, monospace';ctx.textAlign='left';ctx.fillStyle='#e9eef5';
+    const y0=cam.stamp.startsWith('YESTERDAY');const sec=Math.floor(t)+(y0?40:0);
+    ctx.fillText(`${cam.stamp}${Math.floor(sec/60)+(y0?5:2)}:${String(sec%60).padStart(2,'0')}.${Math.floor((t%1)*10)}`,8,14);
+    ctx.textAlign='right';ctx.fillText(cam.name.split(' · ')[0],392,14);
+    if(playing&&(t*2%1)<.5){ctx.fillStyle='#ff4d5e';ctx.beginPath();ctx.arc(370,24,3,0,7);ctx.fill();ctx.fillStyle='#e9eef5';ctx.fillText('REC',362,27);}
+    else if(!playing){ctx.fillStyle='#f4b740';ctx.fillText('PAUSED',392,27);}
+    ctx.restore();
+  }
+  function loop(ts){
+    if(playing){const dt=(ts-(last||ts))/1000;last=ts;t+=dt;if(t>=cams[ci].dur){t=cams[ci].dur;setPlay(false);}scrub.value=t;}
+    draw();raf=requestAnimationFrame(loop);
+  }
+  function setPlay(p){playing=p;last=0;$('#cPlay',el).textContent=p?'Pause':'Play';if(p&&t>=cams[ci].dur-.05)t=0;}
+  function selCam(i){ci=i;t=0;setPlay(false);scrub.max=cams[i].dur;scrub.value=0;$$('.tabs button',el).forEach((b,j)=>b.setAttribute('aria-pressed',j===i));}
+  $$('.tabs button',el).forEach(b=>b.onclick=()=>selCam(+b.dataset.c));
+  $('#cPlay',el).onclick=()=>setPlay(!playing);
+  $('#cBack',el).onclick=()=>{setPlay(false);t=Math.max(0,t-.2);scrub.value=t;};
+  $('#cFwd',el).onclick=()=>{setPlay(false);t=Math.min(cams[ci].dur,t+.2);scrub.value=t;};
+  scrub.oninput=()=>{setPlay(false);t=+scrub.value;};
+  const msg=(h,k)=>{const m=$('#cMsg',el);m.innerHTML=h;m.className='cmsg '+(k||'');};
+  cv.addEventListener('click',e=>{
+    const r=cv.getBoundingClientRect();const x=(e.clientX-r.left)/r.width*400,y=(e.clientY-r.top)/r.height*225;
+    const cam=cams[ci];let hit=null;
+    for(const o of cam.objs){if(!vis(o))continue;const [ox,oy]=pos(o);
+      const box=o.kind==='car'?[ox-50,oy-52,ox+50,oy+2]:[ox-10,oy-(o.tall?52:o.kind==='child'?30:44),ox+10,oy+2];
+      if(x>=box[0]&&x<=box[2]&&y>=box[1]&&y<=box[3]){hit={o,ox};}}
+    if(!hit){msg('Nothing there to enhance. Tap directly on a person or vehicle.','');return;}
+    const {o,ox}=hit;const lit=ox>=cam.light[0]&&ox<=cam.light[1];
+    if(o.clue){
+      if(!lit){msg('<b>Too dark and blurry.</b> Scrub to the frame where this one is under the light, then tap again.','miss');return;}
+      const isNew=addEv(cs,o.clue[0],o.clue[1],o.clue[2],'CCTV');
+      msg(`<b>ENHANCED.</b> ${esc(o.clue[2])} ${isNew?'<span class="chip ok">Logged</span>':'<span class="chip">Already logged</span>'}`,'hit');
+    }else msg(esc(o.msg||'Nothing useful.'),'');
+  });
+  raf=requestAnimationFrame(loop);
+  $('#modal')._cleanup=()=>cancelAnimationFrame(raf);
+  $('.x',el).onclick=$('#cDone',el).onclick=closeModal;
+}
+
+// ================= bank
+function bankRows(cs){
+  const fake=()=>'****'+ri(1000,9999);
+  if(cs.type==='robbery'){
+    const b='****'+cs.B.acct,br=shuffle(DISTRICTS.slice());
+    return [
+      ['07:12',fake(),'ACH credit',2140,'Payroll · Harbor Freight Co.','normal','Regular payroll deposit, every two weeks.'],
+      ['07:30',fake(),'Wire in',45000,'Property sale · escrow release','normal','Escrow paperwork checks out. A house sale.'],
+      ['07:55',fake(),'Cash deposit',12500,'Business takings · Rossi\'s Deli','normal','Over $10,000, so the bank already filed a cash report. A deli doing its weekly banking.'],
+      ['08:02',b,'Cash deposit',9800,`${br[0]} branch · counter`,'hit'],
+      ['08:20',fake(),'Card purchase',2300,'ElectroMart · TV and soundbar','normal','A big purchase, but the card owner has a long history of similar spending.'],
+      ['08:41',b,'Cash deposit',9650,`${br[1]} branch · counter`,'hit'],
+      ['08:50',fake(),'Check deposit',8000,'Insurance payout · Clearwater Mutual','normal','Insurance check for a car accident claim. Verified.'],
+      ['09:05',fake(),'ATM withdrawal',400,`${br[2]} · ATM 4`,'normal','Ordinary cash withdrawal.'],
+      ['09:15',b,'Cash deposit',9900,`${br[3]} branch · counter`,'hit'],
+      ['09:22',fake(),'Transfer',5000,'To own savings account','normal','Moving money between their own accounts.'],
+    ];
+  }
+  const m='****'+ri(1000,9999),b='****'+cs.B.acct;
+  return [
+    ['15:41',m,'Wire in',250000,`From ${cs.parent.name}`,'normal','That\'s the ransom payment itself. We already know about it.'],
+    ['15:58',m,'Transfer out',120000,'CoinVault Exchange · deposit','normal','The exchange account was opened with a stolen ID. A dead end.'],
+    ['16:04',m,'Transfer out',80000,'Lakeside Holdings Ltd','normal','A shell company with no staff and a mailbox address. A dead end for now.'],
+    ['16:10',m,'Transfer out',40000,`Personal checking ${b} · ref "rent"`,'hit'],
+    ['16:22',m,'ATM withdrawal',500,'Old Town · ATM 2','normal','The ATM camera shows a masked person. Not identifiable.'],
+    ['16:31',m,'Card purchase',62,`Fuel · Route 9 Gas, ${cs.safe.district}`,'side'],
+    ['16:40',m,'ATM withdrawal',500,'Eastgate · ATM 7','normal','Masked again. Not identifiable.'],
+  ];
+}
+function openBank(cs){
+  const rows=cs.bankRows||(cs.bankRows=bankRows(cs));cs.flagged=cs.flagged||{};
+  const hint=cs.type==='robbery'?'Banks must report any cash deposit over $10,000. Criminals split cash into smaller deposits to stay under that line. That\'s called structuring.':'Kidnappers move ransom through dead-end accounts, but someone always pays themselves. Look for money going into a personal account.';
+  const el=openModal(`<header><div><div class="eyebrow">Financial crimes unit</div><h2>${cs.type==='robbery'?'Flagged cash activity · this morning':'Ransom account activity'}</h2></div><button class="x" aria-label="Close">✕</button></header>
+    <p class="muted" style="margin-top:0">${cs.type==='robbery'?'The crew took $57,250 in cash. Flag the transaction that looks like stolen money going back into the system.':'This account received the ransom. Flag the transaction that can lead you to a real person.'} Each wrong flag costs 15 minutes of checking.</p>
+    <div class="tablewrap"><table><thead><tr><th>Time</th><th>Account</th><th>Type</th><th style="text-align:right">Amount</th><th>Details</th><th></th></tr></thead><tbody>
+    ${rows.map((r,i)=>`<tr class="${cs.flagged[i]?(r[5]==='normal'?'flag-miss':'flag-hit'):''}"><td class="mono">${r[0]}</td><td class="mono">${r[1]}</td><td>${r[2]}</td><td class="amt">$${r[3].toLocaleString()}</td><td class="memo">${esc(r[4])}</td><td><button class="btn ghost sm" data-r="${i}" ${cs.flagged[i]||cs.done.bank?'disabled':''}>Flag</button></td></tr>`).join('')}
+    </tbody></table></div>
+    <div class="cmsg" id="bMsg">Read each row and flag the one that doesn't fit.</div>
+    <div class="row end"><button class="btn ghost" id="bHint">Ask an analyst (15 min)</button><button class="btn" id="bDone">Done</button></div>`,{wide:true});
+  const msg=(h,k)=>{const m=$('#bMsg',el);m.innerHTML=h;m.className='cmsg '+(k||'');};
+  $$('[data-r]',el).forEach(b=>b.onclick=()=>{
+    const i=+b.dataset.r,r=rows[i];cs.flagged[i]=true;
+    if(r[5]==='hit'){
+      cs.done.bank=true;cs.named[cs.B.id]=true;
+      if(cs.type==='robbery'){addEv(cs,'deposits','Structured deposits',`Three cash deposits of just under $10,000 at three branches into ${r[1]}. Holder: ${cs.B.name}, teller at ${cs.bank}. Lives at ${cs.B.address}.`,'Bank');
+        msg(`<b>Match.</b> Three deposits just under $10,000 into ${r[1]} at different branches, the morning after the robbery. Account holder: <b>${esc(cs.B.name)}</b>, a teller at ${esc(cs.bank)}, ${esc(cs.B.address)}.`,'hit');}
+      else{addEv(cs,'transfer','$40,000 to a personal account',`Ransom money moved to ${r[1]}, held by ${cs.B.name} (${cs.B.address}, ${cs.B.district}).`,'Bank');
+        msg(`<b>Match.</b> $40,000 went into a personal account owned by <b>${esc(cs.B.name)}</b>, ${esc(cs.B.address)}, ${esc(cs.B.district)}.`,'hit');}
+      b.closest('tr').className='flag-hit';$$('[data-r]',el).forEach(x=>x.disabled=true);
+    }else if(r[5]==='side'){
+      addEv(cs,'fuel',`Ransom card used in ${cs.safe.district}`,`A fuel purchase on the ransom account's card in ${cs.safe.district}. The crew may be based nearby.`,'Bank');
+      cs.flags.district=true;
+      msg(`<b>Useful.</b> The card linked to this account bought fuel in ${esc(cs.safe.district)}. The crew may be based nearby. Keep looking for a real name.`,'hit');b.closest('tr').className='flag-hit';b.disabled=true;
+    }else{
+      if(!spend(cs,15))return;
+      msg(`<b>Checked out.</b> ${esc(r[6])} (−15 min)`,'miss');b.closest('tr').className='flag-miss';b.disabled=true;
+    }
+  });
+  $('#bHint',el).onclick=()=>{if(!spend(cs,15))return;msg('<b>Analyst:</b> '+esc(hint),'');$('#bHint',el).disabled=true;};
+  $('.x',el).onclick=$('#bDone',el).onclick=closeModal;
+}
+
+// ================= phone trace
+function openTrace(cs){
+  const cells=DISTRICTS.map((d,i)=>({d,x:(i%3)*110,y:Math.floor(i/3)*110}));
+  const tgt=cells.find(c=>c.d===cs.safe.district);
+  const caller={x:tgt.x+rnd(28,82),y:tgt.y+rnd(28,82)};
+  const towers=shuffle([{x:22,y:22},{x:308,y:26},{x:165,y:206},{x:30,y:196},{x:300,y:200},{x:165,y:16}]).slice(0,3).map((t,i)=>({...t,n:'T'+(i+1),r:Math.hypot(t.x-caller.x,t.y-caller.y)}));
+  let mark=null;
+  const el=openModal(`<header><div><div class="eyebrow">Signal intelligence</div><h2>Trace the ransom call</h2></div><button class="x" aria-label="Close">✕</button></header>
+    <p class="muted" style="margin-top:0">Each tower measured how far away the kidnapper's phone was. The phone sits where all three rings cross. Tap that spot and confirm. The map matches the city's six districts.</p>
+    <svg class="map" viewBox="0 0 330 220" id="tMap" role="img" aria-label="City map with three cell towers">
+      ${cells.map(c=>`<rect x="${c.x+1}" y="${c.y+1}" width="108" height="108" fill="#122036" stroke="#22324f"/><text x="${c.x+55}" y="${c.y+100}" text-anchor="middle" font-family="IBM Plex Mono" font-size="9" fill="#5e6f8f">${c.d.toUpperCase()}</text>`).join('')}
+      ${towers.map(t=>`<circle cx="${t.x}" cy="${t.y}" r="${t.r}" fill="none" stroke="#f4b740" stroke-opacity=".45" stroke-width="7"/>`).join('')}
+      ${towers.map(t=>`<g><path d="M${t.x} ${t.y-8} l6 12 h-12z" fill="#4b8dff"/><text x="${t.x+8}" y="${t.y+3}" font-family="IBM Plex Mono" font-size="9" fill="#e6ecf6">${t.n} · ${(t.r/40).toFixed(2)} km</text></g>`).join('')}
+      <g id="tMark"></g>
+    </svg>
+    <div class="cmsg" id="tMsg">Tap the map where the three rings overlap.</div>
+    <div class="row end"><button class="btn ghost" id="tLeave">Leave it for now</button><button class="btn" id="tGo" disabled>Confirm location</button></div>`,{wide:true});
+  const svg=$('#tMap',el);
+  svg.addEventListener('click',e=>{const r=svg.getBoundingClientRect();mark={x:(e.clientX-r.left)/r.width*330,y:(e.clientY-r.top)/r.height*220};
+    $('#tMark',el).innerHTML=`<circle cx="${mark.x}" cy="${mark.y}" r="6" fill="#ff4d5e"/><circle cx="${mark.x}" cy="${mark.y}" r="12" fill="none" stroke="#ff4d5e"/>`;$('#tGo',el).disabled=false;});
+  const msg=(h,k)=>{const m=$('#tMsg',el);m.innerHTML=h;m.className='cmsg '+(k||'');};
+  $('#tGo',el).onclick=()=>{
+    if(Math.hypot(mark.x-caller.x,mark.y-caller.y)<22){
+      cs.done.trace=true;cs.flags.district=true;
+      addEv(cs,'trace',`Call traced to ${cs.safe.district}`,`The ransom call was made from inside ${cs.safe.district}. A canvass lead is on the MDT.`,'Phone trace');
+      msg(`<b>Locked.</b> The ransom call came from inside <b>${esc(cs.safe.district)}</b>.`,'hit');$('#tGo',el).disabled=true;$('#tLeave',el).textContent='Done';
+    }else{if(!spend(cs,10))return;msg('<b>No match.</b> The readings don\'t fit that spot. Look for the one point inside all three rings. (−10 min)','miss');}
+  };
+  $('.x',el).onclick=$('#tLeave',el).onclick=closeModal;
+}
+
+// ================= records database
+function dbPanel(body,cs){
+  const opts=(arr,lbl)=>`<option value="">Any ${lbl}</option>`+arr.map(v=>`<option>${v}</option>`).join('');
+  body.innerHTML=`<p class="muted" style="margin-top:0">${cs.db.length} persons of interest. Narrow them down with your clues, then set GPS to a suspect's home and arrest them in person.</p>
+    <div class="filters">
+      <label>Name or nickname<input id="fQ" placeholder="e.g. Viper" autocomplete="off"></label>
+      <label>Vehicle color<select id="fC">${opts(COLORS.map(c=>c.n),'color')}</select></label>
+      <label>Vehicle type<select id="fM">${opts(MODELS,'type')}</select></label>
+      <label>Plate (? = unknown)<input id="fP" placeholder="e.g. K?7-?4?2" class="mono" autocomplete="off"></label>
+      <label>Tattoo<select id="fT">${opts(TATTOOS,'tattoo')}</select></label>
+      <label>Height<select id="fH"><option value="">Any height</option><option value="180">180 cm or taller</option><option value="190">190 cm or taller</option></select></label>
+    </div><div class="dbres" id="dbRes"></div>`;
+  const draw=()=>{
+    const q=lower($('#fQ',body).value.trim()),c=$('#fC',body).value,m=$('#fM',body).value,pl2=$('#fP',body).value.trim().toUpperCase(),tt=$('#fT',body).value,h=+$('#fH',body).value||0;
+    const list=cs.db.filter(p=>(!q||lower(p.name).includes(q)||lower(p.nick).includes(q))&&(!c||p.car.color.n===c)&&(!m||p.car.model===m)&&(!pl2||matchPlate(p.car.plate,pl2))&&(!tt||p.tattoo===tt)&&(!h||p.height>=h));
+    $('#dbRes',body).innerHTML=list.length?list.map(p=>{const inC=cs.custody.includes(p.id)||(prisoner&&prisoner.p===p);return `<div class="person">${avatar(p,64)}<div><h3>${esc(p.name)} <span class="muted" style="font-weight:400">aka "${esc(p.nick)}"</span></h3>
+      <dl><dt>Vehicle</dt><dd>${p.car.color.n} ${p.car.model} · <span class="mono">${p.car.plate}</span></dd><dt>Height</dt><dd>${p.height} cm · ${p.hair.n} hair</dd><dt>Tattoo</dt><dd>${p.tattoo}</dd><dt>Home</dt><dd>${esc(p.address)}, ${p.district}</dd><dt>Job</dt><dd>${esc(p.job)}</dd><dt>Priors</dt><dd>${p.prior}</dd></dl>
+      ${inC?'<span class="chip ok">In custody</span>':`<button class="btn sm" data-gps="${p.id}">Set GPS to home</button>`}</div></div>`;}).join(''):'<div class="empty">No one matches every filter. Loosen one.</div>';
+    $$('[data-gps]',body).forEach(b=>b.onclick=()=>{const p=person(cs,b.dataset.gps);setGPS(p.door.x,p.door.z,p.name+"'s home",p.id);closeModal();toast(`GPS set: ${p.address}. Walk up to the door to make the arrest.`);});
+  };
+  $$('input,select',body).forEach(i=>i.addEventListener('input',draw));
+  draw();
+}
+
+// ================= interrogation
+const DENY=['So what? That doesn\'t put me anywhere.','Is that supposed to scare me?','Never seen that before in my life.','You\'ve got nothing, officer.','That proves nothing and you know it.'];
+function interviewRoom(cs){
+  const ids=cs.custody.filter(id=>!cs.cracked[id]&&!cs.lawyered[id]&&cs.scripts[id]);
+  if(!ids.length){toast('Nobody in custody needs questioning right now.');return;}
+  const el=openModal(`<header><div><div class="eyebrow">Precinct 9 · Interview room 2</div><h2>Who do you want to question?</h2></div><button class="x" aria-label="Close">✕</button></header>
+    <div class="choices">${ids.map(id=>{const p=person(cs,id);return `<button class="choice" data-q="${id}"><b>${esc(p.name)}</b><span>${esc(cs.roles.find(r=>r[0]===p)[1])} · 20 min</span></button>`;}).join('')}</div>`);
+  $('.x',el).onclick=closeModal;
+  $$('[data-q]',el).forEach(b=>b.onclick=()=>{if(!spend(cs,20))return;interrogate(cs,person(cs,b.dataset.q));});
+}
+function interrogate(cs,p){
+  const S2=cs.scripts[p.id];let patience=3;const talk=[['them',S2.alibi]];let over=false;
+  const el=openModal(`<header><div class="driver">${avatar(p,56)}<div><div class="eyebrow">Interview room 2</div><h2>${esc(p.name)}</h2><div class="patience" id="iPat" aria-label="Patience"></div></div></div><button class="x" aria-label="Close">✕</button></header>
+    <div class="talk" id="iTalk"></div><div id="iAct"></div>`,{dismiss:false});
+  const draw=()=>{
+    $('#iPat',el).innerHTML=[0,1,2].map(i=>`<i class="${i<patience?'':'off'}"></i>`).join('')+'<span class="muted" style="font-size:12px;margin-left:6px">patience</span>';
+    $('#iTalk',el).innerHTML=talk.map(([w,t])=>`<div class="line ${w}">${esc(t)}</div>`).join('');
+    const tk=$('#iTalk',el);tk.scrollTop=tk.scrollHeight;
+    if(over){$('#iAct',el).innerHTML=`<div class="row end"><button class="btn" id="iDone">Done</button></div>`;$('#iDone',el).onclick=closeModal;return;}
+    $('#iAct',el).innerHTML=`<div class="eyebrow" style="margin-bottom:6px">Present evidence</div>
+      <div class="evbtns">${cs.evidence.length?cs.evidence.map((e,i)=>`<button class="btn ghost sm" data-e="${i}">${esc(e.title)}</button>`).join(''):'<span class="muted">You have no evidence yet.</span>'}</div>
+      <div class="row" style="margin-top:12px"><button class="btn ghost" id="iDeal">Offer a deal</button><button class="btn ghost" id="iLeave">End the interview</button></div>`;
+    $$('[data-e]',el).forEach(b=>b.onclick=()=>present(cs.evidence[+b.dataset.e]));
+    $('#iDeal',el).onclick=deal;$('#iLeave',el).onclick=closeModal;
+  };
+  const crack=()=>{S2.crack.forEach(l=>talk.push(['them',l]));talk.push(['sys','They cracked. New evidence logged.']);cs.cracked[p.id]=true;S2.onCrack();gainXP(30);over=true;draw();};
+  const lose=()=>{patience--;if(patience<=0){talk.push(['them','I\'m done talking. I want my lawyer.']);talk.push(['sys','Interview over. You\'ll have to find the rest another way.']);cs.lawyered[p.id]=true;over=true;}draw();};
+  const present=e=>{talk.push(['you',`(slides it across the table) ${e.title}. ${e.detail}`]);if(S2.correct.includes(e.id))crack();else{talk.push(['them',pick(DENY)]);lose();}};
+  const deal=()=>{
+    talk.push(['you','Help yourself. Tell me about the others and I\'ll tell the DA you cooperated.']);
+    const partner=cs.custody.some(id=>id!==p.id&&cs.cracked[id]);
+    if(partner&&Math.random()<.6){talk.push(['them','...Your partner already talked, didn\'t they? Fine.']);crack();}
+    else{talk.push(['them',partner?'Nice try. I\'m not saying a word.':'Deal? You\'ve got nothing on anyone. Why would I deal?']);lose();}
+  };
+  $('.x',el).onclick=closeModal;
+  draw();
+}
+
+// ================= raid
+function raid(cs){
+  const kid=cs.type==='kidnap';const intel=!!cs.flags.backIntel;
+  const place=kid?cs.safe.address:cs.hide.place;
+  const el=openModal(`<header><div><div class="eyebrow">Tactical entry · backup on scene</div><h2>${esc(place)}</h2></div><button class="x" aria-label="Not yet">✕</button></header>
+    <p class="muted" style="margin-top:0">${kid?`${esc(cs.victim.first)} is inside.`:`"${esc(cs.C.nick)}" is inside.`} Choose how the team goes in.${intel?' Your informant said they watch the front.':''}</p>
+    <div class="choices">
+      <button class="choice" data-entry="front"><b>Front door</b><span>Fast and direct. Anyone watching the street gets a few seconds' warning.</span></button>
+      <button class="choice" data-entry="back"><b>Back door</b><span>A slower approach from the back. Nobody has confirmed whether it's open.</span></button>
+    </div>`,{dismiss:false});
+  $('.x',el).onclick=closeModal;
+  $$('[data-entry]',el).forEach(b=>b.onclick=()=>{
+    const e=b.dataset.entry;let need,win,note;
+    if(e==='back'&&intel){need=4;win=1.25;note='The back door is unlocked. You\'re inside before they notice.';}
+    else if(e==='back'){need=6;win=.8;note='The back door is barricaded! The team swings round to the front, and they heard you coming.';}
+    else{need=5;win=.95;note='Front door breached. They saw you on the steps.';}
+    raidGame({need,win,note,kid},ok=>{
+      if(ok){
+        cs.custody.push(cs.C.id);cs.named[cs.C.id]=true;career.arrests++;gainXP(40);
+        if(kid){cs.flags.rescued=true;clog(cs,`${cs.victim.first} rescued from ${place}. ${cs.C.name} arrested; backup is transporting.`);addEv(cs,'rescued',`${cs.victim.first} rescued`,`Found safe in the basement of ${place}. ${cs.C.name} was guarding the door.`,'Raid');toast(`${cs.victim.first} is safe! Close the case from the MDT, or keep hunting the rest of the crew.`,'good');}
+        else{cs.flags.loot=true;clog(cs,`${cs.C.name} ("${cs.C.nick}") arrested at the ${place}. $27,900 recovered.`);addEv(cs,'loot','Cash recovered','$27,900 of the stolen cash was in a gym bag under the motel bed.','Raid');toast(`"${cs.C.nick}" is in custody. Close the case from the MDT when ready.`,'good');}
+        gps=null;
+      }else if(kid){
+        clog(cs,'The raid stalled. A negotiator spent 90 minutes talking the guard down from a barricade.');toast('Raid stalled. 90 min lost. Go again.','bad');spend(cs,90);
+      }else{
+        clog(cs,`${cs.C.name} slipped out a window and ran for the ${lower(cs.C.car.color.n)} ${lower(cs.C.car.model)}.`);
+        startCarChase(cs,cs.C,LOC.motels[cs.hide.place],()=>{cs.flags.hideout=false;clog(cs,`"${cs.C.nick}" escaped. The ${place} is burned. Monitor the bank card again.`);toast('They escaped. Track them again from the MDT.','bad');});
+      }
+    });
+  });
+}
+function raidGame(o,cb){
+  const el=openModal(`<header><div><div class="eyebrow">Tactical entry · tap suspects to restrain them</div><h2>Clear the building</h2></div></header>
+    <p class="cmsg">${esc(o.note)} Tap the <b style="color:var(--red)">masked suspects</b>. Don't touch anyone with their hands up${o.kid?' or the child':''}.</p>
+    <div class="raidhud"><span id="rN">0/${o.need} restrained</span><span id="rS">Mistakes 0/3</span><span id="rT">20.0s</span></div>
+    <div class="raidgrid">${[0,1,2,3,4,5].map(i=>`<button class="door" data-d="${i}" aria-label="Doorway ${i+1}"></button>`).join('')}</div>
+    <div class="row end"><button class="btn" id="rGo">Go</button></div>`,{dismiss:false});
+  const FIG={
+    sus:`<svg viewBox="0 0 40 60"><path d="M7 60 9 29q11-9 22 0l2 31z" fill="#7a1d2a"/><circle cx="20" cy="17" r="10" fill="#17181d"/><rect x="13" y="14" width="14" height="4" rx="2" fill="#e6e6e6"/><rect x="29" y="30" width="4" height="16" fill="#3a3a3a"/></svg>`,
+    civ:`<svg viewBox="0 0 40 60"><path d="M9 60 10 30q10-8 20 0l1 30z" fill="#3d5f9a"/><path d="M10 32 4 12M30 32l6-20" stroke="#e0ac85" stroke-width="4" stroke-linecap="round"/><circle cx="20" cy="18" r="8.5" fill="#e0ac85"/><path d="M12 15q8-9 16 0" fill="#5a3a22"/></svg>`,
+    kid:`<svg viewBox="0 0 40 60"><path d="M12 60 13 40q7-6 14 0l1 20z" fill="#c9a227"/><circle cx="20" cy="31" r="7.5" fill="#e0ac85"/><path d="M13 29q7-8 14 0" fill="#5a3a22"/></svg>`};
+  let n=0,s=0,time=20,running=false,timer=0,spawnT=0;const doors=$$('.door',el);const state=doors.map(()=>null);
+  const hud=()=>{$('#rN',el).textContent=`${n}/${o.need} restrained`;$('#rS',el).textContent=`Mistakes ${s}/3`;$('#rT',el).textContent=Math.max(0,time).toFixed(1)+'s';};
+  const end=ok=>{running=false;clearInterval(timer);doors.forEach(d=>d.disabled=true);
+    $('.raidgrid',el).insertAdjacentHTML('afterend',`<p class="cmsg ${ok?'hit':'miss'}" style="text-align:center">${ok?'Building clear. Suspect in cuffs.':(s>=3?'Too many mistakes. The commander pulled the team out.':'Out of time. The suspect barricaded themselves in.')}</p>`);
+    const b=$('#rGo',el);b.textContent='Continue';b.hidden=false;b.onclick=()=>{closeModal();cb(ok);};};
+  const tick=()=>{
+    time-=.1;spawnT-=.1;
+    state.forEach((st,i)=>{if(st){st.t-=.1;if(st.t<=0){state[i]=null;doors[i].classList.remove('up');}}});
+    if(spawnT<=0){spawnT=rnd(.5,.85);const free=state.map((s2,i)=>s2?null:i).filter(i=>i!==null);
+      if(free.length){const i=pick(free);const r=Math.random();const type=r<.55?'sus':(o.kid&&r>.85?'kid':'civ');state[i]={type,t:o.win};doors[i].innerHTML=FIG[type];doors[i].className='door';requestAnimationFrame(()=>doors[i].classList.add('up'));}}
+    hud();if(time<=0)end(false);
+  };
+  doors.forEach((d,i)=>d.onclick=()=>{
+    if(!running||!state[i])return;
+    const st=state[i];state[i]=null;d.classList.remove('up');
+    if(st.type==='sus'){n++;d.classList.add('hit');}else{s++;d.classList.add('oops');}
+    setTimeout(()=>d.classList.remove('hit','oops'),250);
+    hud();if(n>=o.need)end(true);else if(s>=3)end(false);
+  });
+  $('#rGo',el).onclick=()=>{$('#rGo',el).hidden=true;running=true;timer=setInterval(tick,100);};
+  $('#modal')._cleanup=()=>clearInterval(timer);
+  hud();
+}
+
+// ================= arrests in the world
+function doorArrest(cs,p){
+  const el=openModal(`<header><div class="driver">${avatar(p,64)}<div><div class="eyebrow">${esc(p.address)}</div><h2>${esc(p.name)}</h2><div class="muted" style="font-size:13px">aka "${esc(p.nick)}" · ${p.height} cm · ${esc(p.tattoo)}</div></div></div><button class="x" aria-label="Close">✕</button></header>
+    <div class="talk"><div class="line them">${pick(['Can I help you, officer?','What\'s this about?','I haven\'t done anything.','Do you have a warrant?'])}</div></div>
+    <p class="muted">Arresting someone without evidence costs reputation and case time.</p>
+    <div class="row end"><button class="btn ghost" id="aLeave">Walk away</button><button class="btn red" id="aGo">Arrest ${esc(p.first)}</button></div>`);
+  $('.x',el).onclick=$('#aLeave',el).onclick=closeModal;
+  $('#aGo',el).onclick=()=>{
+    closeModal();
+    if(prisoner){toast('Book the prisoner in your car at the station first.','bad');return;}
+    if(!cs.gang.includes(p.id)){
+      cs.falseArrests++;career.falseArrests++;addRep(-8);
+      clog(cs,`Arrested ${p.name}. Solid alibi, released with an apology. Complaint filed.`);
+      toast(`${p.name} had a solid alibi. False arrest: reputation −8, 30 min of paperwork.`,'bad');spend(cs,30);return;
+    }
+    if(Math.random()<(cs.fleeChance[p.id]||0)){
+      if(Math.random()<.5){clog(cs,`${p.name} bolted for the ${lower(p.car.color.n)} ${lower(p.car.model)}.`);startCarChase(cs,p,p.door,()=>{toast(`${p.first} got away. They'll turn up at home again later.`,'bad');spend(cs,45);});}
+      else{clog(cs,`${p.name} ran for it.`);startFootChase(cs,p);}
+      return;
+    }
+    cuff(cs,p);
+  };
+}
+function cuff(cs,p){
+  prisoner={cs,p};
+  clog(cs,`${p.name} cuffed and placed in your cruiser.`);
+  setGPS(LOC.book.x,LOC.book.z,'Precinct 9 booking');
+  toast(`${p.name} is cuffed and in your cruiser. Drive them to Precinct 9.`,'good');
+}
+function book(){
+  const {cs,p}=prisoner;prisoner=null;gps=null;
+  if(cs.ended)return;
+  cs.custody.push(p.id);cs.named[p.id]=true;career.arrests++;saveCareer();gainXP(20);
+  clog(cs,`${p.name} booked at Precinct 9.`);toast(`${p.name} booked. Question them in the interview room.`,'good');
+  setGPS(LOC.interview.x,LOC.interview.z,'Interview room');
+}
+
+// ================= THREE.JS WORLD
+let renderer,scene,camera,clock3,started=false,beacon,tArrow;
+const GEO={},matCache={};
+const mat=c=>matCache[c]||(matCache[c]=new THREE.MeshLambertMaterial({color:c}));
+let pc,pl,inCar=true,aiCars=[],peds=[],target=null,suspect=null,chase=null,runner=null,camYawOff=0,flashT=0,lightsOn=false,blinkT=0;
+const iMeshes=new Map();
+let matLF,matLR;
+
+function buildWorld(){
+  const cv=$('#gl');
+  renderer=new THREE.WebGLRenderer({canvas:cv,antialias:true});
+  renderer.setPixelRatio(Math.min(1.5,window.devicePixelRatio||1));
+  scene=new THREE.Scene();
+  scene.background=new THREE.Color('#a9bccd');
+  scene.fog=new THREE.Fog('#a9bccd',110,330);
+  camera=new THREE.PerspectiveCamera(62,1,.3,700);
+  scene.add(new THREE.HemisphereLight('#e4ecff','#4d4538',.9));
+  const sun=new THREE.DirectionalLight('#fff0d6',.75);sun.position.set(-150,220,90);scene.add(sun);
+  matLF=new THREE.MeshLambertMaterial({color:'#fff3c4',emissive:'#8a8466'});matLR=new THREE.MeshLambertMaterial({color:'#a0121e',emissive:'#5a0810'});
+  GEO.leg=new THREE.BoxGeometry(.22,.9,.24);GEO.leg.translate(0,-.45,0);
+  GEO.arm=new THREE.BoxGeometry(.15,.72,.18);GEO.arm.translate(0,-.36,0);
+  GEO.torso=new THREE.BoxGeometry(.58,.74,.34);
+  GEO.head=new THREE.SphereGeometry(.2,12,10);
+  GEO.hair=new THREE.SphereGeometry(.212,12,8,0,Math.PI*2,0,Math.PI/2);
+  GEO.hat=new THREE.CylinderGeometry(.23,.23,.13,12);GEO.brim=new THREE.BoxGeometry(.32,.03,.2);
+  GEO.body=new THREE.BoxGeometry(1.9,.7,4.4);GEO.doors=new THREE.BoxGeometry(1.93,.58,2.1);
+  GEO.glass=new THREE.BoxGeometry(1.66,.56,2.2);GEO.roof=new THREE.BoxGeometry(1.7,.08,2.0);
+  GEO.glassT=new THREE.BoxGeometry(1.8,.72,2.9);GEO.roofT=new THREE.BoxGeometry(1.84,.08,2.7);
+  GEO.van=new THREE.BoxGeometry(1.9,1.05,3.6);GEO.vanGlass=new THREE.BoxGeometry(1.7,.5,.08);
+  GEO.cab=new THREE.BoxGeometry(1.7,.62,1.4);GEO.cabRoof=new THREE.BoxGeometry(1.74,.08,1.3);
+  GEO.axle=new THREE.BoxGeometry(2.02,.68,.68);GEO.lightBar=new THREE.BoxGeometry(1.5,.16,.06);GEO.bar=new THREE.BoxGeometry(.6,.16,.32);
+  GEO.marker=new THREE.OctahedronGeometry(.32);GEO.arrow=new THREE.ConeGeometry(.55,1.1,4);GEO.arrow.rotateX(Math.PI);
+  GEO.kiosk=new THREE.BoxGeometry(.7,1.4,.5);GEO.screen=new THREE.BoxGeometry(.55,.4,.05);
+  const ground=new THREE.Mesh(new THREE.PlaneGeometry(1600,1600),mat('#5f7650'));ground.rotation.x=-Math.PI/2;ground.position.set(CITY/2,0,CITY/2);scene.add(ground);
+  // roads
+  const rc=document.createElement('canvas');rc.width=256;rc.height=64;const g=rc.getContext('2d');
+  g.fillStyle='#3a3d43';g.fillRect(0,0,256,64);
+  for(let i=0;i<500;i++){g.fillStyle=`rgba(255,255,255,${Math.random()*.05})`;g.fillRect(Math.random()*256,Math.random()*64,2,2);}
+  g.fillStyle='#e6e6e6';g.fillRect(0,3,256,2);g.fillRect(0,59,256,2);
+  g.fillStyle='#e0b43c';for(let x=0;x<256;x+=64)g.fillRect(x,31,36,2.5);
+  const roadTex=new THREE.CanvasTexture(rc);roadTex.wrapS=THREE.RepeatWrapping;roadTex.anisotropy=4;
+  const len=CITY+16;
+  roadTex.repeat.set(len/32,1);
+  const roadMat=new THREE.MeshLambertMaterial({map:roadTex});
+  for(let i=0;i<=NB;i++){
+    const h=new THREE.Mesh(new THREE.PlaneGeometry(len,16),roadMat);h.rotation.x=-Math.PI/2;h.position.set(CITY/2,.02,i*S);scene.add(h);
+    const v=new THREE.Mesh(new THREE.PlaneGeometry(len,16),roadMat);v.rotation.set(-Math.PI/2,0,Math.PI/2);v.position.set(i*S,.025,CITY/2);scene.add(v);
+  }
+  const isec=new THREE.PlaneGeometry(16,16);const isM=mat('#3a3d43');
+  for(let i=0;i<=NB;i++)for(let j=0;j<=NB;j++){const m=new THREE.Mesh(isec,isM);m.rotation.x=-Math.PI/2;m.position.set(i*S,.03,j*S);scene.add(m);}
+  const sw=new THREE.BoxGeometry(S-16,.22,S-16),lawnG=new THREE.PlaneGeometry(S-26,S-26);
+  for(let bi=0;bi<NB;bi++)for(let bj=0;bj<NB;bj++){
+    const sp=SPECIAL[bi+','+bj];
+    const m=new THREE.Mesh(sw,mat(sp&&sp.kind==='park'?'#6b8f55':'#a3a39b'));m.position.set((bi+.5)*S,.11,(bj+.5)*S);scene.add(m);
+    if(!sp||sp.kind!=='park'){const lawn=new THREE.Mesh(lawnG,mat('#7b8a68'));lawn.rotation.x=-Math.PI/2;lawn.position.set((bi+.5)*S,.23,(bj+.5)*S);scene.add(lawn);}
+  }
+  // buildings
+  const wc=document.createElement('canvas');wc.width=64;wc.height=64;const w=wc.getContext('2d');
+  w.fillStyle='#ffffff';w.fillRect(0,0,64,64);w.fillStyle='#5d6a7e';w.fillRect(10,12,18,22);w.fillRect(36,12,18,22);w.fillStyle='rgba(255,255,255,.35)';w.fillRect(12,14,6,8);w.fillRect(38,14,6,8);
+  const winTex=new THREE.CanvasTexture(wc);winTex.wrapS=winTex.wrapT=THREE.RepeatWrapping;
+  const roofM=mat('#4d5058');
+  for(const b of BUILD_LIST){
+    const tex=winTex.clone();tex.needsUpdate=true;tex.repeat.set(Math.max(1,Math.round(Math.max(b.w,b.d)/6)),Math.max(1,Math.round(b.h/4)));
+    const wall=new THREE.MeshLambertMaterial({color:b.color,map:tex});
+    const m=new THREE.Mesh(new THREE.BoxGeometry(b.w,b.h,b.d),[wall,wall,roofM,roofM,wall,wall]);m.position.set(b.x,b.h/2+.22,b.z);scene.add(m);
+    if(b.special){
+      const sp=b.special,d=sp.door;
+      const text=sp.kind==='motel'?sp.name.toUpperCase():sp.kind==='bank'?'BANK':sp.kind==='school'?'SCHOOL':sp.sign;
+      const sc=document.createElement('canvas');sc.width=512;sc.height=96;const s=sc.getContext('2d');
+      s.fillStyle=sp.kind==='station'?'#1d3a7a':sp.kind==='bank'?'#2a2a2a':sp.kind==='school'?'#f3efe2':'#7a1d2a';s.fillRect(0,0,512,96);
+      s.fillStyle=sp.kind==='school'?'#7a3324':'#f4f1e6';s.font='700 54px Saira Condensed, Arial Narrow, sans-serif';s.textAlign='center';s.textBaseline='middle';s.fillText(text,256,52);
+      const sm=new THREE.Mesh(new THREE.PlaneGeometry(12,2.25),new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(sc)}));
+      sm.position.set(d.x-d.nx*1.35,Math.min(b.h-1.4,6.2),d.z-d.nz*1.35);sm.rotation.y=faceOf(d);scene.add(sm);
+      const door=new THREE.Mesh(new THREE.PlaneGeometry(2.4,3),mat('#20252e'));door.position.set(d.x-d.nx*1.45,1.72,d.z-d.nz*1.45);door.rotation.y=faceOf(d);scene.add(door);
+      if(sp.kind==='station'){for(let k=-1;k<=1;k+=2){if(k===1)continue;const car=makeCarMesh('#15171c','Sedan',true);car.position.set(d.cx+d.nx*34+d.tx*k*12,0,d.cz+d.nz*34+d.tz*k*12);car.rotation.y=Math.atan2(d.tx,d.tz);scene.add(car);}}
+    }
+  }
+  for(const d of RES_DOORS){const door=new THREE.Mesh(new THREE.PlaneGeometry(1.3,2.3),mat('#5a3b28'));door.position.set(d.x-d.nx*1.25,1.37,d.z-d.nz*1.25);door.rotation.y=faceOf(d);scene.add(door);}
+  const trunk=new THREE.CylinderGeometry(.22,.3,2.4,6),crown=new THREE.SphereGeometry(1.9,8,6);
+  for(const [x,z] of TREES){const t=new THREE.Mesh(trunk,mat('#5b4232'));t.position.set(x,1.4,z);scene.add(t);const c=new THREE.Mesh(crown,mat(pick(['#3f6b3a','#4b7a3f','#365f34'])));c.position.set(x,3.6,z);scene.add(c);}
+  beacon=new THREE.Mesh(new THREE.CylinderGeometry(1.1,1.1,80,16,1,true),new THREE.MeshBasicMaterial({color:'#f4b740',transparent:true,opacity:.28,depthWrite:false,side:THREE.DoubleSide}));
+  beacon.position.y=40;beacon.visible=false;scene.add(beacon);
+  tArrow=new THREE.Mesh(GEO.arrow,new THREE.MeshBasicMaterial({color:'#f4b740'}));tArrow.visible=false;scene.add(tArrow);
+  pc={x:LOC.spawnCar.x,z:LOC.spawnCar.z,h:LOC.spawnCar.h,v:0,damage:0,mesh:makeCarMesh('#15171c','Sedan',true,true)};scene.add(pc.mesh);
+  pc.mesh.position.set(pc.x,0,pc.z);pc.mesh.rotation.y=pc.h;
+  pl={x:pc.x,z:pc.z,h:pc.h,mesh:makePersonMesh({shirt:'#1d2c4f',skin:SKIN[2],hair:null,pants:'#1b2238',hat:true}),phase:0};pl.mesh.visible=false;scene.add(pl.mesh);
+  for(let i=0;i<26;i++)spawnAICar();
+  for(let i=0;i<34;i++)spawnPed();
+  window.addEventListener('resize',resize);resize();
+  clock3=new THREE.Clock();
+  renderer.setAnimationLoop(frame);
+}
+function resize(){const w=innerWidth,h=innerHeight;renderer.setSize(w,h,false);camera.aspect=w/h;camera.fov=w<h?74:62;camera.updateProjectionMatrix();}
+
+function makePersonMesh(o){
+  const g=new THREE.Group();
+  const pants=mat(o.pants||'#262a33'),shirt=mat(o.shirt||'#3d4f6e'),skin=mat(o.skin||'#c68a5e');
+  const legL=new THREE.Mesh(GEO.leg,pants);legL.position.set(-.13,.92,0);
+  const legR=new THREE.Mesh(GEO.leg,pants);legR.position.set(.13,.92,0);
+  const torso=new THREE.Mesh(GEO.torso,shirt);torso.position.y=1.29;
+  const armL=new THREE.Mesh(GEO.arm,shirt);armL.position.set(-.37,1.64,0);
+  const armR=new THREE.Mesh(GEO.arm,shirt);armR.position.set(.37,1.64,0);
+  const head=new THREE.Mesh(GEO.head,skin);head.position.y=1.88;
+  g.add(legL,legR,torso,armL,armR,head);
+  if(o.hair){const h=new THREE.Mesh(GEO.hair,mat(o.hair));h.position.y=1.9;g.add(h);}
+  if(o.hat){const h=new THREE.Mesh(GEO.hat,mat('#141c30'));h.position.y=2.06;const b=new THREE.Mesh(GEO.brim,mat('#141c30'));b.position.set(0,2.01,.16);g.add(h,b);}
+  g.userData={legL,legR,armL,armR};
+  return g;
+}
+function animPerson(g,phase,amp){const u=g.userData;const s=Math.sin(phase)*amp;u.legL.rotation.x=s;u.legR.rotation.x=-s;u.armL.rotation.x=-s*.8;u.armR.rotation.x=s*.8;}
+function makeCarMesh(color,model,police,player){
+  const g=new THREE.Group();const bm=mat(police?'#15171c':color),glass=mat('#1b2431');
+  const body=new THREE.Mesh(GEO.body,bm);body.position.y=.72;g.add(body);
+  if(police){const d=new THREE.Mesh(GEO.doors,mat('#f2f2f2'));d.position.y=.74;g.add(d);}
+  let roofY=1.68;
+  if(model==='Van'){const v=new THREE.Mesh(GEO.van,bm);v.position.set(0,1.58,-.35);const gl=new THREE.Mesh(GEO.vanGlass,glass);gl.position.set(0,1.78,1.47);g.add(v,gl);roofY=2.1;}
+  else if(model==='SUV'){const gl=new THREE.Mesh(GEO.glassT,glass);gl.position.set(0,1.42,-.35);const r=new THREE.Mesh(GEO.roofT,bm);r.position.set(0,1.82,-.38);g.add(gl,r);roofY=1.86;}
+  else if(model==='Pickup'){const gl=new THREE.Mesh(GEO.cab,glass);gl.position.set(0,1.38,.5);const r=new THREE.Mesh(GEO.cabRoof,bm);r.position.set(0,1.72,.5);g.add(gl,r);roofY=1.76;}
+  else{const gl=new THREE.Mesh(GEO.glass,glass);gl.position.set(0,1.33,-.2);const r=new THREE.Mesh(GEO.roof,bm);r.position.set(0,1.64,-.25);g.add(gl,r);}
+  const a1=new THREE.Mesh(GEO.axle,mat('#111215'));a1.position.set(0,.36,1.4);const a2=a1.clone();a2.position.z=-1.4;g.add(a1,a2);
+  const lf=new THREE.Mesh(GEO.lightBar,matLF);lf.position.set(0,.82,2.21);const lr=new THREE.Mesh(GEO.lightBar,matLR);lr.position.set(0,.82,-2.21);g.add(lf,lr);
+  if(police){
+    const mr=player?new THREE.MeshLambertMaterial({color:'#5b1520',emissive:'#000000'}):mat('#5b1520');
+    const mb=player?new THREE.MeshLambertMaterial({color:'#1b2c5b',emissive:'#000000'}):mat('#1b2c5b');
+    const r=new THREE.Mesh(GEO.bar,mr);r.position.set(-.32,roofY+.1,-.25);const b=new THREE.Mesh(GEO.bar,mb);b.position.set(.32,roofY+.1,-.25);g.add(r,b);
+    g.userData.mr=mr;g.userData.mb=mb;
+    if(player){const pl2=new THREE.PointLight('#ff3347',0,22);pl2.position.set(0,roofY+1,0);g.add(pl2);g.userData.pl=pl2;}
+  }
+  return g;
+}
+
+// ---------- traffic graph
+const DIRS=[[1,0],[-1,0],[0,1],[0,-1]];
+const validDirs=n=>DIRS.filter(d=>{const i=n[0]+d[0],j=n[1]+d[1];return i>=0&&i<=NB&&j>=0&&j<=NB;});
+const laneOff=d=>[-d[1]*LANE,d[0]*LANE];
+const edgeStart=(n,d)=>{const [ox,oz]=laneOff(d);return {x:n[0]*S+d[0]*10+ox,z:n[1]*S+d[1]*10+oz};};
+const edgeEnd=(n,d)=>{const [ox,oz]=laneOff(d);return {x:(n[0]+d[0])*S-d[0]*10+ox,z:(n[1]+d[1])*S-d[1]*10+oz};};
+function spawnAICar(over={},nearPoint=null){
+  let node,d,tries=0;
+  do{node=nearPoint?[clamp(Math.round(nearPoint.x/S),0,NB),clamp(Math.round(nearPoint.z/S),0,NB)]:[ri(0,NB),ri(0,NB)];d=pick(validDirs(node));tries++;}
+  while(!nearPoint&&tries<40&&pc&&Math.hypot(node[0]*S-pc.x,node[1]*S-pc.z)<90);
+  const st=edgeStart(node,d),en=edgeEnd(node,d);const k=nearPoint?0:Math.random();
+  const speeder=Math.random()<.3;
+  const c=Object.assign({x:st.x+(en.x-st.x)*k,z:st.z+(en.z-st.z)*k,h:Math.atan2(d[0],d[1]),node,dir:d,wp:en,seg:'edge',
+    color:pick(COLORS).h,model:pick(['Sedan','Sedan','SUV','Hatchback','Coupe','Pickup','Van']),plate:makePlate(),
+    cruise:(speeder?rnd(45,63):rnd(24,35))/2.237,speed:0,mode:'drive',stuck:0,ghost:0},over);
+  c.speed=c.cruise;c.speeding=c.cruise*2.237>LIMIT+.5;
+  c.mesh=makeCarMesh(c.color,c.model,false);c.mesh.position.set(c.x,0,c.z);c.mesh.rotation.y=c.h;scene.add(c.mesh);
+  aiCars.push(c);return c;
+}
+function removeAICar(c){scene.remove(c.mesh);aiCars=aiCars.filter(x=>x!==c);if(target===c)target=null;}
+function advance(c){
+  if(c.seg==='edge'){
+    const n=[c.node[0]+c.dir[0],c.node[1]+c.dir[1]];
+    let opts=validDirs(n).filter(d=>!(d[0]===-c.dir[0]&&d[1]===-c.dir[1]));if(!opts.length)opts=validDirs(n);
+    const d2=pick(opts);c.node=n;c.dir=d2;c.wp=edgeStart(n,d2);c.seg='turn';
+  }else{c.wp=edgeEnd(c.node,c.dir);c.seg='edge';}
+}
+function updateAI(dt){
+  for(const c of aiCars){
+    const fx=Math.sin(c.h),fz=Math.cos(c.h);
+    if(c.mode==='drive'||c.mode==='flee'){
+      let dx=c.wp.x-c.x,dz=c.wp.z-c.z,d=Math.hypot(dx,dz);
+      if(d<3||(d<9&&dx*fx+dz*fz<0)){advance(c);dx=c.wp.x-c.x;dz=c.wp.z-c.z;d=Math.hypot(dx,dz);}
+      const da=angDiff(Math.atan2(dx,dz),c.h);
+      c.h+=clamp(da,-2.4*dt,2.4*dt);
+      let ds=c.cruise;
+      if(c.seg==='turn'&&Math.abs(da)>.25)ds=Math.min(ds,c.mode==='flee'?13:8);
+      if(c.seg==='edge'&&d<12)ds=Math.min(ds,c.mode==='flee'?16:11);
+      if(c.ghost>0)c.ghost-=dt;else{
+        let block=1e9;
+        const chk=(ox,oz)=>{const rx=ox-c.x,rz=oz-c.z;const al=rx*fx+rz*fz;const lat=Math.abs(rx*fz-rz*fx);if(al>0&&al<15&&lat<2.4)block=Math.min(block,al);};
+        for(const o of aiCars)if(o!==c)chk(o.x,o.z);
+        chk(pc.x,pc.z);if(!inCar)chk(pl.x,pl.z);
+        if(block<15)ds=Math.min(ds,Math.max(0,(block-6)*1.4));
+        if(ds<1){c.stuck+=dt;if(c.stuck>(c.mode==='flee'?.8:4)){c.ghost=2;c.stuck=0;}}else c.stuck=0;
+      }
+      c.speed+=clamp(ds-c.speed,-14*dt,(c.mode==='flee'?9:4)*dt);
+    }else if(c.mode==='pull'){
+      const dx=c.pull.x-c.x,dz=c.pull.z-c.z,d=Math.hypot(dx,dz);
+      c.h+=clamp(angDiff(Math.atan2(dx,dz),c.h),-1.5*dt,1.5*dt);
+      c.speed=Math.max(0,Math.min(c.speed,d*.7)-3*dt);
+      if(d<2||c.speed<.3){c.mode='stopped';c.speed=0;}
+    }else{c.speed=Math.max(0,c.speed-12*dt);if(c.mode==='caught')c.spin=(c.spin||0)+dt*c.speed*.25;}
+    c.x+=Math.sin(c.h)*c.speed*dt;c.z+=Math.cos(c.h)*c.speed*dt;
+    c.mesh.position.set(c.x,0,c.z);c.mesh.rotation.y=c.h+(c.spin||0);
+  }
+}
+
+// ---------- pedestrians
+const PR=30.6;
+function pedPos(p){const u=((p.u%(8*PR))+8*PR)%(8*PR);let x,z,h;const cx=(p.b[0]+.5)*S,cz=(p.b[1]+.5)*S;
+  if(u<2*PR){x=cx-PR+u;z=cz-PR;h=Math.PI/2;}else if(u<4*PR){x=cx+PR;z=cz-PR+(u-2*PR);h=0;}else if(u<6*PR){x=cx+PR-(u-4*PR);z=cz+PR;h=-Math.PI/2;}else{x=cx-PR;z=cz+PR-(u-6*PR);h=Math.PI;}
+  if(p.dir<0)h+=Math.PI;return {x,z,h};}
+function spawnPed(){const p={b:[ri(0,NB-1),ri(0,NB-1)],u:rnd(0,8*PR),dir:Math.random()<.5?1:-1,sp:rnd(1.1,1.6),phase:rnd(0,6),ox:0,oz:0};
+  p.mesh=makePersonMesh(randLook());scene.add(p.mesh);peds.push(p);}
+function updatePeds(dt){
+  for(const p of peds){
+    p.u+=p.dir*p.sp*dt;p.phase+=dt*p.sp*5;
+    const q=pedPos(p);p.ox*=Math.max(0,1-dt*.8);p.oz*=Math.max(0,1-dt*.8);
+    const x=q.x+p.ox,z=q.z+p.oz;
+    if(inCar&&Math.abs(pc.v)>2){const dx=x-pc.x,dz=z-pc.z,d=Math.hypot(dx,dz)||1;if(d<3.4){p.ox+=dx/d*(3.6-d);p.oz+=dz/d*(3.6-d);}}
+    p.mesh.position.set(x,.22,z);p.mesh.rotation.y=q.h;animPerson(p.mesh,p.phase,.5);
+  }
+}
+
+// ---------- collisions
+function pushOut(o,r){
+  let hit=false;
+  for(const b of BOXES){
+    if(o.x<b.x0-r||o.x>b.x1+r||o.z<b.z0-r||o.z>b.z1+r)continue;
+    const cx=clamp(o.x,b.x0,b.x1),cz=clamp(o.z,b.z0,b.z1);const dx=o.x-cx,dz=o.z-cz;const d2=dx*dx+dz*dz;
+    if(d2<r*r){hit=true;if(d2>1e-6){const d=Math.sqrt(d2);o.x=cx+dx/d*r;o.z=cz+dz/d*r;}
+      else{const m=[o.x-b.x0,b.x1-o.x,o.z-b.z0,b.z1-o.z];const i=m.indexOf(Math.min(...m));if(i===0)o.x=b.x0-r;else if(i===1)o.x=b.x1+r;else if(i===2)o.z=b.z0-r;else o.z=b.z1+r;}}
+  }
+  o.x=clamp(o.x,-30,CITY+30);o.z=clamp(o.z,-30,CITY+30);
+  return hit;
+}
+
+// ---------- player
+function updatePlayer(dt){
+  const turn=keys.left-keys.right;
+  if(inCar){
+    if(keys.up)pc.v+=(pc.v<0?16:9)*dt;
+    if(keys.down)pc.v-=(pc.v>0?16:6)*dt;
+    if(!keys.up&&!keys.down)pc.v-=Math.sign(pc.v)*Math.min(Math.abs(pc.v),(1.2+Math.abs(pc.v)*.12)*dt);
+    pc.v=clamp(pc.v,-8,42);
+    pc.h+=turn*clamp(pc.v/5,-1,1)*1.7*dt/(1+Math.abs(pc.v)*.015);
+    pc.x+=Math.sin(pc.h)*pc.v*dt;pc.z+=Math.cos(pc.h)*pc.v*dt;
+    if(pushOut(pc,2.1)){if(Math.abs(pc.v)>7){damageCar(Math.abs(pc.v)*1.1);flashT=.3;}pc.v*=-.25;}
+    for(const c of aiCars){const dx=pc.x-c.x,dz=pc.z-c.z,d=Math.hypot(dx,dz)||.01;
+      if(c._hitCd>0)c._hitCd-=dt;
+      if(d<4.1){const push=(4.1-d)/2;pc.x+=dx/d*push;pc.z+=dz/d*push;c.x-=dx/d*push;c.z-=dz/d*push;
+        if(Math.abs(pc.v)>5&&!(c._hitCd>0)){c._hitCd=1;if(chase&&c===chase.car&&c.mode==='flee'){chase.meter+=.22;}else{damageCar(6);addRep(-1);toast('Collision with a civilian vehicle. Reputation −1.','bad');}flashT=.25;pc.v*=.55;}}}
+    pc.mesh.position.set(pc.x,0,pc.z);pc.mesh.rotation.y=pc.h;
+    pl.x=pc.x;pl.z=pc.z;pl.h=pc.h;
+  }else{
+    const sp=keys.sprint?7.4:4.2;
+    pl.h+=turn*2.8*dt;
+    const mv=(keys.up?sp:0)-(keys.down?2.2:0);
+    pl.x+=Math.sin(pl.h)*mv*dt;pl.z+=Math.cos(pl.h)*mv*dt;
+    pushOut(pl,.45);
+    const dc=Math.hypot(pl.x-pc.x,pl.z-pc.z)||.01;if(dc<2.4){pl.x=pc.x+(pl.x-pc.x)/dc*2.4;pl.z=pc.z+(pl.z-pc.z)/dc*2.4;}
+    pl.phase+=dt*Math.abs(mv)*2.2;
+    pl.mesh.position.set(pl.x,.22,pl.z);pl.mesh.rotation.y=pl.h;animPerson(pl.mesh,pl.phase,mv?(keys.sprint?.8:.5):0);
+    pc.v=0;
+  }
+}
+function damageCar(n){
+  pc.damage+=n;
+  if(pc.damage>=100){pc.damage=0;addRep(-5);toast('Your cruiser was wrecked and towed. A fresh one is waiting at Precinct 9. Reputation −5.','bad');
+    pc.x=LOC.spawnCar.x;pc.z=LOC.spawnCar.z;pc.h=LOC.spawnCar.h;pc.v=0;if(!inCar){inCar=true;pl.mesh.visible=false;}}
+}
+function toggleCar(){
+  if(modalOpen())return;
+  if(inCar){
+    if(Math.abs(pc.v)>2.5){toast('Stop the cruiser before getting out.');return;}
+    inCar=false;pc.v=0;
+    pl.x=pc.x+Math.cos(pc.h)*2.5;pl.z=pc.z-Math.sin(pc.h)*2.5;pl.h=pc.h;pushOut(pl,.45);pl.mesh.visible=true;
+  }else{
+    if(Math.hypot(pl.x-pc.x,pl.z-pc.z)>4.5){toast('Walk over to your cruiser to get in.');return;}
+    inCar=true;pl.mesh.visible=false;
+  }
+}
+
+// ---------- lights, radar, traffic stops, chases
+function setLights(on){lightsOn=on;if(!on){const u=pc.mesh.userData;u.pl.intensity=0;u.mr.emissive.set('#000000');u.mb.emissive.set('#000000');}}
+function lightsBtn(){
+  if(modalOpen())return;
+  if(!inCar){toast('Get in your cruiser first (F).');return;}
+  if(chase){toast('You\'re in pursuit. Box them in!');return;}
+  if(suspect){if(suspect.mode==='drive'){suspect=null;setLights(false);toast('Lights off. Stop cancelled.');}return;}
+  if(lightsOn&&!target){setLights(false);return;}
+  if(!target){setLights(true);toast('Lights on, but no radar lock. Get behind a car in your lane.');return;}
+  suspect=target;suspect.clocked=Math.round(target.speed*2.237);suspect.follow=0;
+  suspect.willFlee=Math.random()<(suspect.speeding?.2:.05);
+  setLights(true);toast(`Lights on. Radar ${suspect.clocked} mph. Stay right behind them.`);
+}
+function updateRadar(){
+  target=null;
+  if(!inCar||suspect||chase)return;
+  const fx=Math.sin(pc.h),fz=Math.cos(pc.h);let best=75;
+  for(const c of aiCars){if(c.mode!=='drive')continue;const rx=c.x-pc.x,rz=c.z-pc.z;const al=rx*fx+rz*fz;const lat=Math.abs(rx*fz-rz*fx);if(al>4&&al<best&&lat<3.2+al*.06){best=al;target=c;}}
+}
+function laneSide(c){const fx=Math.sin(c.h),fz=Math.cos(c.h);const off=CURB-LANE;return [-fz*off,fx*off];}
+function updateSuspect(dt){
+  if(!suspect||chase)return;
+  const s=suspect;const d=Math.hypot(s.x-pc.x,s.z-pc.z);
+  if(s.mode==='drive'){
+    const fx=Math.sin(s.h),fz=Math.cos(s.h);const behind=(pc.x-s.x)*fx+(pc.z-s.z)*fz<0;
+    if(inCar&&d<32&&behind){s.follow+=dt;if(s.follow>1.6){
+      if(s.willFlee){s.mode='flee';s.cruise=rnd(23,27);s.fled=true;chase={car:s,meter:0,esc:0,traffic:true};toast('They\'re running! Stay close to box them in.','bad');}
+      else{s.mode='pull';const [ox,oz]=laneSide(s);s.pull={x:s.x+fx*16+ox,z:s.z+fz*16+oz};toast('The car is pulling over. Stop behind it, get out (F) and walk to the driver\'s door.');}
+    }}else s.follow=Math.max(0,s.follow-dt*.4);
+    if(d>140){suspect=null;setLights(false);toast('Lost the vehicle in traffic.');}
+  }else if(s.mode==='stopped'||s.mode==='pull'){
+    if(d>140){s.mode='drive';suspect=null;setLights(false);toast('You left the stop. The driver drove off.','bad');}
+  }
+}
+function updateChase(dt){
+  if(!chase)return;const c=chase.car;
+  if(c.mode==='caught')return;
+  const d=Math.hypot(c.x-pc.x,c.z-pc.z);
+  if(inCar&&d<15)chase.meter+=dt/3.6;else chase.meter=Math.max(0,chase.meter-dt*.06);
+  if(d>170)chase.esc+=dt;else chase.esc=Math.max(0,chase.esc-dt*2);
+  if(chase.meter>=1){c.mode='caught';toast(c.person?`${c.person.name} is boxed in! Get out and arrest them.`:'Suspect boxed in! Get out and walk to the driver\'s door.','good');}
+  else if(chase.esc>8){
+    const ch=chase;endChase();removeAICar(c);spawnAICar();
+    if(ch.traffic){addRep(-3);toast('The driver got away. Reputation −3.','bad');}else if(ch.onEscape)ch.onEscape();
+  }
+}
+function endChase(){if(chase&&suspect===chase.car)suspect=null;if(gps&&gps.follow)gps=null;chase=null;setLights(false);}
+function startCarChase(cs,p,from,onEscape){
+  const c=spawnAICar({color:p.car.color.h,model:p.car.model,plate:p.car.plate,mode:'flee'},from);
+  c.cruise=rnd(23,26);c.speed=12;c.person=p;
+  chase={car:c,meter:0,esc:0,cs,p,onEscape};suspect=c;setLights(true);
+  gps={x:c.x,z:c.z,label:'Fleeing suspect',follow:c};
+  toast(`${p.name} is fleeing in a ${lower(p.car.color.n)} ${lower(p.car.model)}! Get in your cruiser and box them in.`,'bad');
+}
+function startFootChase(cs,p){
+  const m=makePersonMesh(lookOf(p));scene.add(m);
+  runner={cs,p,mesh:m,x:p.door.x+p.door.nx*2,z:p.door.z+p.door.nz*2,h:Math.atan2(p.door.nx,p.door.nz),esc:0,phase:0,turnT:0,jit:0};
+  toast(`${p.name} is running! Chase them on foot (hold Shift to sprint) and get close.`,'bad');
+}
+function updateRunner(dt){
+  if(!runner)return;const r=runner;
+  const dx=r.x-pl.x,dz=r.z-pl.z,d=Math.hypot(dx,dz);
+  r.turnT-=dt;if(r.turnT<=0){r.turnT=rnd(.8,1.6);r.jit=rnd(-.7,.7);}
+  const away=Math.atan2(dx,dz)+r.jit;r.h+=clamp(angDiff(away,r.h),-3*dt,3*dt);
+  const sp=6.3;const ox=r.x,oz=r.z;r.x+=Math.sin(r.h)*sp*dt;r.z+=Math.cos(r.h)*sp*dt;
+  if(pushOut(r,.45)&&Math.hypot(r.x-ox,r.z-oz)<sp*dt*.4)r.h+=rnd(1.2,2)*(Math.random()<.5?1:-1);
+  r.phase+=dt*14;r.mesh.position.set(r.x,.22,r.z);r.mesh.rotation.y=r.h;animPerson(r.mesh,r.phase,.85);
+  if(!inCar&&d<1.6){scene.remove(r.mesh);runner=null;toast(`Tackled! ${r.p.name} is in cuffs.`,'good');cuff(r.cs,r.p);return;}
+  if(d>70)r.esc+=dt;else r.esc=Math.max(0,r.esc-dt);
+  if(r.esc>6){scene.remove(r.mesh);runner=null;toast(`${r.p.first} got away on foot. They'll turn up at home again later.`,'bad');if(!r.cs.ended)spend(r.cs,45);}
+}
+
+// ---------- interactables
+function interactables(){
+  const I=[];const cs=curCase;
+  if(cs){
+    const inC=id=>cs.custody.includes(id);
+    const wit=(loc,label,id,look)=>{if(!cs.done[id])I.push({key:id,x:loc.x,z:loc.z,kind:'npc',look,label,act:()=>{if(!spend(cs,10))return;witness(cs,id);}});};
+    if(cs.type==='robbery'){
+      I.push({key:'bankcam',x:LOC.bankCam.x,z:LOC.bankCam.z,kind:'terminal',face:faceOf(LOC.bank),label:'Review the bank security footage',act:()=>{if(!cs.done.cctv){if(!spend(cs,15))return;cs.done.cctv=true;}openCCTV(cs);}});
+      wit(LOC.bankGuard,'Talk to Hal Brennan, security guard','w1',{shirt:'#2b3a55',skin:SKIN[3],hair:'#1a1410',hat:true});
+      wit(LOC.bankManager,'Talk to Gloria Haynes, branch manager','w3',{shirt:'#6e3d5a',skin:SKIN[1],hair:'#9a9a9a'});
+      wit(LOC.bankVendor,'Talk to Rina Patel at the coffee cart','w2',{shirt:'#8a5a2b',skin:SKIN[3],hair:'#1a1410'});
+      if(cs.flags.hideout&&!inC(cs.C.id)&&!(chase&&chase.p===cs.C)){const m=LOC.motels[cs.hide.place];I.push({key:'raid',x:m.x,z:m.z,kind:'door',label:`Breach the room at the ${cs.hide.place}`,act:()=>raid(cs)});}
+    }else{
+      I.push({key:'schoolcam',x:LOC.schoolCam.x,z:LOC.schoolCam.z,kind:'terminal',face:faceOf(LOC.school),label:'Check the school gate camera',act:()=>{if(!cs.done.cctv){if(!spend(cs,15))return;cs.done.cctv=true;}openCCTV(cs);}});
+      wit(LOC.schoolParent,`Talk to ${cs.parent.name}, ${cs.victim.first}'s parent`,'parent',cs.parent.look);
+      wit(LOC.schoolGuard,'Talk to Earl Simms, crossing guard','guard',{shirt:'#d8d23a',skin:SKIN[4],hair:'#9a9a9a'});
+      if(cs.flags.district&&!cs.flags.safehouse)I.push({key:'neighbor',x:cs.neighbor.x,z:cs.neighbor.z,kind:'npc',look:{shirt:'#4b3d6e',skin:SKIN[0],hair:'#d8b56a'},face:faceOf(cs.neighbor),label:'Talk to the neighbour who called it in',act:()=>canvass(cs)});
+      if(cs.flags.safehouse&&!cs.flags.rescued){const d=cs.safe.door;I.push({key:'raid',x:d.x,z:d.z,kind:'door',label:`Breach ${cs.safe.address}`,act:()=>raid(cs)});}
+    }
+    if(gpsPerson){const p=person(cs,gpsPerson);
+      if(p&&!inC(p.id)&&!(prisoner&&prisoner.p===p)&&!(runner&&runner.p===p)&&!(chase&&chase.p===p)){
+        if(cs.type==='robbery'&&p===cs.C)I.push({key:'knock'+p.id,x:p.door.x,z:p.door.z,kind:'door',label:`Knock on ${p.name}'s door`,act:()=>{if(!cs.flags.bossKnown){markBossKnown(cs);clog(cs,`${p.name} isn't home. Neighbours haven't seen them since yesterday.`);}toast(`Nobody home. Neighbours say ${p.first} hasn't been back since yesterday. Track their bank card from the MDT.`);}});
+        else I.push({key:'home'+p.id,x:p.door.x,z:p.door.z,kind:'npc',look:lookOf(p),face:faceOf(p.door),label:`Talk to ${p.name}`,act:()=>doorArrest(cs,p)});
+      }}
+    if(cs.custody.some(id=>!cs.cracked[id]&&!cs.lawyered[id]&&cs.scripts[id]))I.push({key:'interview',x:LOC.interview.x,z:LOC.interview.z,kind:'terminal',face:faceOf(LOC.station),label:'Interview room: question a suspect',act:()=>interviewRoom(cs)});
+  }
+  if(suspect&&(suspect.mode==='stopped'||suspect.mode==='caught')){
+    const s=suspect;
+    I.push({key:'drv'+s.plate,x:s.x+Math.cos(s.h)*1.8,z:s.z-Math.sin(s.h)*1.8,kind:'spot',label:s.person?`Arrest ${s.person.name}`:s.mode==='caught'?'Arrest the driver':'Talk to the driver',act:()=>driverWindow(s)});
+  }
+  return I;
+}
+function driverWindow(s){
+  if(s.person){const ch=chase;endChase();removeAICar(s);spawnAICar();cuff(ch.cs,s.person);return;}
+  const fled=!!s.fled;
+  trafficStop(s,fled,()=>{
+    if(fled){endChase();removeAICar(s);spawnAICar();}
+    else{s.mode='drive';suspect=null;setLights(false);const fx=Math.sin(s.h),fz=Math.cos(s.h);if((s.wp.x-s.x)*fx+(s.wp.z-s.z)*fz<0)advance(s);}
+    suspect=null;
+  });
+}
+let nearest=null;
+function syncInteractables(t){
+  const list=interactables();const seen=new Set();
+  nearest=null;let best=inCar?6:2.8;
+  for(const it of list){
+    seen.add(it.key);
+    let v=iMeshes.get(it.key);
+    if(!v){const g=new THREE.Group();
+      if(it.kind==='npc')g.add(makePersonMesh(it.look));
+      if(it.kind==='terminal'){const k=new THREE.Mesh(GEO.kiosk,mat('#2a3550'));k.position.y=.7;const sc=new THREE.Mesh(GEO.screen,new THREE.MeshBasicMaterial({color:'#4b8dff'}));sc.position.set(0,1.15,.26);g.add(k,sc);}
+      const mk=new THREE.Mesh(GEO.marker,new THREE.MeshBasicMaterial({color:'#f4b740'}));g.add(mk);
+      v={g,mk,base:it.kind==='npc'?2.6:it.kind==='terminal'?2.1:2.3};scene.add(g);iMeshes.set(it.key,v);}
+    v.g.position.set(it.x,.22,it.z);
+    if(it.kind==='npc'&&!inCar&&Math.hypot(pl.x-it.x,pl.z-it.z)<9)v.g.rotation.y=Math.atan2(pl.x-it.x,pl.z-it.z);
+    else if(it.face!=null)v.g.rotation.y=it.face;
+    v.mk.rotation.y=t*2;v.mk.position.y=v.base+Math.sin(t*3)*.12;
+    const d=Math.hypot(pl.x-it.x,pl.z-it.z);
+    if(d<best){best=d;nearest=it;}
+  }
+  for(const [k,v] of iMeshes)if(!seen.has(k)){scene.remove(v.g);iMeshes.delete(k);}
+}
+function interact(){
+  if(modalOpen()||!started)return;
+  if(!nearest){if(!inCar&&Math.hypot(pl.x-pc.x,pl.z-pc.z)<4.5)toggleCar();return;}
+  if(inCar){toast('Get out of the cruiser first (F).');return;}
+  nearest.act();
+}
+
+// ---------- camera & HUD
+const camPos={x:0,y:20,z:0,init:false};const drag={on:false,x:0};
+function updateCamera(dt){
+  const tg=inCar?pc:pl;
+  const h=tg.h+camYawOff;
+  const dist=inCar?10.5:5.4,hgt=inCar?4.3:2.8;
+  const want={x:tg.x-Math.sin(h)*dist,y:hgt,z:tg.z-Math.cos(h)*dist};
+  const k=camPos.init?1-Math.exp(-dt*(inCar?5:7)):1;camPos.init=true;
+  camPos.x+=(want.x-camPos.x)*k;camPos.y+=(want.y-camPos.y)*k;camPos.z+=(want.z-camPos.z)*k;
+  camera.position.set(camPos.x,camPos.y,camPos.z);
+  camera.lookAt(tg.x+Math.sin(tg.h)*2,inCar?1.4:1.7,tg.z+Math.cos(tg.h)*2);
+  if(!drag.on&&(keys.up||keys.down||Math.abs(pc.v)>2))camYawOff*=Math.max(0,1-dt*2.5);
+}
+let hudT=0;
+function hudUpdate(){
+  const r=rankOf(career.xp);const pct=r.next?((career.xp-r.floor)/(r.next[0]-r.floor))*100:100;const cs=curCase;
+  $('#status').innerHTML=`<div><div class="rank">${r.name}</div><div class="xpbar"><i style="width:${pct}%"></i></div></div><div class="mono" style="font-size:12px;color:var(--muted)">REP ${career.rep}</div><div class="clk">${worldClock()}${cs?`<small style="color:${cs.limit-cs.used<cs.limit*.25?'var(--red)':'var(--amber)'}">${fmtMin(cs.limit-cs.used)} left</small>`:'<small>On patrol</small>'}</div>`;
+  let ob;
+  if(chase&&chase.car.mode!=='caught')ob={e:'Code 3 · pursuit',b:chase.p?`Stop ${chase.p.name}`:'Stop the fleeing car',p:'Stay within a few car lengths to fill the box-in meter.'};
+  else if(chase)ob={e:'Code 3 · pursuit',b:'Make the arrest',p:'Get out (F), walk to the driver\'s door and press E.'};
+  else if(runner)ob={e:'Foot pursuit',b:`Catch ${runner.p.name}`,p:'Hold Shift to sprint and get right up to them.'};
+  else if(suspect&&suspect.mode==='stopped')ob={e:'10-38 · traffic stop',b:'Walk to the driver\'s door',p:'Get out (F), walk up to the driver window and press E.'};
+  else if(suspect&&suspect.mode==='drive')ob={e:'10-38 · traffic stop',b:'Stay behind the car',p:'Keep close behind until it pulls over.'};
+  else if(cs){const L=leads(cs);const l=L.find(x=>x.hot)||L.find(x=>!x.db)||L[0];ob={e:`${cs.code} · ${cs.title}`,b:l.t,p:l.d+(l.at?'':' (open the MDT)')};}
+  else ob={e:'10-8 · on patrol',b:`Catch speeders over ${LIMIT} mph`,p:'Get behind a car so the radar locks on, then hit Space. Open the MDT (Tab) to take a case.'};
+  const gd=gps?Math.round(Math.hypot(gps.x-pl.x,gps.z-pl.z)):0;
+  $('#obj').innerHTML=`<div class="eyebrow">${esc(ob.e)}</div><b>${esc(ob.b)}</b><p>${esc(ob.p)}</p>${gps?`<div class="gps">GPS · ${esc(gps.label)} · ${gd} m</div>`:''}${prisoner?`<div class="gps" style="color:var(--ok)">In your car: ${esc(prisoner.p.name)}</div>`:''}`;
+  const mph=Math.round(Math.abs(pc.v)*2.237);
+  let rad='---',fast=false;
+  if(suspect&&suspect.clocked){rad=suspect.clocked+' LOCK';fast=suspect.clocked>LIMIT;}
+  else if(target){const s=Math.round(target.speed*2.237);rad=s+' · '+target.plate;fast=s>LIMIT;}
+  $('#dash').innerHTML=inCar?`<div class="cell"><span class="lbl">Speed</span><b>${mph}</b><div class="dmg" title="Damage"><i style="width:${pc.damage}%"></i></div></div><div class="limit" aria-label="Speed limit ${LIMIT}"><span>SPEED<br>LIMIT</span><b>${LIMIT}</b></div><div class="cell radar"><span class="lbl">Radar · plate</span><b class="${fast?'fast':''}">${rad}</b></div>`
+    :`<div class="cell"><span class="lbl">On foot</span><b style="font-size:15px;line-height:1.5">${keys.sprint?'Running':'Walking'}</b></div>`;
+}
+function promptUpdate(){
+  const pr=$('#prompt');
+  if(modalOpen()||!started){pr.hidden=true;return;}
+  if(nearest){pr.hidden=false;pr.innerHTML=inCar?'<kbd>F</kbd>Get out to interact':`<kbd>E</kbd>${esc(nearest.label)}`;}
+  else if(!inCar&&Math.hypot(pl.x-pc.x,pl.z-pc.z)<4.5){pr.hidden=false;pr.innerHTML='<kbd>F</kbd>Get in the cruiser';}
+  else pr.hidden=true;
+  const mt=$('#meter');mt.hidden=!(chase&&chase.car.mode!=='caught');if(chase)mt.firstElementChild.style.width=Math.min(100,chase.meter*100)+'%';
+}
+function drawMini(){
+  const c=$('#mini'),g=c.getContext('2d');const W=c.width;const sc=W/(CITY+40);const X=x=>(x+20)*sc,Z=z=>(z+20)*sc;
+  g.fillStyle='#2a3245';g.fillRect(0,0,W,W);
+  for(let bi=0;bi<NB;bi++)for(let bj=0;bj<NB;bj++){const sp=SPECIAL[bi+','+bj];g.fillStyle=sp?(sp.kind==='park'?'#1f3a2a':sp.kind==='station'?'#1e3570':sp.kind==='bank'?'#4a3d1c':sp.kind==='school'?'#4a2620':'#3a1f35'):'#141d2e';g.fillRect(X(bi*S+8),Z(bj*S+8),(S-16)*sc,(S-16)*sc);}
+  g.fillStyle='#e6ecf6';g.font=`600 ${Math.round(W/16)}px IBM Plex Mono, monospace`;g.textAlign='center';g.textBaseline='middle';
+  for(const k in SPECIAL){const sp=SPECIAL[k];if(sp.kind==='park')continue;const [bi,bj]=k.split(',').map(Number);g.fillText(sp.kind==='station'?'P9':sp.kind==='bank'?'$':sp.kind==='school'?'S':'M',X((bi+.5)*S),Z((bj+.5)*S));}
+  const dot=(x,z,col,r)=>{g.fillStyle=col;g.beginPath();g.arc(X(x),Z(z),r,0,7);g.fill();};
+  for(const [,v] of iMeshes)dot(v.g.position.x,v.g.position.z,'#f4b740',W/90);
+  if(suspect)dot(suspect.x,suspect.z,'#ff4d5e',W/45);
+  if(runner)dot(runner.x,runner.z,'#ff4d5e',W/50);
+  if(target)dot(target.x,target.z,'#f4b740',W/60);
+  if(gps){g.save();g.translate(X(gps.x),Z(gps.z));g.rotate(Math.PI/4);g.fillStyle='#f4b740';g.strokeStyle='#1d1406';g.lineWidth=2;const s=W/26;g.fillRect(-s/2,-s/2,s,s);g.strokeRect(-s/2,-s/2,s,s);g.restore();}
+  const p=inCar?pc:pl;g.save();g.translate(X(p.x),Z(p.z));g.rotate(-p.h);g.fillStyle='#4b8dff';g.strokeStyle='#fff';g.lineWidth=1.5;g.beginPath();const a=W/24;g.moveTo(0,a);g.lineTo(a*.6,-a*.6);g.lineTo(-a*.6,-a*.6);g.closePath();g.fill();g.stroke();g.restore();
+}
+
+// ---------- main loop
+let tAcc=0;
+function frame(){
+  const dt=Math.min(.05,clock3.getDelta());tAcc+=dt;
+  const paused=!started||modalOpen();
+  if(!paused){
+    updatePlayer(dt);updateAI(dt);updatePeds(dt);updateRadar();updateSuspect(dt);updateChase(dt);updateRunner(dt);
+    if(prisoner&&Math.hypot(pl.x-LOC.book.x,pl.z-LOC.book.z)<(inCar?13:6))book();
+    if(gps&&gps.follow){gps.x=gps.follow.x;gps.z=gps.follow.z;}
+    if(gps&&!inCar&&!gps.follow&&!gpsPerson&&Math.hypot(pl.x-gps.x,pl.z-gps.z)<3)gps=null;
+    if(curCase){curCase.used+=dt;if(curCase.used>=curCase.limit){curCase.used=curCase.limit;endCase(curCase,'timeout');}}else worldMin+=dt;
+    if(lightsOn){blinkT+=dt;const on=(blinkT%.36)<.18;const u=pc.mesh.userData;u.mr.emissive.set(on?'#ff2a3c':'#000000');u.mb.emissive.set(on?'#000000':'#2f6bff');u.pl.color.set(on?'#ff3347':'#3b82ff');u.pl.intensity=1.6;$('#flash').className='flash'+(on?'':' blue');$('#flash').style.opacity=.5;}
+    else{$('#flash').className='flash';$('#flash').style.opacity=flashT>0?1:0;}
+    if(flashT>0)flashT-=dt;
+  }
+  syncInteractables(tAcc);
+  if(gps){beacon.visible=true;beacon.position.x=gps.x;beacon.position.z=gps.z;}else beacon.visible=false;
+  const tg=suspect||target;
+  if(tg&&inCar){tArrow.visible=true;tArrow.position.set(tg.x,(tg.model==='Van'?3.4:2.9)+Math.sin(tAcc*4)*.15,tg.z);tArrow.material.color.set(suspect?'#ff4d5e':'#f4b740');tArrow.rotation.y=tAcc*2;}else tArrow.visible=false;
+  updateCamera(dt);
+  promptUpdate();
+  hudT-=dt;if(hudT<=0){hudT=.1;hudUpdate();drawMini();}
+  renderer.render(scene,camera);
+}
+
+// ---------- input
+const KEYMAP={KeyW:'up',ArrowUp:'up',KeyS:'down',ArrowDown:'down',KeyA:'left',ArrowLeft:'left',KeyD:'right',ArrowRight:'right',ShiftLeft:'sprint',ShiftRight:'sprint'};
+addEventListener('keydown',e=>{
+  if(!started)return;
+  if(e.code==='Tab'||(e.code==='KeyM'&&!(e.target instanceof HTMLInputElement))){e.preventDefault();if(modalOpen()){if($('#modal').firstElementChild.dataset.mdt)closeModal();}else openMDT();return;}
+  if(e.code==='Escape'){if(modalOpen()&&$('#modal')._dismiss!==false)closeModal();return;}
+  if(modalOpen())return;
+  if(KEYMAP[e.code]){keys[KEYMAP[e.code]]=1;e.preventDefault();return;}
+  if(e.repeat)return;
+  if(e.code==='KeyE')interact();
+  else if(e.code==='KeyF')toggleCar();
+  else if(e.code==='Space'){e.preventDefault();lightsBtn();}
+});
+addEventListener('keyup',e=>{if(KEYMAP[e.code])keys[KEYMAP[e.code]]=0;});
+addEventListener('blur',()=>{for(const k in keys)keys[k]=0;});
+function bindTouch(){
+  $$('#touch [data-k]').forEach(b=>{const k=b.dataset.k;
+    const on=e=>{e.preventDefault();keys[k]=1;b.classList.add('on');};const off=()=>{keys[k]=0;b.classList.remove('on');};
+    b.addEventListener('pointerdown',on);['pointerup','pointerleave','pointercancel'].forEach(ev=>b.addEventListener(ev,off));b.addEventListener('contextmenu',e=>e.preventDefault());});
+  $$('#touch [data-act]').forEach(b=>b.addEventListener('click',()=>{const a=b.dataset.act;if(a==='e')interact();else if(a==='f')toggleCar();else lightsBtn();}));
+  const cv=$('#gl');
+  cv.addEventListener('pointerdown',e=>{drag.on=true;drag.x=e.clientX;try{cv.setPointerCapture(e.pointerId);}catch(_){}});
+  cv.addEventListener('pointermove',e=>{if(!drag.on)return;camYawOff-=(e.clientX-drag.x)*.008;drag.x=e.clientX;});
+  ['pointerup','pointercancel'].forEach(ev=>cv.addEventListener(ev,()=>drag.on=false));
+}
+
+// ---------- boot
+$('#mdtBtn').onclick=()=>{if(started&&!modalOpen())openMDT();};
+if(matchMedia('(pointer:coarse)').matches){$('#touch').hidden=false;document.body.classList.add('touchmode');}
+bindTouch();
+if(typeof THREE==='undefined'){$('#loadMsg').innerHTML='<span class="loaderr">The 3D engine could not load. Check your connection and reload.</span>';$('#startBtn').disabled=true;}
+else{
+  try{buildWorld();}catch(err){$('#loadMsg').innerHTML='<span class="loaderr">3D graphics are not available in this browser.</span>';$('#startBtn').disabled=true;console.error(err);}
+}
+$('#startBtn').onclick=()=>{started=true;$('#title').hidden=true;if(!nextCases)freshCases();toast('10-8. You\'re in service. Press Tab (or MDT) to take a case, or hunt speeders.');};
+</script>

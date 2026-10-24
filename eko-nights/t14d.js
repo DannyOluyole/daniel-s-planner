@@ -1,0 +1,12 @@
+const { chromium } = require('/opt/node-tools/node_modules/playwright');
+const http=require('http'),fs=require('fs'),path=require('path');const ROOT=path.join(__dirname,'site/public');
+const srv=http.createServer((q,r)=>{let f=path.join(ROOT,decodeURIComponent(q.url.split('?')[0]));if(f.endsWith('/'))f+='index.html';if(!fs.existsSync(f)){r.writeHead(404);r.end();return;}r.writeHead(200,{'Content-Type':f.endsWith('.js')?'application/javascript':'text/html'});r.end(fs.readFileSync(f));}).listen(8080,'127.0.0.1');
+const CFG=`window.EKO_FIREBASE={apiKey:"demo-key",authDomain:"demo-eko.firebaseapp.com",projectId:"demo-eko",databaseURL:"https://demo-eko-default-rtdb.firebaseio.com",appId:"1:1:web:1",emulators:true,verified:true};`;
+(async()=>{const b=await chromium.launch({executablePath:'/opt/pw-browsers/chromium',args:['--use-angle=swiftshader','--enable-unsafe-swiftshader']});
+ const pg=await b.newPage();pg.on('console',m=>console.log('CONSOLE',m.type(),m.text().slice(0,200)));pg.on('pageerror',e=>console.log('PAGEERR',e.message));
+ await pg.route('**/firebase-config.js',r=>r.fulfill({body:CFG,contentType:'application/javascript'}));await pg.route('https://fonts.**',r=>r.abort());
+ await pg.goto('http://127.0.0.1:8080/');await pg.waitForSelector('#obGuest');await pg.click('#obGuest');await pg.waitForTimeout(2000);
+ await pg.fill('#cFirst','ada');await pg.fill('#cLast','obi');await pg.click('#startBtn');await pg.waitForTimeout(6000);
+ console.log(await pg.evaluate(()=>({srv:!!NET.srv,verified:NET.verified,status:NET.status,me:NET.me,uid:NET.uid,fns:typeof firebase.functions})));
+ console.log(await pg.evaluate(async()=>{try{return await NET.srv.call('registerOfficer',{first:'Ada',last:'Obi',gender:'f',skin:'#6e4429'});}catch(e){return e;}}));
+ await b.close();srv.close();})();

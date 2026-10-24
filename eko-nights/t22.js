@@ -1,0 +1,28 @@
+const { chromium } = require('/opt/node-tools/node_modules/playwright');
+const http=require('http'),fs=require('fs'),path=require('path');const ROOT=path.join(__dirname,'site/public');
+const srv=http.createServer((q,r)=>{let f=path.join(ROOT,q.url.split('?')[0]);if(f.endsWith('/'))f+='index.html';if(!fs.existsSync(f)){r.writeHead(404);r.end();return;}r.writeHead(200,{'Content-Type':f.endsWith('.js')?'application/javascript':'text/html'});r.end(fs.readFileSync(f));}).listen(8088,'127.0.0.1');
+const ok=(c,m)=>{console.log((c?'PASS ':'FAIL ')+m);if(!c)process.exitCode=1;};
+(async()=>{const b=await chromium.launch({executablePath:'/opt/pw-browsers/chromium',args:['--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader']});
+ const ctx=await b.newContext({viewport:{width:740,height:360},deviceScaleFactor:2,isMobile:true,hasTouch:true});const pg=await ctx.newPage();const errs=[];pg.on('pageerror',e=>errs.push(e.message));
+ await pg.route('https://fonts.**',r=>r.abort());await pg.goto('http://127.0.0.1:8088/');await pg.waitForTimeout(600);
+ await pg.fill('#cFirst','ade');await pg.fill('#cLast','ola');await pg.tap('#startBtn');await pg.waitForFunction(()=>started,null,{timeout:60000});
+ await pg.evaluate(()=>{PERF.off=true;$('#chap').hidden=true;ST().step='done';gps=null;CB.incT=1e9;$('#toasts').innerHTML='';});await pg.waitForTimeout(700);
+ const G=async sec=>{const t=await pg.evaluate(()=>tAcc);await pg.waitForFunction(t=>tAcc>=t,t+sec,{timeout:60000});};
+ const vis=()=>pg.evaluate(()=>$$('#touch button').filter(b=>getComputedStyle(b).display!=='none').map(b=>b.querySelector('.bl').textContent));
+ const shot=n=>pg.screenshot({path:n});
+ let v=await vis();ok(v.join()==='SIREN,BRAKE,GAS,EXIT','driving: only SIREN, BRAKE, GAS, EXIT ('+v+')');await shot('k_drive.png');
+ // radar lock: the siren button becomes PULL OVER
+ await pg.evaluate(()=>{window._ur=updateRadar;updateRadar=()=>{target=aiCars.find(c=>c.mode==='drive');};});await G(.3);
+ v=await vis();ok(v.includes('PULL OVER'),'radar lock turns it into PULL OVER');await pg.evaluate(()=>{updateRadar=window._ur;target=null;});
+ await pg.tap('#touch .car');await G(.3);
+ v=await vis();ok(v.join()==='ENTER','on foot next to the cruiser: only ENTER ('+v+')');
+ await pg.evaluate(()=>{const q=pedPos({b:[2,2],u:3,dir:1});pl.x=q.x;pl.z=q.z;});await G(.3);
+ v=await vis();ok(v.length===0,'walking around with nothing to do: no buttons, just the stick');await shot('k_walk.png');
+ await pg.evaluate(()=>{startCase(makeCase('robbery',99,{free:true}));const n=LOC.bankGuard;pl.x=n.x+.8;pl.z=n.z+.4;camPos.init=false;});await G(.6);await G(.3);
+ v=await vis();ok(v.includes('USE'),'next to someone: USE appears ('+v+')');
+ await pg.evaluate(()=>{const q=pedPos({b:[2,2],u:3,dir:1});pl.x=q.x;pl.z=q.z;pl.h=q.h;const m=makePersonMesh(randLook());scene.add(m);const a={x:pl.x+Math.sin(pl.h)*6,z:pl.z+Math.cos(pl.h)*6,h:0,mesh:m,state:'fight',ph:0,street:true};cbArm(a,'knife');a.atkCd=99;CB.foes.push(a);});
+ await G(.3);v=await vis();ok(['TASER','SWITCH','SHOUT'].every(x=>v.includes(x)),'in a fight: TASER, SWITCH, SHOUT ('+v+')');await shot('k_fight.png');
+ await pg.tap('#atkBtn');await pg.waitForTimeout(200);ok(await pg.evaluate(()=>CB.foes[0].state==='down'),'the attack button still works');
+ const sizes=await pg.evaluate(()=>$$('#touch button').map(b=>{b.classList.add('show');const r=b.getBoundingClientRect();b.classList.remove('show');return Math.min(r.width,r.height);}));
+ ok(Math.min(...sizes)>=54,'every button is at least 54 px ('+Math.min(...sizes)+')');
+ console.log('errors',errs);ok(!errs.length,'no page errors');await b.close();srv.close();})();

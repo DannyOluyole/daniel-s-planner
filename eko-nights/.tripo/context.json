@@ -1,0 +1,4 @@
+{
+  "default_scenario": "game-mobile",
+  "output_dir": "./models"
+}
