@@ -1,9 +1,11 @@
+// The corrupt path through the story: take the bribes, skip ahead, and get the "Part of the System" ending.
 const { chromium } = require('/opt/node-tools/node_modules/playwright');
-const fs=require('fs');
+const http=require('http'),fs=require('fs'),path=require('path');const ROOT=path.join(__dirname,'site/public');
+const srv=http.createServer((q,r)=>{let f=path.join(ROOT,q.url.split('?')[0]);if(f.endsWith('/'))f+='index.html';if(!fs.existsSync(f)){r.writeHead(404);r.end();return;}r.writeHead(200,{'Content-Type':f.endsWith('.js')?'application/javascript':f.endsWith('.json')?'application/json':'text/html'});r.end(fs.readFileSync(f));}).listen(8098,'127.0.0.1');
+const ok=(c,m)=>{console.log((c?'PASS ':'FAIL ')+m);if(!c)process.exitCode=1;};
 (async()=>{
   const b=await chromium.launch({executablePath:'/opt/pw-browsers/chromium',args:['--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader','--ignore-gpu-blocklist']});
   const pg=await b.newPage({viewport:{width:1100,height:700}});
-  await pg.route('**/three.min.js',r=>r.fulfill({body:fs.readFileSync('three/package/build/three.min.js'),contentType:'application/javascript'}));
   await pg.route('https://fonts.**',r=>r.abort());
   const errs=[];pg.on('pageerror',e=>errs.push('PAGEERR '+e.message+' @ '+(e.stack||'').split('\n').slice(1,3).join(' | ')));pg.on('console',m=>{if(m.type()==='error')errs.push(m.text())});
   const ev=(f,a)=>pg.evaluate(f,a);const wait=ms=>pg.waitForTimeout(ms);const step=n=>ev(n=>_step(n),n);
@@ -20,26 +22,28 @@ const fs=require('fs');
   const flagFile=async(key,extraNormal)=>{const rows=await ev(k=>curCase['rows_'+k].map(r=>r.k),key);for(let i=0;i<rows.length;i++){if(rows[i]!=='normal'||(extraNormal&&i===rows.indexOf('normal'))){await pg.click(`[data-r="${i}"]`);await wait(80);}}};
   const closeCase=async()=>{await step(4);await pg.keyboard.press('Tab');await wait(200);await pg.click('#closeCase');await wait(200);await pg.click('#rOk');await wait(900);};
   const waitReport=async()=>{for(let i=0;i<20&&!(await pg.$('#rOk'));i++)await step(5);await pg.click('#rOk');await wait(900);};
-  await pg.goto('file://'+process.cwd()+'/wrapped.html');await wait(500);
-  await pg.fill('#cFirst','tunde');await pg.fill('#cLast','bakare');await pg.click('#startBtn');await wait(4500);
+  await pg.goto('http://127.0.0.1:8098/');await wait(500);
+  await pg.fill('#cFirst','tunde');await pg.fill('#cLast','bakare');await pg.click('#startBtn');await pg.waitForFunction(()=>started,null,{timeout:60000});await wait(1500);await ev(()=>{PERF.off=true;CB.incT=1e9;});
   await ev(()=>{window._step=(n)=>{const r=renderer.render;renderer.render=()=>{};clock3.getDelta=()=>.05;for(let i=0;i<n;i++)frame();renderer.render=r;};clock3.getDelta=()=>.05;});
-  await hideChap();log('start',await state());
-  log('n',await talkNPC('bisi'));await ev(()=>{shift.stops+=3;});await step(12);await wait(700);
+  await hideChap();ok(await ev(()=>ST().ch===1&&ST().i===0),'the story starts at chapter 1');
+  log('n',await talkNPC('bisi'));await ev(()=>{shift.stops+=3;});for(let i=0;i<30&&await ev(()=>ST().i<2);i++){await step(4);await wait(100);}
   log('n',await talkNPC('bisi'));log('n',await talkNPC('grace'));
   await ev(()=>{const cs=curCase;cs.fleeChance[cs.M.id]=0;kycLookup(cs);setGPS(cs.M.door.x,cs.M.door.z,'x',cs.M.id);const d=cs.M.door;pl.x=d.x+.8;pl.z=d.z+.6;_step(3);});
-  log('near',await near());await E();await wait(400);await talkThrough(1);await wait(300);await waitReport();
-  log('after paid',await state(),await ev(()=>[ST().flags.mulePaid,ST().taken,ST().cash]));
+  ok(/^Talk to /.test(await near()),'the money mule can be confronted at home');await E();await wait(400);await talkThrough(1);await wait(300);await waitReport();
+  ok(await ev(()=>ST().flags.mulePaid&&ST().taken===1&&ST().cash>0),'letting the mule go for cash counts as a bribe taken');
   await ev(()=>{const s=ST();s.ch=3;s.i=0;saveCareer();_step(2);});await wait(700);
-  log('n',await talkNPC('bisi'));await ev(()=>{curCase.custody.push(curCase.C.id);});await step(4);await wait(1600);await step(2);
-  log('offer',await ev(()=>DLG&&DLG.lines[0].name));await talkThrough(1);await wait(400);await waitReport();
-  log('after yahoo',await state(),await ev(()=>ST().flags.yahooPaid));
+  log('n',await talkNPC('bisi'));await ev(()=>{curCase.custody.push(curCase.C.id);});
+  // the chairman's offer is scheduled on a real-time timer once he is in custody: wait for it
+  for(let i=0;i<30&&!(await ev(()=>!!DLG));i++){await step(2);await wait(200);}
+  ok(/Odogwu/.test(await ev(()=>DLG&&DLG.lines[0].name)),'the Yahoo chairman offers a bribe from custody');await talkThrough(1);await wait(400);await waitReport();
+  ok(await ev(()=>!!ST().flags.yahooPaid),'taking his money lets him buy his way out');
   log('n',await talkNPC('bisi'));await wait(500);await hideChap();
   log('n',await talkNPC('bisi'));log('n',await talkNPC('coker',0));await talkThrough(0);await wait(300);
-  await ev(()=>{curCase.flags.warrant=true;const m=MANSION;pl.x=m.x+m.nx;pl.z=m.z+m.nz;_step(3);});log('near',await near());await E();await wait(400);await talkThrough(1);await wait(300);await waitReport();
-  log('after hon',await state(),await ev(()=>[ST().flags.honPaid,career.rep,ST().cash]));
+  await ev(()=>{curCase.flags.warrant=true;const m=MANSION;pl.x=m.x+m.nx;pl.z=m.z+m.nz;_step(3);});ok(/Lawal/.test(await near()),'the Honourable can be confronted at his mansion');await E();await wait(400);await talkThrough(1);await wait(300);await waitReport();
+  ok(await ev(()=>ST().flags.honPaid&&ST().taken===3),'taking the Honourable\'s money is the third bribe');
   log('n',await talkNPC('bisi'));await wait(500);await hideChap();
   await ev(()=>{const s=ST();s.ch=7;s.i=0;s.flags.cokerArrested=false;saveCareer();});await wait(700);
   log('n',await talkNPC('bisi'));await ev(()=>{curCase.custody.push(curCase.C.id);});await waitReport();await wait(600);
-  await pg.screenshot({path:'h_ending_bad.png'});log('end',await ev(()=>$('#modal').innerText));
-  console.log('ERRORS',errs);await b.close();
+  await pg.screenshot({path:'h_ending_bad.png'});ok(await ev(()=>/PART OF THE SYSTEM/.test($('#modal').innerText)),'three bribes taken lead to the corrupt ending: "Part of the System"');
+  ok(errs.filter(e=>!/status of 404/.test(e)).length===0,'no page errors: '+JSON.stringify(errs.filter(e=>!/status of 404/.test(e))));await b.close();srv.close();
 })();
