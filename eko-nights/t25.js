@@ -7,7 +7,8 @@ const ok=(c,m)=>{console.log((c?'PASS ':'FAIL ')+m);if(!c)process.exitCode=1;};
  const ctx=await b.newContext({viewport:{width:1000,height:600}});
  // 1. no models: game runs as before
  let pg=await ctx.newPage();let errs=[];pg.on('pageerror',e=>errs.push(e.message));await pg.route('https://fonts.**',r=>r.abort());
- fs.rmSync(ROOT+'/models',{recursive:true,force:true});
+ // set the shipped models aside for this test; they are put back at the end
+ const KEEP=ROOT+'/../models.keep';fs.rmSync(KEEP,{recursive:true,force:true});if(fs.existsSync(ROOT+'/models'))fs.renameSync(ROOT+'/models',KEEP);
  await pg.goto('http://127.0.0.1:8091/');await pg.waitForTimeout(800);
  ok(await pg.evaluate(()=>ART.loaded&&artStatus().length===0&&ART.cars.size===0),'no models folder: built-in look, nothing pending');
  // 2. make two test models (a long orange box car facing +X, a white box cruiser) with the GLTF exporter
@@ -34,4 +35,4 @@ const ok=(c,m)=>{console.log((c?'PASS ':'FAIL ')+m);if(!c)process.exitCode=1;};
  ok(r.others.every(x=>!x),'cars with no model keep the built-in look ('+r.others.length+')');
  await pg.evaluate(()=>{setLights(true);});await pg.waitForTimeout(800);await pg.screenshot({path:'art_test.png'});
  console.log('errors',errs);ok(!errs.length,'no page errors');
- fs.rmSync(ROOT+'/models',{recursive:true,force:true});await b.close();srv.close();})();
+ fs.rmSync(ROOT+'/models',{recursive:true,force:true});if(fs.existsSync(KEEP))fs.renameSync(KEEP,ROOT+'/models');await b.close();srv.close();})();

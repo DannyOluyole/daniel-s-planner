@@ -19,7 +19,7 @@ The first run downloads three.js r128 into `three/` and the Firebase web SDK int
 
 To play, serve `site/public` with any static server, e.g. `npx serve site/public` or `python3 -m http.server -d site/public`, and open it in a browser. To deploy, follow `site/README.md` (written from `site-src/README.md`).
 
-`three/`, `fb/`, `precinct/`, `site/` and `wrapped.html` are build output and are not committed.
+`three/`, `fb/`, `precinct/`, `site/` and `wrapped.html` are build output and are not committed. Rebuild after changing `models/`.
 
 ## Source layout
 
@@ -28,6 +28,8 @@ To play, serve `site/public` with any static server, e.g. `npx serve site/public
 | `v2.html` | the base game; `assemble2.py` takes sections of it and patches them |
 | `build/` | game modules: world, simulation, combat, story, cases, online, audio, touch controls, perf, etc. |
 | `site-src/` | website files: Firebase config, online client, rules, Cloud Functions, manifest, icons |
+| `models/` | 3D models that replace the built-in shapes, listed in `models/manifest.json` (copied into the site by the build) |
+| `tools/make-cruiser.js` | builds `models/cruiser.glb`, the low-poly Division 9 cruiser (~1,400 triangles), and a preview render: `node tools/make-cruiser.js` |
 | `t*.js` | Playwright browser tests |
 
 ## Tests
