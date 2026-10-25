@@ -16,10 +16,13 @@ The first run downloads three.js r128 into `three/` and the Firebase web SDK int
 1. `assemble2.py`: `v2.html` + `build/*.js` → `precinct/precinct-9.html` (the game as one page, as used for the claude.ai artifact)
 2. `build_site.py`: `precinct-9.html` + `site-src/` → `site/` (the self-hosted website, with three.js and Firebase served from `vendor/`)
 3. writes `wrapped.html`, the game in a full page with local three.js, for the `file://` tests
+4. writes `artifact/models/`: the models converted for the claude.ai artifact, which can't serve `.glb` files (each becomes glTF JSON with its data embedded)
+
+To update the claude.ai artifact, publish `precinct/precinct-9.html` with `artifact/models/*` as supporting files at `models/...`.
 
 To play, serve `site/public` with any static server, e.g. `npx serve site/public` or `python3 -m http.server -d site/public`, and open it in a browser. To deploy, follow `site/README.md` (written from `site-src/README.md`).
 
-`three/`, `fb/`, `precinct/`, `site/` and `wrapped.html` are build output and are not committed. Rebuild after changing `models/`.
+`three/`, `fb/`, `precinct/`, `site/`, `artifact/` and `wrapped.html` are build output and are not committed. Rebuild after changing `models/`.
 
 ## Source layout
 

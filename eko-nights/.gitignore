@@ -6,3 +6,4 @@ fb/
 wrapped.html
 # screenshots written by the t*.js tests
 /*.png
+artifact/
