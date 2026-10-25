@@ -2,5 +2,17 @@
   "cruiser": {
     "file": "cruiser.glb",
     "len": 4.8
+  },
+  "sedan": {
+    "file": "sedan.glb",
+    "len": 4.5
+  },
+  "danfo": {
+    "file": "danfo.glb",
+    "len": 4.9
+  },
+  "keke": {
+    "file": "keke.glb",
+    "len": 2.8
   }
 }

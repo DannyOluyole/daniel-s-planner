@@ -32,7 +32,7 @@ To play, serve `site/public` with any static server, e.g. `npx serve site/public
 | `build/` | game modules: world, simulation, combat, story, cases, online, audio, touch controls, perf, etc. |
 | `site-src/` | website files: Firebase config, online client, rules, Cloud Functions, manifest, icons |
 | `models/` | 3D models that replace the built-in shapes, listed in `models/manifest.json` (copied into the site by the build) |
-| `tools/make-cruiser.js` | builds `models/cruiser.glb`, the low-poly Division 9 cruiser (~1,400 triangles), and a preview render: `node tools/make-cruiser.js` |
+| `tools/make-models.js` | builds the low-poly vehicle models in `models/`: police cruiser, sedan, danfo and keke (700–1,400 triangles each), plus a line-up render: `node tools/make-models.js [names]`. Body panels use a material named `paint`, which the game repaints in each vehicle's own colour |
 | `t*.js` | Playwright browser tests |
 
 ## Tests

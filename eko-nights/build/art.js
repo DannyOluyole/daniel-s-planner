@@ -5,8 +5,12 @@
 // Anything missing keeps the built-in look, so the game works with no models at all.
 const ART={ready:{},spec:{},cars:new Set(),loaded:false};
 // which model each vehicle uses
-const ART_CAR={Corolla:'sedan',Camry:'sedan',Golf:'hatchback',Sedan:'sedan',Sienna:'minivan',Hilux:'pickup',Highlander:'suv',Van:'danfo',Keke:'keke'};
-function artKeyForCar(model,police){return police?'cruiser':ART_CAR[model]||'sedan';}
+const ART_CAR={Corolla:'sedan',Camry:'sedan',Golf:'hatchback',Sedan:'sedan',Sienna:'minivan',Hilux:'pickup',Highlander:'suv',Van:'danfo',Danfo:'danfo',Keke:'keke'};
+// vehicles with no entry (okadas) keep their built-in look
+function artKeyForCar(model,police){return police?'cruiser':ART_CAR[model];}
+// a model's body is painted with the vehicle's own colour: any material named "paint" takes it
+const ART_PAINT={};
+function artPaint(m,color){m.traverse(o=>{if(!o.isMesh||!o.material||o.material.name!=='paint')return;const k=o.material.uuid+color;o.material=ART_PAINT[k]||(ART_PAINT[k]=o.material.clone());o.material.color.set(color);});}
 function artNormalize(root,spec){
   const g=new THREE.Group();g.add(root);
   root.rotation.y=(spec.rotY||0)*Math.PI/180;root.updateMatrixWorld(true);
@@ -40,7 +44,7 @@ function artDressCar(g){
   u.body.children.forEach(c=>{if(c.isMesh&&!keep.has(c.material))c.visible=false;});
   if(u.sil)u.sil.visible=false;
   u.wheels.forEach(w=>w.visible=false);
-  const m=tpl.clone(true);u.body.add(m);u.artMesh=m;
+  const m=tpl.clone(true);if(u.color&&!u.police)artPaint(m,u.color);u.body.add(m);u.artMesh=m;
   // the light bar sits on the model's roof
   if(u.police){const top=new THREE.Box3().setFromObject(m).max.y-g.position.y;u.body.children.forEach(c=>{if(c.isMesh&&keep.has(c.material))c.position.y=top+.08;});
     [u.gr,u.gb].forEach(s=>{if(s)s.position.y=top+.12;});}

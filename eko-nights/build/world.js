@@ -117,7 +117,7 @@ function makeCarMesh(color,model,police,player){
   const wheels=[],steer=[];
   [[1,1],[-1,1],[1,-1],[-1,-1]].forEach(([sx,sz])=>{const piv=new THREE.Group();piv.position.set(sx*(P.W/2-.08),.36,sz*P.wz);const spin=new THREE.Group();piv.add(spin);
     spin.add(sh(new THREE.Mesh(GEO.tire,lam('#121316')),true,false));spin.add(new THREE.Mesh(GEO.rim,std('#a3aab3',.3,.8)));g.add(piv);wheels.push(spin);if(sz>0)steer.push(piv);});
-  const ud={wheels,steer,body,P,tail:tl,model,police:!!police};
+  const ud={wheels,steer,body,P,tail:tl,model,color,police:!!police};
   if(police){
     if(!liveryTex){const [c,x]=mkC(512,128);x.fillStyle='#f4f5f7';x.fillRect(0,0,512,128);x.fillStyle='#1d3a7a';x.fillRect(0,92,512,14);x.fillStyle='#14234a';x.font='800 70px Saira Condensed, Arial Narrow, sans-serif';x.textAlign='center';x.textBaseline='middle';x.fillText('POLICE',256,50);x.font='600 18px IBM Plex Mono, monospace';x.fillText('PRECINCT 9 · DIAL 911',256,116);liveryTex=ctex(c);}
     const lm=new THREE.MeshStandardMaterial({map:liveryTex,roughness:.4,metalness:.2});
