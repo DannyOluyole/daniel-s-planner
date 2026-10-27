@@ -344,6 +344,15 @@ tr.flag-miss td{background:rgba(255,77,94,.08);color:var(--muted)}
 .offer.daily{border-color:var(--amber);background:linear-gradient(90deg,rgba(244,183,64,.12),transparent)}.offer.daily .code b{color:var(--amber)}
 .dboard{min-width:0}.dboard td,.dboard th{white-space:normal}.dboard tr.me td{background:rgba(244,183,64,.1)}
 @media (max-height:500px) and (orientation:landscape){.scorecard{margin:6px 0 0;gap:12px}.grade{width:54px;height:54px;font-size:36px}.scorecard .sc{font-size:30px}.scoreparts{font-size:12px}}
+/* Patrol Rush */
+.rushhud{position:absolute;left:50%;transform:translateX(-50%);top:calc(10px + env(safe-area-inset-top,0px));display:grid;grid-template-columns:auto auto;gap:2px 14px;align-items:center;background:var(--glass);border:1px solid var(--amber);border-radius:8px;padding:6px 14px;pointer-events:none;min-width:200px}
+.rushhud .rt{font-family:var(--f-disp);font-size:30px;line-height:1;color:var(--amber)}.rushhud .rt.low{color:var(--red)}
+.rushhud .rs{font-family:var(--f-mono);font-size:13px;color:var(--muted);text-align:right}.rushhud .rs b{font-family:var(--f-disp);font-size:24px;color:var(--ink)}
+.rushhud .rc{grid-column:1/-1;position:relative;font-family:var(--f-mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);padding-bottom:4px}
+.rushhud .rc.on{color:var(--amber)}.rushhud .rc i{position:absolute;left:0;bottom:0;height:3px;border-radius:2px;background:var(--amber);transition:width .2s linear}
+.rushhud .rl{grid-column:1/-1;font-size:13px;font-weight:600;color:var(--ok)}
+body.rush .meter{top:calc(96px + env(safe-area-inset-top,0px))}
+@media (max-height:500px) and (orientation:landscape){.rushhud{top:calc(6px + env(safe-area-inset-top,0px));padding:3px 10px;min-width:150px}.rushhud .rt{font-size:22px}.rushhud .rs b{font-size:18px}body.rush .meter{top:calc(74px + env(safe-area-inset-top,0px))}}
 </style>
 
 <div id="game">

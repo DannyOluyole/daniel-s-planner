@@ -32,6 +32,7 @@ To play, serve `site/public` with any static server, e.g. `npx serve site/public
 | `build/` | game modules: world, simulation, combat, story, cases, online, audio, touch controls, perf, etc. |
 | `site-src/` | website files: Firebase config, online client, rules, Cloud Functions, manifest, icons |
 | `models/` | 3D models that replace the built-in shapes, listed in `models/manifest.json` (copied into the site by the build) |
+| `build/politicians.js` | real Nigerian politicians' names and the sound-alike check: no character may use them, and players can't register as one (the server's name check uses the same file) |
 | `tools/make-models.js` | builds the low-poly vehicle models in `models/`: police cruiser, sedan, hatchback, minivan, pickup, SUV, danfo, keke and okada (400–1,400 triangles each), plus a line-up render: `node tools/make-models.js [names]`. Body panels use a material named `paint`, which the game repaints in each vehicle's own colour |
 | `t*.js` | Playwright browser tests |
 
@@ -51,12 +52,14 @@ Run from this folder after `./build.sh`, e.g. `node t19.js`. Each prints `PASS`/
   | `t8` | a homicide case with a reload in the middle |
   | `t9` | squads on the artifact build, with its storage API mocked |
   | `t26` | case scores and grades, the Daily Case (same case for everyone, one ranked attempt a day) and its leaderboard, on the artifact build with its storage mocked |
+  | `t28` | no character in 800 generated cases, the name pools, the story cast or any titled name echoes a real politician, and players can't register as one |
+  | `t29` | Patrol Rush: a real traffic stop, street calls, pursuits, the combo, no cases mid-run, results and the weekly leaderboard (artifact build, storage mocked) |
   | `t11`, `t13l`, `t15`, `t16`, `t18`–`t25` | phone controls, performance, combat, case guidance, the city, 3D models, and more |
 
 - **Online:** need the Firebase emulators (Java 11+ and `npm i -g firebase-tools`). Start them in a second terminal, wait for "All emulators ready", then run the tests:
 
   ```bash
-  ./emulators.sh          # verified-mode rules, for t14, t14d, t14e, t17, t27 (the Daily Case scored by the server)
+  ./emulators.sh          # verified-mode rules, for t14, t14d, t14e, t17, t27 (Daily Case) and t30 (Patrol Rush), checked by the server
   ./emulators.sh spark    # free-plan rules, for t10, t12
   ```
 

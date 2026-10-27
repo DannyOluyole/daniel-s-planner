@@ -217,6 +217,50 @@ exports.closeCase = call(async (uid, d) => {
   });
 });
 
+// ---------- Patrol Rush: five timed minutes, best run of the week on the leaderboard (build/rush.js)
+// The server can't watch the run, so it checks what it can: the run really lasted five minutes, a limited number of
+// runs an hour, and a score no higher than the work reported could earn. Players can't write the weekly fields.
+const RUSH = { minSeconds: 290, maxSeconds: 3 * 3600, startsPerHour: 12, maxScore: 30000 };
+const rushWeek = () => { const d = new Date(Date.now() + 3600e3); d.setUTCHours(0, 0, 0, 0); d.setUTCDate(d.getUTCDate() - ((d.getUTCDay() + 6) % 7)); return d.toISOString().slice(0, 10); };
+exports.startRush = call(async uid => {
+  const me = db.doc('officers/' + uid);
+  return db.runTransaction(async t => {
+    const mine = await t.get(me);
+    if (!mine.exists) throw new HttpsError('failed-precondition', 'Register your officer first.');
+    const od = mine.data(), now = Date.now(), hour = Math.floor(now / 3600e3);
+    const starts = od.rushHourKey === hour ? (od.rushHourStarts || 0) : 0;
+    if (starts >= RUSH.startsPerHour) throw new HttpsError('resource-exhausted', 'Too many Patrol Rush runs this hour.');
+    const ref = db.collection('rushes').doc();
+    t.set(ref, { uid, startedAt: now, status: 'open' });
+    t.update(me, { rushHourKey: hour, rushHourStarts: starts + 1 });
+    return { ticketId: ref.id };
+  });
+});
+exports.closeRush = call(async (uid, d) => {
+  const ref = db.doc('rushes/' + String(d.ticketId || 'none'));
+  const me = db.doc('officers/' + uid);
+  return db.runTransaction(async t => {
+    const [rk, mine] = await Promise.all([t.get(ref), t.get(me)]);
+    if (!rk.exists || rk.data().uid !== uid || !mine.exists) throw new HttpsError('not-found', 'No such run.');
+    if (rk.data().status !== 'open') return { accepted: false, reason: 'already closed' };
+    const od = mine.data(), now = Date.now(), secs = (now - rk.data().startedAt) / 1000;
+    const n = d.n || {};
+    const stops = int(n.stops, 0, 40), pursuits = int(n.pursuits, 0, 30), incidents = int(n.incidents, 0, 15), arrests = int(n.arrests, 0, 60);
+    const score = int(d.score, 0, 1e7);
+    // the most this work could earn at the top combo: a perfect stop with an arrest, every runner, every arrest on a call
+    const ceiling = Math.min(RUSH.maxScore, Math.round(2.5 * (stops * 950 + pursuits * 300 + arrests * 250 + incidents * 300)));
+    let reason = null;
+    if (secs < RUSH.minSeconds) reason = 'the run was shorter than five minutes';
+    else if (secs > RUSH.maxSeconds) reason = 'the run took too long';
+    else if (score > ceiling) reason = 'the score is higher than the work reported allows';
+    const week = rushWeek(), cur = od.rushWeek === week ? (od.rushScore || 0) : 0;
+    const best = !reason && score > cur;
+    t.update(ref, { status: reason ? 'rejected' : 'done', closedAt: now, seconds: Math.round(secs), score, reason, n: { stops, pursuits, incidents, arrests } });
+    if (best) t.update(me, { rushWeek: week, rushScore: score, rushAt: now });
+    return { accepted: !reason, reason, best };
+  });
+});
+
 // ---------- squad invites: only to online officers, only from an open squad, limited per 10 minutes
 exports.sendInvite = call(async (uid, d) => {
   const to = String(d.to || '');

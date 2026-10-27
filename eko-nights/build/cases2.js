@@ -86,13 +86,14 @@ function drawDispatch(body,cs){
   const r=rankIdx();const locked=DISPATCH.filter(d=>d.rank>r);
   const tchip=c=>isFinite(c.limit)?`<span class="chip ${c.limit<=12*60?'red':'amber'}">${Math.round(c.limit/60)} h deadline</span>`:'<span class="chip">No deadline</span>';
   body.innerHTML=`${cs?`<div class="empty" style="margin-bottom:12px">You're on <b>${esc(cs.title)}</b>. Close it or hand it back before taking another case.</div>`:''}
-    <div class="offers">${dailyDispatchCard()}${storyDispatchCard()}${typeof inviteCards==='function'?inviteCards():''}
+    <div class="offers">${dailyDispatchCard()}${rushDispatchCard()}${storyDispatchCard()}${typeof inviteCards==='function'?inviteCards():''}
     <article class="offer"><div class="code"><b>10-8</b>Traffic</div><div><h3>Speed enforcement, citywide</h3><p>Always on while you patrol. The limit is ${LIMIT} km/h. Lock the radar on a car ahead, hit Space, follow until it pulls over, then walk to the driver's window.</p><span class="chip">This shift: ${shift.stops} stops · ${shift.tickets} tickets</span></div><span></span></article>
     ${nextCases.map((o,i)=>`<article class="offer${o.d.urgent?' urgent':''}"><div class="code"><b>${o.d.code}</b>${esc(o.d.label)}</div><div><h3>${esc(o.cs.title)}</h3><p>${esc(caseBlurb(o.cs))}</p>${tchip(o.cs)} <span class="chip">${RANKS[o.d.rank][1]}+</span></div><button class="btn${o.d.urgent?' red':''}" data-take="${i}" ${cs?'disabled':''}>Take the case</button></article>`).join('')}
     ${locked.length?`<article class="offer locked"><div class="code"><b>🔒</b>Locked</div><div><h3>More cases as you rise</h3><p>${locked.map(d=>`${esc(d.label)} at ${RANKS[d.rank][1]}`).join(' · ')}. You are ${rankOf(career.xp).name}${rankOf(career.xp).next?`, ${rankOf(career.xp).next[0]-career.xp} XP from ${rankOf(career.xp).next[1]}`:''}.</p></div><span></span></article>`:''}
     </div>`;
   $$('[data-take]',body).forEach(b=>b.onclick=()=>startCase(nextCases[+b.dataset.take].cs));
   $$('[data-daily]',body).forEach(b=>b.onclick=()=>openMDT('daily'));
+  $$('[data-rush]',body).forEach(b=>b.onclick=()=>openMDT('rush'));
   $$('[data-inv]',body).forEach(b=>b.onclick=()=>joinSquadByHost(b.dataset.inv));
 }
 
