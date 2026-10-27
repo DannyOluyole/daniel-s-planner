@@ -14,5 +14,25 @@
   "keke": {
     "file": "keke.glb",
     "len": 2.8
+  },
+  "hatchback": {
+    "file": "hatchback.glb",
+    "len": 4.1
+  },
+  "minivan": {
+    "file": "minivan.glb",
+    "len": 4.9
+  },
+  "pickup": {
+    "file": "pickup.glb",
+    "len": 5.1
+  },
+  "suv": {
+    "file": "suv.glb",
+    "len": 4.7
+  },
+  "okada": {
+    "file": "okada.glb",
+    "len": 1.9
   }
 }

@@ -5,8 +5,8 @@
 // Anything missing keeps the built-in look, so the game works with no models at all.
 const ART={ready:{},spec:{},cars:new Set(),loaded:false};
 // which model each vehicle uses
-const ART_CAR={Corolla:'sedan',Camry:'sedan',Golf:'hatchback',Sedan:'sedan',Sienna:'minivan',Hilux:'pickup',Highlander:'suv',Van:'danfo',Danfo:'danfo',Keke:'keke'};
-// vehicles with no entry (okadas) keep their built-in look
+const ART_CAR={Corolla:'sedan',Camry:'sedan',Golf:'hatchback',Sedan:'sedan',Sienna:'minivan',Hilux:'pickup',Highlander:'suv',Van:'danfo',Danfo:'danfo',Keke:'keke',Okada:'okada'};
+// vehicles with no entry keep their built-in look
 function artKeyForCar(model,police){return police?'cruiser':ART_CAR[model];}
 // a model's body is painted with the vehicle's own colour: any material named "paint" takes it
 const ART_PAINT={};

@@ -1,4 +1,4 @@
-// Builds the low-poly vehicle models as GLBs: node tools/make-models.js [cruiser sedan danfo keke] (after ./build.sh, which fetches three.js)
+// Builds the low-poly vehicle models as GLBs: node tools/make-models.js [names, default all] (after ./build.sh, which fetches three.js)
 // Writes models/<name>.glb, adds each to models/manifest.json and saves a line-up render to tools/vehicles-preview.png.
 // Front faces +Z and wheels are included (the game hides its own). Body panels use a material named "paint", which the
 // game repaints with each vehicle's own colour. The cruiser has no light bar: the game puts its own flashing one on the roof.
@@ -6,7 +6,7 @@ const { chromium } = require('/opt/node-tools/node_modules/playwright');
 const fs=require('fs'),path=require('path');
 const DIR=path.join(__dirname,'..');
 // len: length in metres the game scales the model to
-const MODELS={cruiser:{len:4.8},sedan:{len:4.5},danfo:{len:4.9},keke:{len:2.8}};
+const MODELS={cruiser:{len:4.8},sedan:{len:4.5},hatchback:{len:4.1},minivan:{len:4.9},pickup:{len:5.1},suv:{len:4.7},danfo:{len:4.9},keke:{len:2.8},okada:{len:1.9}};
 
 // runs in the browser with THREE loaded
 function kit(){
@@ -22,7 +22,7 @@ function kit(){
     const g=new THREE.ExtrudeGeometry(s,{depth:width-2*bevel,bevelEnabled:true,bevelThickness:bevel,bevelSize:bevel,bevelSegments:2,curveSegments:10});
     g.rotateY(-Math.PI/2);g.translate((width-2*bevel)/2,0,0);return new THREE.Mesh(g,m);};
   // bottom edge from the rear corner forward, round two wheel arches
-  const arches=(rear,front,ax,r)=>s=>{s.lineTo(rear,.30);s.lineTo(-ax-r,.30);s.absarc(-ax,.30,r,Math.PI,0,true);s.lineTo(ax-r,.30);s.absarc(ax,.30,r,Math.PI,0,true);s.lineTo(front,.30);};
+  const arches=(rear,front,ax,r,y=.30)=>s=>{s.lineTo(rear,y);s.lineTo(-ax-r,y);s.absarc(-ax,y,r,Math.PI,0,true);s.lineTo(ax-r,y);s.absarc(ax,y,r,Math.PI,0,true);s.lineTo(front,y);};
   const boxIn=g=>(w,h,l,m,x,y,z)=>{const b=new THREE.Mesh(new THREE.BoxGeometry(w,h,l),m);b.position.set(x,y,z);g.add(b);return b;};
   const wheel=(g,x,z,r,w=.26)=>{const t=new THREE.CylinderGeometry(r,r,w,18),h=new THREE.CylinderGeometry(r*.55,r*.55,w+.01,10);t.rotateZ(Math.PI/2);h.rotateZ(Math.PI/2);
     const k=new THREE.Group();k.add(new THREE.Mesh(t,mat('#101114',{roughness:.9})));k.add(new THREE.Mesh(h,mat(CHROME,{metalness:.7,roughness:.3})));k.position.set(x,r,z);g.add(k);return k;};
@@ -100,6 +100,59 @@ function kit(){
     flanks(g,1.25,()=>decal('KEKE NAPEP',.9,.16,64,'#151515'),.72,-.35);
     wheel(g,0,1.25,.28,.16);wheel(g,-.62,-.85,.30,.18);wheel(g,.62,-.85,.30,.18);
     return g;};
+
+  // everyday cars: a painted lower body round the wheel arches, a glass cabin, a painted roof, lamps, bumpers, plates and wheels
+  function car(o){
+    const g=new THREE.Group(),box=boxIn(g),p=paint(o.col);const W=o.W,zF=o.front,zR=o.rear;
+    g.add(side(o.body,W,p,.05,arches(zR+.04,zF-.02,o.ax,o.wr+.12,o.y0)));
+    g.add(side(o.cabin,W-.28,glass(),.05));
+    box(W-.26,.06,o.roofLen,p,0,o.roofY,o.roofZ);
+    box(W+.04,.20,.16,mat(BLACK),0,o.y0+.14,zF+.04);box(W+.04,.20,.16,mat(BLACK),0,o.y0+.14,zR-.04);
+    const fy=o.lampY,ry=o.tailY||o.lampY;
+    [-1,1].forEach(sx=>{box(.34,.13,.05,lamp('#fff6d8','#ffe9a8'),sx*(W/2-.3),fy,zF+.03);box(.12,.07,.05,lamp('#ffb020','#ff9900'),sx*(W/2-.08),fy-.13,zF+.03);
+      box(o.tallTail?.14:.36,o.tallTail?.42:.14,.05,lamp('#c4141c','#a00008'),sx*(W/2-(o.tallTail?.1:.3)),ry,zR-.03);
+      box(.16,.10,.10,p,sx*(W/2+.06),o.mirrorY,o.mirrorZ);});
+    plate(g,o.y0+.14,zF+.125,false);plate(g,o.y0+.34,zR-.065,true);
+    [[-1,1],[1,1],[-1,-1],[1,-1]].forEach(([sx,sz])=>wheel(g,sx*(W/2-.12),sz*o.ax,o.wr,.24));
+    return {g,box,p,W};}
+  B.hatchback=()=>car({col:'#2f7d4f',W:1.78,front:2.03,rear:-2.04,ax:1.25,wr:.32,y0:.30,
+    body:[[2.03,.60],[1.98,.86],[.95,.98],[-1.80,.98],[-2.02,.88],[-2.04,.60]],
+    cabin:[[-1.98,.96],[-1.86,1.40],[.32,1.44],[.95,.97]],roofLen:2.12,roofY:1.44,roofZ:-.78,lampY:.74,tailY:.82,tallTail:true,mirrorY:1.02,mirrorZ:.86}).g;
+  B.suv=()=>{const o={col:'#1c1f26',W:1.94,front:2.34,rear:-2.36,ax:1.45,wr:.40,y0:.42,
+    body:[[2.34,.70],[2.28,1.0],[1.2,1.14],[-2.22,1.14],[-2.36,1.0],[-2.36,.70]],
+    cabin:[[-2.26,1.12],[-2.20,1.70],[.55,1.74],[1.18,1.13]],roofLen:2.70,roofY:1.74,roofZ:-.83,lampY:.95,tailY:1.05,tallTail:true,mirrorY:1.20,mirrorZ:1.05};
+    const {g,box,W}=car(o);
+    [-1,1].forEach(sx=>{box(.05,.06,2.5,mat(CHROME,{metalness:.7}),sx*(W/2-.22),1.82,-.85);box(.05,.12,4.4,mat('#22252b'),sx*(W/2+.012),.58,0);});  // roof rails, side cladding
+    return g;};
+  B.minivan=()=>{const o={col:'#e8ebee',W:1.96,front:2.42,rear:-2.46,ax:1.52,wr:.34,y0:.32,
+    body:[[2.42,.62],[2.36,.95],[1.62,1.08],[-2.36,1.08],[-2.46,.96],[-2.46,.62]],
+    cabin:[[-2.40,1.06],[-2.34,1.72],[.92,1.76],[1.62,1.07]],roofLen:3.24,roofY:1.75,roofZ:-.70,lampY:.86,tailY:1.10,tallTail:true,mirrorY:1.15,mirrorZ:1.40};
+    const {g,box,W}=car(o);
+    [-1,1].forEach(sx=>{box(.03,.03,1.3,mat('#33363c'),sx*(W/2+.012),1.12,-.55);box(.03,.62,.03,mat('#33363c'),sx*(W/2+.012),.78,.10);});  // sliding-door rail and seam
+    return g;};
+  B.pickup=()=>{const o={col:'#e8ebee',W:1.96,front:2.44,rear:-2.58,ax:1.62,wr:.40,y0:.40,
+    body:[[2.44,.70],[2.38,1.0],[1.2,1.14],[-2.55,1.14],[-2.58,.70]],
+    cabin:[[-.46,1.12],[-.40,1.74],[.62,1.76],[1.18,1.13]],roofLen:1.04,roofY:1.76,roofZ:.11,lampY:.96,tailY:1.0,tallTail:true,mirrorY:1.22,mirrorZ:1.0};
+    const {g,box,p,W}=car(o);
+    box(W-.26,.62,.06,p,0,1.44,-.46);                                                    // back of the cab
+    [-1,1].forEach(sx=>box(.08,.30,2.06,p,sx*(W/2-.04),1.29,-1.53));box(W,.30,.08,p,0,1.29,-2.54);  // load bed walls, tailgate
+    box(W-.16,.02,2.0,mat('#1b1c20'),0,1.15,-1.53);                                      // bed floor
+    [-1,1].forEach(sx=>box(.06,.5,.06,mat(BLACK),sx*(W/2-.2),1.65,-.62));box(W-.34,.06,.06,mat(BLACK),0,1.9,-.62);  // roll bar
+    return g;};
+  B.okada=()=>{
+    // the motorbike taxi; the game keeps its own rider and passenger on top, sitting at seat height .84
+    const g=new THREE.Group(),box=boxIn(g);const p=paint('#c8323c');
+    box(.22,.30,1.20,p,0,.62,0);                                                          // frame
+    const tank=new THREE.Mesh(new THREE.CylinderGeometry(.16,.14,.42,10),p);tank.rotation.x=Math.PI/2;tank.position.set(0,.86,.22);g.add(tank);
+    box(.28,.09,.78,mat('#141414'),0,.84,-.22);                                           // seat
+    box(.30,.04,.34,mat(BLACK),0,.86,-.78);                                               // rear rack
+    const fork=new THREE.Mesh(new THREE.CylinderGeometry(.025,.025,.62,6),mat(CHROME,{metalness:.7}));fork.position.set(0,.66,.66);fork.rotation.x=.38;g.add(fork);
+    box(.70,.04,.04,mat('#222'),0,1.05,.55);                                              // handlebar
+    box(.18,.12,.06,lamp('#fff6d8','#ffe9a8'),0,.90,.70);box(.12,.06,.04,lamp('#c4141c','#a00008'),0,.74,-.95);
+    const ex=new THREE.Mesh(new THREE.CylinderGeometry(.04,.05,.6,8),mat(CHROME,{metalness:.7}));ex.rotation.x=Math.PI/2;ex.position.set(.16,.36,-.42);g.add(ex);
+    box(.30,.06,.42,p,0,.98,-.80);                                                        // rear mudguard
+    wheel(g,0,.62,.32,.10);wheel(g,0,-.62,.32,.10);
+    return g;};
   return {B,paintAll:(m,c)=>m.traverse(o=>{if(o.isMesh&&o.material&&o.material.name==='paint'){o.material=o.material.clone();o.material.color.set(c);}})};
 }
 
@@ -109,7 +162,7 @@ function kit(){
   for(const f of ['three/package/build/three.min.js','three/package/examples/js/exporters/GLTFExporter.js'])
     if(!fs.existsSync(path.join(DIR,f))){console.error('missing '+f+': run ./build.sh first');process.exit(2);}
   const b=await chromium.launch({executablePath:'/opt/pw-browsers/chromium',args:['--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader']});
-  const pg=await b.newPage({viewport:{width:1200,height:520}});const errs=[];pg.on('pageerror',e=>errs.push(e.message));
+  const pg=await b.newPage({viewport:{width:1500,height:520}});const errs=[];pg.on('pageerror',e=>errs.push(e.message));
   await pg.setContent('<body style="margin:0;background:#cfd6df"></body>');
   await pg.addScriptTag({path:path.join(DIR,'three/package/build/three.min.js')});
   await pg.addScriptTag({path:path.join(DIR,'three/package/examples/js/exporters/GLTFExporter.js')});
@@ -121,12 +174,12 @@ function kit(){
       const glb=await new Promise(r=>new THREE.GLTFExporter().parse(m,x=>r(Array.from(new Uint8Array(x))),{binary:true}));
       res[k]={glb,tris:Math.round(tris)};}
     // line-up render of every model, sedans and kekes in a couple of their colours as the game paints them
-    const R=new THREE.WebGLRenderer({antialias:true});R.setSize(1200,520);R.outputEncoding=THREE.sRGBEncoding;R.setClearColor('#cfd6df');document.body.appendChild(R.domElement);
+    const R=new THREE.WebGLRenderer({antialias:true});R.setSize(1500,520);R.outputEncoding=THREE.sRGBEncoding;R.setClearColor('#cfd6df');document.body.appendChild(R.domElement);
     const S=new THREE.Scene();S.add(new THREE.HemisphereLight('#ffffff','#556070',.9));const sun=new THREE.DirectionalLight('#fff4e0',1.1);sun.position.set(6,10,8);S.add(sun);
-    const ground=new THREE.Mesh(new THREE.PlaneGeometry(40,14),new THREE.MeshStandardMaterial({color:'#8e969f'}));ground.rotation.x=-Math.PI/2;S.add(ground);
-    [['cruiser',null,-7.2],['sedan','#c8323c',-3.7],['sedan','#2f5fb8',-.6],['danfo',null,2.7],['keke','#e8b417',5.6],['keke','#2f8a4f',7.5]].forEach(([k,c,x])=>{
+    const ground=new THREE.Mesh(new THREE.PlaneGeometry(60,20),new THREE.MeshStandardMaterial({color:'#8e969f'}));ground.rotation.x=-Math.PI/2;S.add(ground);
+    [['cruiser',null,-12.6,0],['sedan','#c8323c',-9.4,0],['hatchback','#2f5fb8',-6.4,0],['suv','#1c1f26',-3.2,0],['minivan','#e8ebee',.2,0],['pickup','#a8b0ba',3.6,0],['danfo',null,7.2,0],['keke','#2f8a4f',10.2,0],['okada','#c8323c',12.2,0]].forEach(([k,c,x])=>{
       const m=KIT.B[k]();if(c)KIT.paintAll(m,c);m.rotation.y=-.62;m.position.x=x;S.add(m);});
-    const cam=new THREE.PerspectiveCamera(30,1200/520,.1,100);cam.position.set(1.2,7,17);cam.lookAt(.3,.9,0);R.render(S,cam);
+    const cam=new THREE.PerspectiveCamera(30,1500/520,.1,100);cam.position.set(.2,6.5,20);cam.lookAt(0,.8,0);R.render(S,cam);
     return res;},want);
   await pg.screenshot({path:path.join(__dirname,'vehicles-preview.png')});
   fs.mkdirSync(path.join(DIR,'models'),{recursive:true});

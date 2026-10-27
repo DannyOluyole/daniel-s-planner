@@ -583,7 +583,7 @@ function makeSmallVehicle(color,model){
     if(Math.random()<.4){const pass=makePersonMesh(randLook());pose(pass,['sit']);pass.position.set(0,0,-.65);body.add(pass);}
     P={W:.7,roof:1.6,body:[[-.9,0],[.9,0]],wz:.6};
   }
-  g.userData={wheels,steer,body,P,tail:matLR,model,color};if(model==='Keke')artDressCar(g);return g;
+  g.userData={wheels,steer,body,P,tail:matLR,model,color};artDressCar(g);return g;
 }
 function buildLocalProps(){
   const dm=new THREE.Object3D();
