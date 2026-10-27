@@ -97,8 +97,8 @@ function ticketStart(cs){
 }
 async function ticketClose(cs,how,success){
   if(!NET.srv||!cs.ticket)return;
-  const claim={success,caught:cs.gang.filter(id=>cs.custody.includes(id)).length,falseArrests:cs.falseArrests,evidence:cs.evidence.length,raid:!!cs.flags.raidWin,backup:cs.backup?cs.backup.uid:null,paid:!!(cs.flags.paid||cs.flags.honPaid),title:cs.title};
-  try{const r=await NET.srv.call('closeCase',{ticketId:cs.ticket,outcome:how,claim});
+  const claim={success,caught:cs.gang.filter(id=>cs.custody.includes(id)).length,falseArrests:cs.falseArrests,evidence:cs.evidence.length,raid:!!cs.flags.raidWin,backup:cs.backup?cs.backup.uid:null,paid:!!(cs.flags.paid||cs.flags.honPaid),title:cs.title,timeFrac:cs.scoreIn?cs.scoreIn.timeFrac:0,badShots:cs.scoreIn?cs.scoreIn.badShots:0};
+  try{const r=await NET.srv.call('closeCase',{ticketId:cs.ticket,outcome:how,claim});if(r.daily)dailyVerified(cs,r.daily);
     if(r.accepted&&r.xp&&!r.reason)toast(`Verified service record: +${r.xp} XP${r.backupXp?`, and +${r.backupXp} XP to your backup`:''}.`,'good');
     else if(r.reason==='daily_cap')toast('Daily limit reached: this case counts, but gives no verified XP today.');
     else if(r.reason==='too_fast')toast('Not added to your verified record: the case was closed faster than the server allows.','bad');

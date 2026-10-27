@@ -44,6 +44,23 @@ const rating = s => {
 };
 const int = (v, lo, hi) => Math.max(lo, Math.min(hi, Math.round(Number(v) || 0)));
 const dayKey = () => new Date().toISOString().slice(0, 10);
+
+// ---------- the Daily Case: the same case for everyone each day (the game's build/score.js uses the same rules)
+const DAILY_TYPES = ['robbery', 'romance', 'kidnap', 'homicide', 'yahoo', 'contract'];
+const lagosDay = () => new Date(Date.now() + 3600e3).toISOString().slice(0, 10); // West Africa Time, UTC+1
+function dailyFor(day) {
+  let h = 2166136261;
+  for (const ch of 'eko-daily-' + day) { h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619); }
+  const n = Math.round(Date.parse(day + 'T00:00:00Z') / 864e5);
+  return { type: DAILY_TYPES[((n % DAILY_TYPES.length) + DAILY_TYPES.length) % DAILY_TYPES.length], seed: ((h >>> 0) % 2147483645) + 1 };
+}
+const GRADES = [[900, 'S'], [750, 'A'], [600, 'B'], [450, 'C'], [0, 'D']];
+function caseScore(r) {
+  let s = (r.success ? 400 : 0) + Math.round(250 * Math.min(r.caught, r.gang) / Math.max(1, r.gang)) + (r.success ? Math.round(200 * r.timeFrac) : 0)
+    + Math.min(100, r.evidence * 8) + (r.success && !r.falseArrests && !r.badShots && !r.paid ? 50 : 0) - 100 * r.falseArrests - 150 * r.badShots - (r.paid ? 300 : 0);
+  s = Math.max(0, Math.min(1000, s));
+  return { score: s, grade: GRADES.find(([m]) => s >= m)[1] };
+}
 const CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const randCode = n => Array.from({ length: n }, () => CODE_CHARS[crypto.randomInt(CODE_CHARS.length)]).join('');
 const FRESH = { xp: 0, cases: 0, failed: 0, arrests: 0, raids: 0, homicides: 0, falseArrests: 0, byType: {}, rank: 'Constable', flagged: false, suspicious: 0 };
@@ -88,7 +105,10 @@ exports.startCase = call(async (uid, d) => {
   if (!T) throw new HttpsError('invalid-argument', 'Unknown case type.');
   const seed = int(d.seed, 1, 2147483646);
   const o = d.opt || {};
-  const opt = { free: !!o.free, hard: !!o.hard, story: !!o.story };
+  const opt = { free: !!o.free, hard: !!o.hard, story: !!o.story, daily: null };
+  // a Daily Case only counts if it really is today's case, played solo
+  const today = lagosDay(), D = dailyFor(today);
+  if (o.daily === today && d.type === D.type && seed === D.seed && !d.squadHost) opt.daily = today;
   const me = db.doc('officers/' + uid);
   return db.runTransaction(async t => {
     const mine = await t.get(me);
@@ -109,8 +129,10 @@ exports.startCase = call(async (uid, d) => {
     const prev = od.openTicket ? await t.get(db.doc('tickets/' + od.openTicket)) : null;
     const ref = db.collection('tickets').doc();
     if (prev && prev.exists && prev.data().status === 'open') t.update(prev.ref, { status: 'expired', closedAt: now });
-    t.set(ref, { uid, type: d.type, seed, opt, startedAt: now, caseStartedAt: caseStartedAt || now, status: 'open', squadHost, hostTicket });
-    t.update(me, { openTicket: ref.id, hourKey: hour, hourStarts: starts + 1 });
+    // the first Daily Case started each day is the ranked attempt, even if it is handed back
+    const ranked = !!opt.daily && od.dailyStarted !== opt.daily;
+    t.set(ref, { uid, type: d.type, seed, opt, ranked, startedAt: now, caseStartedAt: caseStartedAt || now, status: 'open', squadHost, hostTicket });
+    t.update(me, Object.assign({ openTicket: ref.id, hourKey: hour, hourStarts: starts + 1 }, ranked ? { dailyStarted: opt.daily } : {}));
     return { ticketId: ref.id };
   });
 });
@@ -166,6 +188,15 @@ exports.closeCase = call(async (uid, d) => {
       upd.suspiciousAt = now;
       upd.flagged = upd.suspicious >= LIMITS.flagAfter;
     }
+    let daily = null;
+    if (k.opt && k.opt.daily) {
+      daily = { ranked: !!k.ranked && accepted };
+      if (daily.ranked) {
+        const tf = Math.max(0, Math.min(1, Number(c.timeFrac) || 0));
+        Object.assign(daily, caseScore({ success, caught, gang: T.gang, falseArrests, evidence: int(c.evidence, 0, 60), paid: !!c.paid, badShots: int(c.badShots, 0, 10), timeFrac: tf }));
+        Object.assign(upd, { dailyDay: k.opt.daily, dailyScore: daily.score, dailyGrade: daily.grade, dailyTitle: String(c.title || '').slice(0, 80), dailyAt: now });
+      }
+    }
     if (od.openTicket === tref.id) upd.openTicket = null;
     t.update(me, upd);
     t.update(tref, { status: accepted ? (success ? 'solved' : 'failed') : 'rejected', closedAt: now, minutes: Math.round(minutes * 10) / 10, xp, reason, claim: { success, caught, falseArrests, evidence: int(c.evidence, 0, 60) } });
@@ -182,7 +213,7 @@ exports.closeCase = call(async (uid, d) => {
         t.set(bInbox.ref, { notices }, { merge: true });
       }
     }
-    return { accepted, reason, xp, backupXp, stats: accepted ? { xp: upd.xp, rank: upd.rank, rating: upd.rating, cases: upd.cases } : null };
+    return { accepted, reason, xp, backupXp, daily, stats: accepted ? { xp: upd.xp, rank: upd.rank, rating: upd.rating, cases: upd.cases } : null };
   });
 });
 

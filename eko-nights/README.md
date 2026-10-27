@@ -50,12 +50,13 @@ Run from this folder after `./build.sh`, e.g. `node t19.js`. Each prints `PASS`/
   | `t7` | the corrupt path through the story, to the "Part of the System" ending |
   | `t8` | a homicide case with a reload in the middle |
   | `t9` | squads on the artifact build, with its storage API mocked |
+  | `t26` | case scores and grades, the Daily Case (same case for everyone, one ranked attempt a day) and its leaderboard, on the artifact build with its storage mocked |
   | `t11`, `t13l`, `t15`, `t16`, `t18`–`t25` | phone controls, performance, combat, case guidance, the city, 3D models, and more |
 
 - **Online:** need the Firebase emulators (Java 11+ and `npm i -g firebase-tools`). Start them in a second terminal, wait for "All emulators ready", then run the tests:
 
   ```bash
-  ./emulators.sh          # verified-mode rules, for t14, t14d, t14e, t17
+  ./emulators.sh          # verified-mode rules, for t14, t14d, t14e, t17, t27 (the Daily Case scored by the server)
   ./emulators.sh spark    # free-plan rules, for t10, t12
   ```
 

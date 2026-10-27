@@ -28,7 +28,7 @@ const ok=(c,m)=>{console.log((c?'PASS ':'FAIL ')+m);if(!c)process.exitCode=1;};
   await hideChap();ok(await ev(()=>ST().ch===1&&ST().i===0),'the story starts at chapter 1');
   log('n',await talkNPC('bisi'));await ev(()=>{shift.stops+=3;});for(let i=0;i<30&&await ev(()=>ST().i<2);i++){await step(4);await wait(100);}
   log('n',await talkNPC('bisi'));log('n',await talkNPC('grace'));
-  await ev(()=>{const cs=curCase;cs.fleeChance[cs.M.id]=0;kycLookup(cs);setGPS(cs.M.door.x,cs.M.door.z,'x',cs.M.id);const d=cs.M.door;pl.x=d.x+.8;pl.z=d.z+.6;_step(3);});
+  await ev(()=>{const cs=curCase;cs.fleeChance[cs.M.id]=0;kycLookup(cs);setGPS(cs.M.door.x,cs.M.door.z,'x',cs.M.id,true);const d=cs.M.door;pl.x=d.x+.8;pl.z=d.z+.6;_step(3);});
   ok(/^Talk to /.test(await near()),'the money mule can be confronted at home');await E();await wait(400);await talkThrough(1);await wait(300);await waitReport();
   ok(await ev(()=>ST().flags.mulePaid&&ST().taken===1&&ST().cash>0),'letting the mule go for cash counts as a bribe taken');
   await ev(()=>{const s=ST();s.ch=3;s.i=0;saveCareer();_step(2);});await wait(700);

@@ -70,8 +70,8 @@ const ok=(c,m)=>{console.log((c?'PASS ':'FAIL ')+m);if(!c)process.exitCode=1;};
   await pg.keyboard.press('Tab');await wait(200);await pg.click('[data-t="case"]');await wait(200);const lt=await pg.$$eval('.lead b',x=>x.map(y=>y.textContent));
   await pg.click(`[data-l="${lt.findIndex(t=>t.includes('flagged'))}"]`);await wait(200);
   await wait(200);await pg.click(`[data-r="${await ev(()=>curCase.bankRows.findIndex(r=>r[5]==='hit'))}"]`);await pg.click('#bDone');
-  // arrest A at door
-  await ev(()=>{const A=curCase.A;curCase.fleeChance[A.id]=0;setGPS(A.door.x,A.door.z,'x',A.id);pl.x=A.door.x+A.door.nx*2;pl.z=A.door.z+A.door.nz*2;});await ev(()=>_step(3));
+  // arrest A at door (a manual GPS on them, as from the MDT: case guidance only replaces automatic ones)
+  await ev(()=>{const A=curCase.A;curCase.fleeChance[A.id]=0;setGPS(A.door.x,A.door.z,'x',A.id,true);pl.x=A.door.x+A.door.nx*2;pl.z=A.door.z+A.door.nz*2;});await ev(()=>_step(3));
   ok(!!(await ev(()=>nearest&&nearest.label)),'the first suspect can be approached at home');
   await pg.keyboard.press('KeyE');await wait(900);await pg.screenshot({path:'e_door.png'});
   await toChoice();

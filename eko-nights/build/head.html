@@ -333,6 +333,17 @@ tr.flag-miss td{background:rgba(255,77,94,.08);color:var(--muted)}
   .modal.side .sheet{max-width:none;max-height:64vh}
   #dlg .txt{font-size:15.5px}
 }
+/* case scores and the Daily Case */
+.scorecard{display:flex;gap:18px;align-items:flex-start;margin:14px 0 4px}
+.grade{display:inline-grid;place-items:center;flex:none;width:76px;height:76px;border-radius:12px;font-family:var(--f-disp);font-size:52px;font-weight:800;line-height:1;background:var(--panel2);border:2px solid var(--line);color:var(--ink)}
+.grade.sm{width:30px;height:30px;font-size:19px;border-radius:6px;border-width:1px}
+.grade.gS{color:#1d1406;background:var(--amber);border-color:var(--amber)}.grade.gA{color:var(--ok);border-color:var(--ok)}.grade.gB{color:#9cc4ff;border-color:#4b8dff}.grade.gC{color:var(--muted)}.grade.gD{color:var(--red);border-color:rgba(255,77,94,.5)}
+.scorecard .sc{font-family:var(--f-disp);font-size:44px;line-height:1;color:var(--amber)}.scorecard .sc small{font-size:18px;color:var(--muted)}
+.scoreparts{list-style:none;margin:8px 0 0;padding:0;display:grid;gap:2px;font-size:13px;min-width:min(320px,60vw)}
+.scoreparts li{display:flex;justify-content:space-between;gap:16px}.scoreparts li.bad{color:var(--red)}
+.offer.daily{border-color:var(--amber);background:linear-gradient(90deg,rgba(244,183,64,.12),transparent)}.offer.daily .code b{color:var(--amber)}
+.dboard{min-width:0}.dboard td,.dboard th{white-space:normal}.dboard tr.me td{background:rgba(244,183,64,.1)}
+@media (max-height:500px) and (orientation:landscape){.scorecard{margin:6px 0 0;gap:12px}.grade{width:54px;height:54px;font-size:36px}.scorecard .sc{font-size:30px}.scoreparts{font-size:12px}}
 </style>
 
 <div id="game">
