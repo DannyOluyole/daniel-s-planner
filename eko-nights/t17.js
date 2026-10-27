@@ -17,7 +17,7 @@ const getDoc=async p=>{const r=await fetch(`${FS}/${p}`,{headers:{'Authorization
     await pg.evaluate(()=>{PERF.off=true;$('#chap').hidden=true;ST().step='done';});await pg.waitForFunction(()=>NET.me&&NET.me.code,null,{timeout:90000});return pg;};
   const call=(pg,n,d)=>pg.evaluate(async([n,d])=>{try{return await NET.srv.call(n,d);}catch(e){return {error:e.code,message:e.message};}},[n,d]);
   const patch=async(path,fields)=>{const f={};for(const [k,v] of Object.entries(fields))f[k]={integerValue:String(v)};const r=await fetch(`${FS}/${path}?`+Object.keys(fields).map(k=>'updateMask.fieldPaths='+k).join('&'),{method:'PATCH',headers:{'Authorization':'Bearer owner','Content-Type':'application/json'},body:JSON.stringify({fields:f})});return r.status;};
-  const A=await mk('A','ada','obi'),B=await mk('B','tunde','bakare'),C=await mk('C','chioma','eze');
+  const A=await mk('A','ada','obi'),B=await mk('B','tunde','okeke'),C=await mk('C','chioma','eze');
   const me=pg=>pg.evaluate(()=>NET.me&&{uid:NET.me.uid,xp:NET.me.xp,flagged:NET.me.flagged,suspicious:NET.me.suspicious});
   // squad-mate joins 10 minutes into the host's case and closes it at once
   const h=await call(A,'startCase',{type:'kidnap',seed:4444,opt:{free:true}});const ago=Date.now()-10*60000;

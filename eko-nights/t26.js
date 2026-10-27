@@ -41,7 +41,7 @@ const ok=(c,m)=>{console.log((c?'PASS ':'FAIL ')+m);if(!c)process.exitCode=1;};
   // solve the current case on the spot: arrest the whole gang, add evidence and use part of the deadline
   const solve=(pg,share,extra={})=>pg.evaluate(([share,extra])=>{const cs=curCase;cs.gang.forEach(id=>{if(!cs.custody.includes(id))cs.custody.push(id);cs.named[id]=true;});Object.assign(cs.flags,{rescued:true,confronted:true,warrant:true},extra.flags||{});
     for(let i=0;i<(extra.ev||4);i++)addEv(cs,'t'+i,'Test clue '+i,'x','Test');cs.used=Math.round((isFinite(cs.limit)?cs.limit:360)*share);if(extra.false)cs.falseArrests=extra.false;endCase(cs,'closed');return curCase===null;},[share,extra]);
-  const A=await mkPage('u_alpha','ada','obi'),B=await mkPage('u_bravo','tunde','bakare'),C=await mkPage('u_charlie','ngozi','eze');
+  const A=await mkPage('u_alpha','ada','obi'),B=await mkPage('u_bravo','tunde','okeke'),C=await mkPage('u_charlie','ngozi','eze');
   const ev=(pg,f,a)=>pg.evaluate(f,a),wait=ms=>A.waitForTimeout(ms);
 
   // 1. the score formula
@@ -92,7 +92,7 @@ const ok=(c,m)=>{console.log((c?'PASS ':'FAIL ')+m);if(!c)process.exitCode=1;};
   // 6. the leaderboard, best first, everyone and friends
   await ev(B,()=>{fetchDaily(true);openMDT('daily');});await wait(1500);
   r=await ev(B,()=>$$('.dboard tbody tr').map(t=>t.innerText.replace(/\s+/g,' ').trim()));
-  ok(r.length===3&&/Ada Obi/.test(r[0])&&/Tunde Bakare/.test(r[1])&&/Ngozi Eze/.test(r[2]),'the leaderboard ranks all three, best score first');
+  ok(r.length===3&&/Ada Obi/.test(r[0])&&/Tunde Okeke/.test(r[1])&&/Ngozi Eze/.test(r[2]),'the leaderboard ranks all three, best score first');
   ok(await ev(B,()=>$('.dboard tr.me').innerText.includes('Tunde')),'your own row is highlighted');
   await B.screenshot({path:'d_board.png'});
   await ev(B,()=>{setFriend('u_charlie',true);DLB.view='friends';redrawDaily();});await wait(200);

@@ -31,7 +31,7 @@ const ok=(c,m)=>{console.log((c?'PASS ':'FAIL ')+m);if(!c)process.exitCode=1;};
   const closeCase=async()=>{await step(4);await pg.keyboard.press('Tab');await wait(200);await pg.click('#closeCase');await wait(200);await pg.click('#rOk');await wait(900);};
   const waitReport=async()=>{for(let i=0;i<20&&!(await pg.$('#rOk'));i++)await step(5);await pg.click('#rOk');await wait(900);};
   await pg.goto('http://127.0.0.1:8096/');await wait(500);
-  await pg.fill('#cFirst','tunde');await pg.fill('#cLast','bakare');await pg.click('#startBtn');await pg.waitForFunction(()=>started,null,{timeout:60000});await wait(1500);await ev(()=>{PERF.off=true;CB.incT=1e9;});
+  await pg.fill('#cFirst','tunde');await pg.fill('#cLast','okeke');await pg.click('#startBtn');await pg.waitForFunction(()=>started,null,{timeout:60000});await wait(1500);await ev(()=>{PERF.off=true;CB.incT=1e9;});
   await ev(()=>{window._step=(n)=>{const r=renderer.render;renderer.render=()=>{};clock3.getDelta=()=>.05;for(let i=0;i<n;i++)frame();renderer.render=r;};clock3.getDelta=()=>.05;});
   await hideChap();ok(await ev(()=>ST().ch===1&&ST().i===0),'the story starts at chapter 1');
   // ---- chapter 1
@@ -83,7 +83,7 @@ const ok=(c,m)=>{console.log((c?'PASS ':'FAIL ')+m);if(!c)process.exitCode=1;};
   await ev(()=>{const m=MANSION;pl.x=m.x+m.nx*7;pl.z=m.z+m.nz*7;pl.h=Math.atan2(-m.nx,-m.nz);camPos.init=false;_step(4);});await wait(300);await pg.screenshot({path:'h_mansion.png'});
   await ev(()=>{const m=MANSION;pl.x=m.x+m.nx*1;pl.z=m.z+m.nz*1;_step(3);});log('near',await near());await E();await wait(400);
   await ev(()=>{DLG.i=DLG.lines.length-1;DLG.ch=999;renderDlg();});await pg.screenshot({path:'h_hon.png'});await talkThrough(0);await wait(900);await step(2);
-  ok(await ev(()=>!!chase&&/Lawal/.test(chase.p.name)),'the Honourable flees in his car');
+  ok(await ev(()=>!!chase&&/Ajibade/.test(chase.p.name)),'the Honourable flees in his car');
   await ev(()=>{const c=chase.car;endChase();removeAICar(c);spawnAICar();curCase.custody.push('hon');});await closeCase();
   log('n',await talkNPC('bisi'));await wait(500);await hideChap();ok((await state())[0]===5,'chapter 5 begins');
   // ---- chapters 5 to 7, fast

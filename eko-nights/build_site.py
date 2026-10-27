@@ -10,6 +10,7 @@ for f in ['app','auth','firestore','database','functions','app-check']:shutil.co
 for f in ['eko-online.js','firebase-config.js','manifest.webmanifest','icon-192.png','icon-512.png']:shutil.copy('site-src/'+f,pub+'/'+f)
 for f in ['firestore.rules','firestore.spark.rules','firestore.indexes.json','database.rules.json','firebase.json','README.md']:shutil.copy('site-src/'+f,out+'/'+f)
 os.makedirs(out+'/functions');[shutil.copy('site-src/functions/'+f,out+'/functions/'+f) for f in ['index.js','names.js','package.json']]
+shutil.copy('build/politicians.js',out+'/functions/politicians.js')
 cdn='<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>'
 assert cdn in game;game=game.replace(cdn,'<script src="vendor/three.min.js"></script>')
 gl='<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>'

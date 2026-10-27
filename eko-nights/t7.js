@@ -23,7 +23,7 @@ const ok=(c,m)=>{console.log((c?'PASS ':'FAIL ')+m);if(!c)process.exitCode=1;};
   const closeCase=async()=>{await step(4);await pg.keyboard.press('Tab');await wait(200);await pg.click('#closeCase');await wait(200);await pg.click('#rOk');await wait(900);};
   const waitReport=async()=>{for(let i=0;i<20&&!(await pg.$('#rOk'));i++)await step(5);await pg.click('#rOk');await wait(900);};
   await pg.goto('http://127.0.0.1:8098/');await wait(500);
-  await pg.fill('#cFirst','tunde');await pg.fill('#cLast','bakare');await pg.click('#startBtn');await pg.waitForFunction(()=>started,null,{timeout:60000});await wait(1500);await ev(()=>{PERF.off=true;CB.incT=1e9;});
+  await pg.fill('#cFirst','tunde');await pg.fill('#cLast','okeke');await pg.click('#startBtn');await pg.waitForFunction(()=>started,null,{timeout:60000});await wait(1500);await ev(()=>{PERF.off=true;CB.incT=1e9;});
   await ev(()=>{window._step=(n)=>{const r=renderer.render;renderer.render=()=>{};clock3.getDelta=()=>.05;for(let i=0;i<n;i++)frame();renderer.render=r;};clock3.getDelta=()=>.05;});
   await hideChap();ok(await ev(()=>ST().ch===1&&ST().i===0),'the story starts at chapter 1');
   log('n',await talkNPC('bisi'));await ev(()=>{shift.stops+=3;});for(let i=0;i<30&&await ev(()=>ST().i<2);i++){await step(4);await wait(100);}
@@ -39,7 +39,7 @@ const ok=(c,m)=>{console.log((c?'PASS ':'FAIL ')+m);if(!c)process.exitCode=1;};
   ok(await ev(()=>!!ST().flags.yahooPaid),'taking his money lets him buy his way out');
   log('n',await talkNPC('bisi'));await wait(500);await hideChap();
   log('n',await talkNPC('bisi'));log('n',await talkNPC('coker',0));await talkThrough(0);await wait(300);
-  await ev(()=>{curCase.flags.warrant=true;const m=MANSION;pl.x=m.x+m.nx;pl.z=m.z+m.nz;_step(3);});ok(/Lawal/.test(await near()),'the Honourable can be confronted at his mansion');await E();await wait(400);await talkThrough(1);await wait(300);await waitReport();
+  await ev(()=>{curCase.flags.warrant=true;const m=MANSION;pl.x=m.x+m.nx;pl.z=m.z+m.nz;_step(3);});ok(/Ajibade/.test(await near()),'the Honourable can be confronted at his mansion');await E();await wait(400);await talkThrough(1);await wait(300);await waitReport();
   ok(await ev(()=>ST().flags.honPaid&&ST().taken===3),'taking the Honourable\'s money is the third bribe');
   log('n',await talkNPC('bisi'));await wait(500);await hideChap();
   await ev(()=>{const s=ST();s.ch=7;s.i=0;s.flags.cokerArrested=false;saveCareer();});await wait(700);

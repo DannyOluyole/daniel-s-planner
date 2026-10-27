@@ -17,13 +17,13 @@ LOC.carpark={x:_sd.x+_sd.tx*7.5+_sd.nx*2,z:_sd.z+_sd.tz*7.5+_sd.nz*2};
 LOC.informant={x:(1+.5)*S+6,z:(2+.5)*S+4};
 const NPCS={
   bisi:{name:'Sgt Bisi Okafor',look:{shirt:'#1f2b45',pants:'#141922',skin:'#6e4429',hat:true,vest:true,bun:true},pos:LOC.bisi},
-  coker:{name:'CSP Adeyemi Coker',look:{shirt:'#2a2f3a',pants:'#141922',skin:'#5a3620',hat:true,hatColor:'#101010',vest:true,vestColor:'#3a3f4a',tall:1.07},pos:LOC.coker},
+  coker:{name:'CSP Olatunde Coker',look:{shirt:'#2a2f3a',pants:'#141922',skin:'#5a3620',hat:true,hatColor:'#101010',vest:true,vestColor:'#3a3f4a',tall:1.07},pos:LOC.coker},
 };
 const CH={1:{t:'First Posting',sub:'Your first day at Division 9. Nobody in Port Eko trusts the uniform. Yet.',brief:'bisi',debrief:'bisi'},
   2:{t:'Cash Run',sub:'A bank is robbed in the night. Three men, one car, and a name nobody wants to say out loud.',brief:'coker',debrief:'coker'},
   3:{t:'Ransom',sub:'A child is taken outside school. The ransom is paid. The child is still missing.',brief:'coker',debrief:'bisi'},
   4:{t:'Inside Man',sub:'Someone in Division 9 is selling raid plans. Find them before they find you.',brief:'bisi',debrief:'bisi'},
-  5:{t:'Harmattan',sub:'Wharf Warehouse 7. Felix "Harmattan" Amadi. End it.',brief:'bisi',debrief:null}};
+  5:{t:'Harmattan',sub:'Wharf Warehouse 7. Felix "Harmattan" Ugorji. End it.',brief:'bisi',debrief:null}};
 
 // ---------- title screen: create your officer
 const CHAR={g:'m',s:SKIN[1],newMode:false};
@@ -37,7 +37,7 @@ function renderCharBox(){
   box.innerHTML=`<div class="charform">
     <div class="eyebrow" style="grid-column:1/-1">Create your officer${o?' · this replaces your saved career':''}</div>
     <label>First name<input id="cFirst" maxlength="16" autocomplete="off" placeholder="e.g. Tunde"></label>
-    <label>Surname<input id="cLast" maxlength="18" autocomplete="off" placeholder="e.g. Bakare"></label>
+    <label>Surname<input id="cLast" maxlength="18" autocomplete="off" placeholder="e.g. Okeke"></label>
     <div class="grp"><span>Officer</span><button class="btn ghost sm" data-g="m" aria-pressed="${CHAR.g==='m'}">Male</button><button class="btn ghost sm" data-g="f" aria-pressed="${CHAR.g==='f'}">Female</button></div>
     <div class="grp"><span>Skin tone</span>${SKIN_PICK.map(c=>`<button class="sw" data-s="${c}" style="background:${c}" aria-label="Skin tone" aria-pressed="${CHAR.s===c}"></button>`).join('')}</div>
     ${o?'<button class="btn ghost sm" id="keepOff" style="grid-column:1/-1;justify-self:start">Keep my saved officer</button>':''}</div>`;
@@ -50,6 +50,7 @@ function storyPrepare(){
   if(career.officer&&!CHAR.newMode)return true;
   const f=($('#cFirst')||{}).value||'',l=($('#cLast')||{}).value||'';
   if(!f.trim()||!l.trim()){$('#loadMsg').innerHTML='<span class="loaderr">Enter your officer\'s first name and surname.</span>';$('#startBtn').disabled=false;return false;}
+  if(playerNameRisk(f,l)){$('#loadMsg').innerHTML='<span class="loaderr">That name is too close to a real politician\'s. Please choose another name.</span>';$('#startBtn').disabled=false;return false;}
   career={badge:ri(1100,9899),xp:0,rep:40,tickets:0,warnings:0,arrests:0,cases:0,failed:0,falseArrests:0,log:[],
     officer:{first:cap(f.trim()),last:cap(l.trim()),gender:CHAR.g,skin:CHAR.s},story:{ch:1,step:'brief',taken:0,refused:0,cash:0,flags:{}}};
   saveCareer();CHAR.newMode=false;return true;
@@ -124,7 +125,7 @@ function takeBribe(amount,trust){const s=ST();s.taken++;s.cash+=amount;saveCaree
 function refuseBribe(trust){const s=ST();s.refused++;saveCareer();trustDelta(trust,'You refused the money. Word travels in Port Eko.');SFX.blip('good');}
 
 // ---------- story conversations
-const bisi=t=>({name:'Sgt Bisi Okafor',text:t}),coker=t=>({name:'CSP Adeyemi Coker',text:t});
+const bisi=t=>({name:'Sgt Bisi Okafor',text:t}),coker=t=>({name:'CSP Olatunde Coker',text:t});
 function storyTalk(who){
   const s=ST();const v=iMeshes.get('story_'+who);if(!v)return;const npc=v.g;const first=OFF().first,last=OFF().last;
   if(s.ch===1&&s.step==='brief')talkTo(npc,[
@@ -167,14 +168,14 @@ function storyTalk(who){
     bisi('When you are sure, bring the person to the interview room. If you accuse the wrong officer, this whole station go turn against you.')],
     [{label:'I\'ll find them.'}],()=>{startCase(cs);s.step='case';saveCareer();});}
   else if(s.ch===4&&s.step==='debrief')talkTo(npc,s.flags.cokerArrested?[
-    bisi('CSP Adeyemi Coker. Twenty-two years in uniform. Hmm. This one pain me.'),
-    bisi('He gave us everything. Harmattan runs it all from Wharf Warehouse 7. Real name: Felix Amadi.'),
+    bisi('CSP Olatunde Coker. Twenty-two years in uniform. Hmm. This one pain me.'),
+    bisi('He gave us everything. Harmattan runs it all from Wharf Warehouse 7. Real name: Felix Ugorji.'),
     bisi(`People for the market dey talk about you, ${first}. Some of them want to help.`)]:[
     bisi('Coker dey walk free, and you dey count money. I no fit pretend say I no know.'),
-    bisi('The address na Wharf Warehouse 7. Felix Amadi. Go finish am. But don\'t expect the market to talk to you.')],
+    bisi('The address na Wharf Warehouse 7. Felix Ugorji. Go finish am. But don\'t expect the market to talk to you.')],
     [{label:'Continue'}],()=>advanceChapter());
   else if(s.ch===5&&s.step==='brief'){const help=career.rep>=55&&!s.flags.tipped;const cs=genFinale();cs.story=5;cs.flags.informant=help;talkTo(npc,[
-    bisi('This is it. Harmattan. Felix Amadi. SWAT is ready when you are.'),
+    bisi('This is it. Harmattan. Felix Ugorji. SWAT is ready when you are.'),
     ...(help?[bisi('One market woman, Iya Risi, sent word. She says she knows how dem dey guard that warehouse. See her first.')]:[bisi('Nobody for the market wan talk to us. We go in blind.')]),
     you('Let\'s finish it.')],[{label:'Move out'}],()=>{startCase(cs);s.step='case';saveCareer();});}
 }
@@ -197,7 +198,7 @@ function genLeak(){
   const harm=harmPerson();const st=LOC.station;
   const mk=(first,last,role,height,look,acct)=>({id:'o_'+last,first,last,name:`${role} ${first} ${last}`,nick:'—',age:ri(36,56),height,hair:{n:'Low cut',h:'#141010'},skin:look.skin,shirt:look.shirt,tattoo:'None',
     car:{color:COLORS[ri(0,2)],model:pick(['Corolla','Camry']),plate:makePlate()},address:'Division 9 barracks',district:districtAt(st.x,st.z),job:role==='CSP'?'Divisional Police Officer':role==='Sgt'?'Desk sergeant':'Inspector, operations',prior:'None',acct,door:st,look});
-  const C=mk('Adeyemi','Coker','CSP',188,NPCS.coker.look,'7710');const musa=mk('Musa','Danladi','Sgt',170,{shirt:'#1f2b45',skin:'#4a2e1c'},'3302');const ife=mk('Ifeoma','Nwosu','Insp.',174,{shirt:'#1f2b45',skin:'#6e4429',bun:true},'5521');
+  const C=mk('Olatunde','Coker','CSP',188,NPCS.coker.look,'7710');const musa=mk('Musa','Danladi','Sgt',170,{shirt:'#1f2b45',skin:'#4a2e1c'},'3302');const ife=mk('Ifeoma','Nwosu','Insp.',174,{shirt:'#1f2b45',skin:'#6e4429',bun:true},'5521');
   const reveal=shuffle([0,1,2,4,5,6,7,8]).slice(0,5);const hpattern=harm.car.plate.split('').map((c,i)=>i===3||reveal.includes(i)?c:'?').join('');
   const cs=baseCase({type:'leak',title:'Inside Man',code:'IA',people:[C,musa,ife],db:[C,musa,ife],gang:[C.id],C,musa,ifeoma:ife,harm,hpattern,limit:600,fleeChance:{},scripts:{},
     roles:[[C,'DPO'],[musa,'Desk sergeant'],[ife,'Inspector']]});
@@ -251,7 +252,7 @@ function cokerConfront(cs){
     if(ch.label.startsWith('Take')){takeBribe(5000000,35);s.flags.tipped=true;
       dialog([coker('Good. Sensible. The address is Wharf Warehouse 7, by the port. Go and collect your glory.'),coker('I will make sure... everybody stays safe.')],[{label:'Leave the room'}],()=>{cs.flags.confronted=true;clog(cs,'You took CSP Coker\'s money. He gave you the warehouse address.');endCine();});}
     else{refuseBribe(12);s.flags.cokerArrested=true;cs.custody.push(cs.C.id);career.arrests++;saveCareer();gainXP(60);SFX.blip('cuff');
-      dialog([coker('...You have no idea what you have done, Constable.'),coker('Wharf Warehouse 7. He keeps everything there: the money, the guns, the ledgers. Felix Amadi. They call him Harmattan.'),coker('Now you have killed both of us.')],[{label:'Book him'}],()=>{cs.flags.confronted=true;clog(cs,'CSP Adeyemi Coker arrested. He named Wharf Warehouse 7.');addEv(cs,'warehouse','Harmattan: Wharf Warehouse 7','CSP Coker confessed. Felix "Harmattan" Amadi runs the syndicate from Wharf Warehouse 7.','Confession');endCine();});}
+      dialog([coker('...You have no idea what you have done, Constable.'),coker('Wharf Warehouse 7. He keeps everything there: the money, the guns, the ledgers. Felix Ugorji. They call him Harmattan.'),coker('Now you have killed both of us.')],[{label:'Book him'}],()=>{cs.flags.confronted=true;clog(cs,'CSP Olatunde Coker arrested. He named Wharf Warehouse 7.');addEv(cs,'warehouse','Harmattan: Wharf Warehouse 7','CSP Coker confessed. Felix "Harmattan" Ugorji runs the syndicate from Wharf Warehouse 7.','Confession');endCine();});}
     return true;
   });
 }
@@ -260,7 +261,7 @@ function cokerConfront(cs){
 function harmPerson(){
   const s=ST();if(!s.flags.harmPlate)s.flags.harmPlate=makePlate();saveCareer();
   const w=LOC.motels['Wharf Warehouse 7'];
-  return {id:'harm',first:'Felix',last:'Amadi',name:'Felix Amadi',nick:'Harmattan',age:51,height:183,hair:{n:'Bald',h:null},skin:'#3d2516',shirt:'#e8e2d4',tattoo:'Scar on left cheek',
+  return {id:'harm',first:'Felix',last:'Ugorji',name:'Felix Ugorji',nick:'Harmattan',age:51,height:183,hair:{n:'Bald',h:null},skin:'#3d2516',shirt:'#e8e2d4',tattoo:'Scar on left cheek',
     car:{color:COLORS[0],model:'Highlander',plate:s.flags.harmPlate},address:'Wharf Warehouse 7',district:w.district,job:'Importer, Wharf Holdings Ltd',prior:'None (never convicted)',acct:'0007',door:w};
 }
 function genFinale(){
@@ -269,7 +270,7 @@ function genFinale(){
     hide:{place:'Wharf Warehouse 7',district:C.district}});
   cs.named[C.id]=true;cs.flags.hideout=true;cs.flags.tipped=!!s.flags.tipped;
   cs.lootText='Rifles, ₦40 million in cash and the syndicate ledgers recovered';cs.lootDetail='Rifles, ₦40 million in cash and ledgers naming Harmattan\'s partners were in a container behind the warehouse.';
-  cs.sub=ok=>ok?'Felix "Harmattan" Amadi is in custody. The syndicate is finished.':'Harmattan slipped out of Port Eko.';
+  cs.sub=ok=>ok?'Felix "Harmattan" Ugorji is in custody. The syndicate is finished.':'Harmattan slipped out of Port Eko.';
   cs.logs.push(s.flags.tipped?'Operation Harmattan. Someone may have warned them.':'Operation Harmattan. SWAT is on standby.');
   return cs;
 }
@@ -398,9 +399,9 @@ function trafficStop(car,fled,done){
 // ---------- witnesses (Nigerian English and Pidgin)
 function witnessData(cs,id){
   const {A}=cs;
-  if(id==='w1')return {who:'Mr. Sunday Ekpo · bank security',lines:['Officer, they were three. All of them cover their face. Before I fit reach my baton, they don put me for ground.',`The tall one, e too tall. Six-four like that. When he grab the bag, I see the mark on him: ${lower(cs.tat)}.`],after:()=>addEv(cs,'tattoo',`Tall robber's mark: ${cs.tat}`,'Seen by the bank security man on the tallest robber, about six-four.','Witness')};
+  if(id==='w1')return {who:'Mr. Sunday Etim · bank security',lines:['Officer, they were three. All of them cover their face. Before I fit reach my baton, they don put me for ground.',`The tall one, e too tall. Six-four like that. When he grab the bag, I see the mark on him: ${lower(cs.tat)}.`],after:()=>addEv(cs,'tattoo',`Tall robber's mark: ${cs.tat}`,'Seen by the bank security man on the tallest robber, about six-four.','Witness')};
   if(id==='w2')return {who:'Mama Nkechi · akara seller',lines:['I dey fry my akara when the alarm start to ring. Three of them run comot with bags.',`Dem enter one ${lower(A.car.color.n)} ${A.car.model} and zoom off like say dem dey fly. I no see the plate number, my pikin. Sorry.`],after:()=>addEv(cs,'vehicle',`Getaway: ${A.car.color.n} ${A.car.model}`,'Mama Nkechi saw the robbers drive off. No plate.','Witness')};
-  if(id==='w3')return {who:'Mrs. Funmi Adeyinka · branch manager',lines:['The silent alarm never went off. It has a staff override with a delay code.','Only tellers and managers know that code. Somebody inside this branch helped them. I would stake my job on it.'],after:()=>{cs.flags.insider=true;addEv(cs,'insider','Alarm disabled from inside','The silent alarm was switched off with a staff code. An employee is likely involved.','Witness');}};
+  if(id==='w3')return {who:'Mrs. Funmi Odukoya · branch manager',lines:['The silent alarm never went off. It has a staff override with a delay code.','Only tellers and managers know that code. Somebody inside this branch helped them. I would stake my job on it.'],after:()=>{cs.flags.insider=true;addEv(cs,'insider','Alarm disabled from inside','The silent alarm was switched off with a staff code. An employee is likely involved.','Witness');}};
   if(id==='parent')return {who:`${cs.parent.name} · parent`,lines:[`${cs.victim.first} always comes out of this gate by two o'clock. Today, nothing.`,'Then my phone rang. A man with a strange voice said fifty million naira, or I would never see my child again. I paid it. The bank has everything. Officer, please. Bring my child back.'],after:()=>{cs.flags.parent=true;addEv(cs,'ransom','Ransom: ₦50,000,000 paid','Paid by bank transfer to an account the kidnappers named. The call came from a mobile phone. Trace and bank leads are now on the MDT.','Witness');}};
   if(id==='guard')return {who:'Mallam Garba · school gateman',lines:[`One ${lower(A.car.color.n)} ${A.car.model} park for that corner, engine dey run. I wan tell am make e move.`,'One man wear red hoodie waka come meet the pikin, talk small, and dem enter the motor together. E fast well well.'],after:()=>addEv(cs,'vehicle',`Kidnap car: ${A.car.color.n} ${A.car.model}`,'The gateman saw a man in a red hoodie walk the child to the car.','Witness')};
 }
@@ -421,8 +422,8 @@ function leads(cs){
   if(cs.type==='robbery'){
     if(cs.flags.hideout&&!inC(C.id))L.push({t:`Raid the ${cs.hide.place}`,d:`Arrest "${C.nick}" in ${cs.hide.district}.`,at:at(LOC.motels[cs.hide.place],cs.hide.place),hot:true});
     L.push({t:'Review the bank cameras',d:`Security terminal outside ${cs.bank}.`,c:cs.done.cctv?0:15,at:at(LOC.bankCam,cs.bank+' cameras')});
-    if(!cs.done.w1)L.push({t:'Talk to the bank security man',d:'Mr. Sunday Ekpo is by the bank door.',c:10,at:at(LOC.bankGuard,'Bank security')});
-    if(!cs.done.w3)L.push({t:'Talk to the branch manager',d:'Mrs. Funmi Adeyinka is at the bank entrance.',c:10,at:at(LOC.bankManager,'Branch manager')});
+    if(!cs.done.w1)L.push({t:'Talk to the bank security man',d:'Mr. Sunday Etim is by the bank door.',c:10,at:at(LOC.bankGuard,'Bank security')});
+    if(!cs.done.w3)L.push({t:'Talk to the branch manager',d:'Mrs. Funmi Odukoya is at the bank entrance.',c:10,at:at(LOC.bankManager,'Branch manager')});
     if(!cs.done.w2)L.push({t:'Talk to the akara seller',d:'Mama Nkechi fries akara across the road from the bank.',c:10,at:at(LOC.bankVendor,'Akara stand')});
     if(!cs.done.bank)L.push({t:'Review flagged cash deposits',d:cs.flags.insider?'The alarm was disabled from inside. Someone on staff may have been paid.':'The bank\'s compliance unit sent this morning\'s flagged cash deposits.',c:cs.done.bankOpen?0:30,run:()=>openBank(cs),onRun:()=>{cs.done.bankOpen=true;}});
     if(cs.flags.bossKnown&&!cs.flags.hideout&&!inC(C.id))L.push({t:`Monitor ${C.name}'s ATM card`,d:'The bank alerts us the next time the card is used.',c:90,run:()=>monitorCard(cs)});
@@ -497,8 +498,8 @@ function openBank(cs){
         msg(`<b>Match.</b> Three deposits just under ₦5 million into ${r[1]} at different branches, the morning after the robbery. Account holder: <b>${esc(cs.B.name)}</b>, a teller at ${esc(cs.bank)}, ${esc(cs.B.address)}.`,'hit');}
       else if(cs.type==='kidnap'){cs.named[cs.B.id]=true;addEv(cs,'transfer','₦8m to a personal account',`Ransom money moved to ${r[1]}, held by ${cs.B.name} (${cs.B.address}, ${cs.B.district}).`,'Bank');
         msg(`<b>Match.</b> ₦8,000,000 went into a personal account owned by <b>${esc(cs.B.name)}</b>, ${esc(cs.B.address)}, ${esc(cs.B.district)}.`,'hit');}
-      else{addEv(cs,'payments','₦3.5m to Coker & Sons Ventures','Wharf Holdings paid ₦3,500,000 at 02:31 on the night before the raid to Coker & Sons Ventures. Company registry: sole director Adeyemi Coker.','Bank');
-        msg('<b>Match.</b> ₦3,500,000 at 02:31 to <b>Coker & Sons Ventures</b>. The company registry lists one director: Adeyemi Coker.','hit');}
+      else{addEv(cs,'payments','₦3.5m to Coker & Sons Ventures','Wharf Holdings paid ₦3,500,000 at 02:31 on the night before the raid to Coker & Sons Ventures. Company registry: sole director Olatunde Coker.','Bank');
+        msg('<b>Match.</b> ₦3,500,000 at 02:31 to <b>Coker & Sons Ventures</b>. The company registry lists one director: Olatunde Coker.','hit');}
       b.closest('tr').className='flag-hit';$$('[data-r]',el).forEach(x=>x.disabled=true);SFX.blip('good');
     }else if(r[5]==='side'){
       addEv(cs,'fuel',`Ransom card used in ${cs.safe.district}`,`A fuel purchase on the ransom account's card in ${cs.safe.district}. The crew may be based nearby.`,'Bank');

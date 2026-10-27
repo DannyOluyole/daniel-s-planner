@@ -18,17 +18,19 @@ for(let i=TREES.length-1;i>=0;i--){const [x,z]=TREES[i];if(x>4.5*S-34&&x<4.5*S-1
 Object.assign(NPCS,{
   grace:{name:'Mrs. Grace Eze',look:{shirt:'#6b2d5a',ankara:1,skin:'#5a3620',hair:'#2a2a2a',pants:'#6b2d5a'},pos:LOC.grace,where:'Waiting by the entrance of Division 9.'},
   ogidi:{name:'Barr. Chuks Ogidi',look:{shirt:'#2a2a33',pants:'#2a2a33',skin:'#4a2e1c',hair:'#141010'},pos:{x:LOC.carpark.x+_sd.nx*2,z:LOC.carpark.z+_sd.nz*2},where:'By the Division 9 car park.'},
-  bulus:{name:'Insp. Tanko Bulus',look:{shirt:'#1a1d22',pants:'#1a1d22',skin:'#3d2516',hat:true,hatColor:'#7a1f1f',vest:true,vestColor:'#2a2f3a',tall:1.04},pos:LOC.checkpoint,face:Math.PI/2,where:'Police checkpoint on Allen Avenue, Allen Estate.'},
+  bulus:{name:'Insp. Gideon Bulus',look:{shirt:'#1a1d22',pants:'#1a1d22',skin:'#3d2516',hat:true,hatColor:'#7a1f1f',vest:true,vestColor:'#2a2f3a',tall:1.04},pos:LOC.checkpoint,face:Math.PI/2,where:'Police checkpoint on Allen Avenue, Allen Estate.'},
 });
 NPCS.bisi.where=NPCS.coker.where='At the entrance of Division 9.';
 
+// names for the case's corrupt politicians: invented, and checked against build/politicians.js by t28
+const HON_FIRST=['Oluwaseun','Chukwuma','Temitope','Olumide','Ikechukwu','Habeeb'],HON_LAST=['Olowokere','Akinwande','Okwudili','Bamgbala','Ezenwafor','Danmaraya'];
 const T1='Talk to';
 Object.assign(CH,{
   1:{t:'First Posting',sub:'Your first day at Division 9. Nobody in Port Eko trusts the uniform. Yet.',steps:[
     {k:'talk',who:'bisi',id:'c1_brief'},{k:'duty',n:3},{k:'talk',who:'bisi',id:'c1_after',obj:'Report back to Sgt Bisi Okafor'},
     {k:'talk',who:'grace',id:'c1_grace'},{k:'case'},{k:'talk',who:'bisi',id:'c1_end',obj:'Report back to Sgt Bisi Okafor'}]},
   2:{t:'Cash Run',sub:'A bank is robbed in the night. A lawyer comes calling. And the DPO wants every young man with a laptop searched.',steps:[
-    {k:'talk',who:'coker',id:'c2_brief'},{k:'case'},{k:'talk',who:'coker',id:'c2_debrief',obj:'Report back to CSP Adeyemi Coker'},
+    {k:'talk',who:'coker',id:'c2_brief'},{k:'case'},{k:'talk',who:'coker',id:'c2_debrief',obj:'Report back to CSP Olatunde Coker'},
     {k:'talk',who:'ogidi',id:'c2_lawyer',obj:'Meet the lawyer in the car park'},
     {k:'talk',who:'bulus',id:'c2_sweep',obj:'Join Operation Sweep',radio:'Radio: "Constable, report to Inspector Bulus at the Allen Avenue checkpoint. Operation Sweep."'},
     {k:'talk',who:'bisi',id:'c2_end',obj:'Report back to Sgt Bisi Okafor'}]},
@@ -40,7 +42,7 @@ Object.assign(CH,{
     {k:'talk',who:'coker',id:'c5_brief'},{k:'case'},{k:'talk',who:'bisi',id:'c5_end',obj:'Report back to Sgt Bisi Okafor'}]},
   6:{t:'Inside Man',sub:'Someone in Division 9 is selling raid plans. Find them before they find you.',steps:[
     {k:'talk',who:'bisi',id:'c6_brief'},{k:'case'},{k:'talk',who:'bisi',id:'c6_end',obj:'Report back to Sgt Bisi Okafor'}]},
-  7:{t:'Harmattan',sub:'Wharf Warehouse 7. Felix "Harmattan" Amadi. End it.',steps:[{k:'talk',who:'bisi',id:'c7_brief'},{k:'case'}]},
+  7:{t:'Harmattan',sub:'Wharf Warehouse 7. Felix "Harmattan" Ugorji. End it.',steps:[{k:'talk',who:'bisi',id:'c7_brief'},{k:'case'}]},
 });
 
 // ---------- step engine
@@ -224,7 +226,7 @@ function kycLookup(cs){
 
 // ---------- chapter 2: Operation Sweep at the checkpoint
 function sweepScene(npc){
-  const s=ST();const B=t=>({name:'Insp. Tanko Bulus',text:t}),T=t=>({name:'Tobi · software developer',text:t}),K=t=>({name:'Kachi · student',text:t});let good=0;
+  const s=ST();const B=t=>({name:'Insp. Gideon Bulus',text:t}),T=t=>({name:'Tobi · software developer',text:t}),K=t=>({name:'Kachi · student',text:t});let good=0;
   talkTo(npc,[B(`Ehen, Constable ${OFF().last}. You don come. DPO's orders: Operation Sweep.`),
     B('Any young man wey carry laptop, iPhone or dreadlocks, na Yahoo boy until e prove otherwise. We check their phone. If e no fit explain, e go "bail" himself.'),
     B('Watch and learn. You! You with the laptop bag. Come here.'),T('Good evening, officer. I\'m just going home from work.'),B('Unlock your phone. Open that laptop. Now now.'),
@@ -262,8 +264,8 @@ function genYahoo(opt={}){
   const hk=story?HK_DOOR:rest.find(d=>d.district==='Allen Estate')||rest[0];const place=story?'Hustle Kingdom':`${nick}'s house`;LOC.motels[place]={...hk};
   const t=_tan(hk);const vic=story?{co:'Northgate Fabrication',country:'Canada',contact:'Sarah Lim',usd:180000,supplier:'Halden Steel',dom:'haldensteel'}
     :pick([{co:'Brightwater Dental',country:'the UK',contact:'Helen Park',usd:96000,supplier:'Medline Supplies',dom:'medlinesupplies'},{co:'Kessler Logistik',country:'Germany',contact:'Jonas Weber',usd:240000,supplier:'Nordhafen Freight',dom:'nordhafenfreight'},{co:'Harbourline Foods',country:'Australia',contact:'Mia Grant',usd:132000,supplier:'Pacific Grains',dom:'pacificgrains'}]);
-  const pol=story?'Honourable Babatunde Lawal':'Honourable '+pick(FIRST)+' '+pick(LAST);
-  const cs=baseCase({type:'yahoo',title:story?'Hustle Kingdom':`${nick} and the ${vic.supplier} invoice`,code:'EFC',people:P,db:P,gang:[C.id],C,gpattern,hk,vic,pol,landlord:story?'Alhaji Sule Danjuma':'Alhaji '+pick(['Musa','Sani','Ibrahim'])+' '+pick(['Bello','Danjuma','Abubakar','Usman']),
+  const pol=story?'Honourable Kolawole Ajibade':'Honourable '+pick(HON_FIRST)+' '+pick(HON_LAST);
+  const cs=baseCase({type:'yahoo',title:story?'Hustle Kingdom':`${nick} and the ${vic.supplier} invoice`,code:'EFC',people:P,db:P,gang:[C.id],C,gpattern,hk,vic,pol,landlord:story?'Alhaji Sule Maidoki':'Alhaji '+pick(['Musa','Sani','Ibrahim'])+' '+pick(['Maidoki','Gidado','Maigari','Usman']),
     landlordAt:{x:hk.x+hk.nx*2.5+t.x*6,z:hk.z+hk.nz*2.5+t.z*6},naira:Math.round(vic.usd*1490/1e6)*1e6,limit:900,fleeChance:{},roles:[[C,'The Chairman']],hide:{place,district:hk.district}});
   cs.lootText='42 laptops, 300 SIM cards and ₦18 million in cash seized';cs.lootDetail=`Forty-two laptops, 300 SIM cards, ₦18 million in cash and a notebook of "clients" in five countries were seized at ${place}.`;
   cs.intelLine='The landlord says the back gate by the gutter is never locked. They watch the front.';
@@ -331,11 +333,11 @@ function genContract(opt={}){
   const mansion=story?MANSION:rest[0];
   if(story)Object.assign(D,{first:'Sunday',last:'Okoro',name:'Sunday Okoro'});
   Object.assign(D,{age:ri(36,50),job:'Driver',prior:'None',tattoo:'None'});
-  const hf=story?'Babatunde':pick(['Adekunle','Chukwuma','Ibrahim','Olumide','Nnamdi','Yakubu']),hl=story?'Lawal':pick(['Adeleke','Okafor','Garba','Oyetola','Ezeani','Danladi']);
+  const hf=story?'Kolawole':pick(HON_FIRST),hl=story?'Ajibade':pick(HON_LAST);
   Object.assign(H,{id:'hon',first:hf,last:hl,name:`Hon. ${hf} ${hl}`,nick:'Owo',age:54,height:176,hair:HAIR[3],skin:'#4a2e1c',shirt:'#f2efe6',tattoo:'None',job:'Member, Port Eko House of Assembly',prior:'None',door:mansion,address:mansion.address,district:mansion.district});
   H.car={color:COLORS.find(c=>c.n==='Black')||COLORS[0],model:'Highlander',plate:'PEA-0'+ri(10,99)+'HL'};H.look={shirt:'#f2efe6',pants:'#f2efe6',skin:'#4a2e1c',hat:true,hatColor:pick(['#6b2d5a','#1f4fa0','#7a1f1f']),tall:1.02};
   const co=story?'Greenfield Dynamic Ventures Ltd':pick(['Bluepeak Integrated Services Ltd','Royal Mandate Ventures Ltd','Primecrest Global Concepts Ltd','Goldvine Allied Works Ltd']);
-  const wife=story?'Bimpe Lawal':`${pick(['Bimpe','Ngozi','Aisha','Tolani','Chioma'])} ${hl}`;
+  const wife=story?'Bimpe Ajibade':`${pick(['Bimpe','Ngozi','Aisha','Tolani','Chioma'])} ${hl}`;
   const cs=baseCase({type:'contract',title:story?'Ghost Project':`The ${proj.name}`,code:'EFC',people:P,db:P.filter(p=>p!==H),gang:[D.id,H.id],D,H,C:H,proj,co,wife,mansion,limit:960,fleeChance:{[D.id]:.4},roles:[[D,'Company director'],[H,'Contract sponsor']]});
   cs.named[H.id]=true;
   cs.scripts={
@@ -478,19 +480,19 @@ function storyTalk(who){
       ...(s.flags.hkLead||s.flags.tobiTip?[bisi('And everything dey point to that house you heard about. Hustle Kingdom, Allen Estate.')]:[]),
       bisi('Economic Crimes is short of hands, so na you and me. Read the emails, follow the money, find the Chairman.')],[{label:'Let\'s go.'}],()=>startStoryCase(makeCase('yahoo',null,{story:1}))),
     c3_end:()=>talkTo(npc,[s.flags.yahooPaid?bisi('The Chairman don waka out on "bail". The laptops sef don disappear from the exhibit room. I wonder who settle who.'):bisi('Odogwu and his boys dey cell. Forty-two laptops for exhibit room. Interpol is very happy with us.'),
-      ...(s.flags.honLink?[bisi('And wetin he talk for the interview room... Honourable Babatunde Lawal? The Works Committee chairman? Ehn.'),you('He says the Yahoo money funds Lawal\'s campaign, and Lawal\'s people protect them.')]
-        :[bisi('One payment from that money worry me: twenty-five million naira to the Lawal Campaign Organisation. Honourable Babatunde Lawal.')]),
-      bisi('If we go near a politician, we need more than one payment. Rest. Tomorrow we look at what Lawal does with government money.')],[{label:'Continue'}],next),
-    c4_brief:()=>talkTo(npc,[bisi('I pulled Honourable Lawal\'s contracts. Last year his committee paid eight hundred and fifty million naira for a health centre and borehole in Wharf End.'),
+      ...(s.flags.honLink?[bisi('And wetin he talk for the interview room... Honourable Kolawole Ajibade? The Works Committee chairman? Ehn.'),you('He says the Yahoo money funds Ajibade\'s campaign, and Ajibade\'s people protect them.')]
+        :[bisi('One payment from that money worry me: twenty-five million naira to the Ajibade Campaign Organisation. Honourable Kolawole Ajibade.')]),
+      bisi('If we go near a politician, we need more than one payment. Rest. Tomorrow we look at what Ajibade does with government money.')],[{label:'Continue'}],next),
+    c4_brief:()=>talkTo(npc,[bisi('I pulled Honourable Ajibade\'s contracts. Last year his committee paid eight hundred and fifty million naira for a health centre and borehole in Wharf End.'),
       bisi('Government records say completed, commissioned, one hundred percent. My sister lives in Wharf End. She still buys water from the mai ruwa.'),
       bisi('Go to the site. Talk to the market women. Pull the contract file. But first, the DPO wants you. Somebody don already talk.')],[{label:'On my way.'}],next),
-    c4_coker:()=>talkTo(npc,[coker('Constable. I hear you are digging into Honourable Lawal. He donated six patrol vans to this division. He is a friend of the police.'),
+    c4_coker:()=>talkTo(npc,[coker('Constable. I hear you are digging into Honourable Ajibade. He donated six patrol vans to this division. He is a friend of the police.'),
       coker('Elections are in four months. Nobody needs a scandal. Do you understand me?')],
       [{label:'Yes, sir. I understand.'},{label:'With respect, sir, I\'ll follow the evidence.'}],ch=>{
         if(ch.label.startsWith('Yes')){dialog([you('(to yourself) I understand perfectly.')],[{label:'Start the case quietly'}],()=>{endCine();startStoryCase(makeCase('contract',null,{story:1}));});}
         else{s.flags.cokerDefied=true;dialog([coker('Then follow it carefully, Constable. Evidence has a way of... getting lost.')],[{label:'Start the case'}],()=>{endCine();startStoryCase(makeCase('contract',null,{story:1}));});}
         return true;}),
-    c4_end:()=>talkTo(npc,[s.flags.honPaid?bisi('Lawal don fly to Dubai. Wharf End still dey buy water. And you... you get new phone, abi?'):bisi('Honourable Babatunde Lawal in a cell. You should see Wharf End today. The market women dey dance for road.'),
+    c4_end:()=>talkTo(npc,[s.flags.honPaid?bisi('Ajibade don fly to Dubai. Wharf End still dey buy water. And you... you get new phone, abi?'):bisi('Honourable Kolawole Ajibade in a cell. You should see Wharf End today. The market women dey dance for road.'),
       bisi(s.flags.wharf?'But look this one again. A hundred and twenty million naira from Greenfield to Wharf Holdings. Wharf Holdings again.':'Economic Crimes found one more payment: a hundred and twenty million naira to Wharf Holdings. Wharf Holdings again.'),
       bisi('Every road for this city dey lead back to that wharf. And now my people for the market say kidnapping season don start.')],[{label:'Continue'}],next),
     c5_brief:()=>{const cs=makeCase('kidnap',null,{story:1});talkTo(npc,[coker(`A child was taken outside ${cs.school}. ${cs.victim.first} ${cs.victim.last}, ${cs.victim.age} years old.`),
@@ -503,11 +505,11 @@ function storyTalk(who){
     c6_brief:()=>{const cs=makeCase('leak',null,{story:1});talkTo(npc,[bisi('Three people had access to that raid file: CSP Coker, Desk Sergeant Musa Danladi and Inspector Ifeoma Nwosu.'),
       bisi('Check the evidence-room log. Pull the car park camera from the night before the raid. Follow the money.'),
       bisi('When you are sure, bring the person to the interview room. If you accuse the wrong officer, this whole station go turn against you.')],[{label:'I\'ll find them.'}],()=>startStoryCase(cs));},
-    c6_end:()=>talkTo(npc,s.flags.cokerArrested?[bisi('CSP Adeyemi Coker. Twenty-two years in uniform. Hmm. This one pain me.'),
-        bisi('He gave us everything. Harmattan runs it all from Wharf Warehouse 7: the kidnappings, the Yahoo money, Lawal\'s "logistics". Real name: Felix Amadi.'),
+    c6_end:()=>talkTo(npc,s.flags.cokerArrested?[bisi('CSP Olatunde Coker. Twenty-two years in uniform. Hmm. This one pain me.'),
+        bisi('He gave us everything. Harmattan runs it all from Wharf Warehouse 7: the kidnappings, the Yahoo money, Ajibade\'s "logistics". Real name: Felix Ugorji.'),
         bisi(`People for the market dey talk about you, ${first}. Some of them want to help.`)]
-      :[bisi('Coker dey walk free, and you dey count money. I no fit pretend say I no know.'),bisi('The address na Wharf Warehouse 7. Felix Amadi. Go finish am. But no expect the market to talk to you.')],[{label:'Continue'}],next),
-    c7_brief:()=>{const help=career.rep>=55&&!s.flags.tipped;const cs=makeCase('finale',null,{story:1});cs.flags.informant=help;talkTo(npc,[bisi('This is it. Harmattan. Felix Amadi. SWAT is ready when you are.'),
+      :[bisi('Coker dey walk free, and you dey count money. I no fit pretend say I no know.'),bisi('The address na Wharf Warehouse 7. Felix Ugorji. Go finish am. But no expect the market to talk to you.')],[{label:'Continue'}],next),
+    c7_brief:()=>{const help=career.rep>=55&&!s.flags.tipped;const cs=makeCase('finale',null,{story:1});cs.flags.informant=help;talkTo(npc,[bisi('This is it. Harmattan. Felix Ugorji. SWAT is ready when you are.'),
       ...(help?[bisi('One market woman, Iya Risi, sent word. She says she knows how dem dey guard that warehouse. See her first.')]:[bisi('Nobody for the market wan talk to us. We go in blind.')]),
       you('Let\'s finish it.')],[{label:'Move out'}],()=>startStoryCase(cs));},
   };
@@ -523,9 +525,9 @@ function showEnding(){
   const rows=[['Captain James Walker',f.mulePaid?'You let the picker go for ₦100,000.':'The picker was arrested. Grace Eze got part of her pension back.'],
     ['Operation Sweep',f.sweep===2?'You protected two innocent young men.':f.sweep===1?'You protected one of the two young men.':'You went along with the sweep.'],
     ['Hustle Kingdom',f.yahooPaid?'Odogwu bought his way out.':'Odogwu and his boys were convicted.'],
-    ['Ghost Project',f.honPaid?'Hon. Lawal escaped to Dubai.':'Hon. Lawal was charged. The health centre is finally being built.'],
+    ['Ghost Project',f.honPaid?'Hon. Ajibade escaped to Dubai.':'Hon. Ajibade was charged. The health centre is finally being built.'],
     ['Inside Man',f.cokerArrested?'CSP Coker was arrested.':'CSP Coker paid you and kept his job.'],
-    ['Harmattan','Felix Amadi is in custody.']];
+    ['Harmattan','Felix Ugorji is in custody.']];
   logEntry(`Story complete: "${title}". Trust ${t}, ${s.refused} bribes refused, ${s.taken} taken.`);
   const el=openModal(`<div class="report"><div class="eyebrow">Eko Nights · ending</div><h1>${esc(title)}</h1><p class="muted" style="max-width:60ch">${esc(body)}</p>
     <dl class="stats" style="grid-template-columns:repeat(4,1fr);margin:16px 0"><div><dt>Public trust</dt><dd>${t}</dd></div><div><dt>Bribes refused</dt><dd>${s.refused}</dd></div><div><dt>Bribes taken</dt><dd>${s.taken}</dd></div><div><dt>Money taken</dt><dd>${naira(s.cash)}</dd></div></dl>
@@ -543,7 +545,7 @@ function makeGoat(c){
 // ---------- 3D dressing: the ghost project site, Hustle Kingdom, the Honourable's house, the checkpoint
 const SITE_BOARD={};
 function drawSiteBoard(cs){
-  const g=SITE_BOARD.g;if(!g)return;const P=cs?cs.proj:{name:'Wharf End Primary Health Centre & Borehole',sum:850000000};const co=cs?cs.co:'Greenfield Dynamic Ventures Ltd',sp=cs?cs.H.name:'Hon. Babatunde Lawal';
+  const g=SITE_BOARD.g;if(!g)return;const P=cs?cs.proj:{name:'Wharf End Primary Health Centre & Borehole',sum:850000000};const co=cs?cs.co:'Greenfield Dynamic Ventures Ltd',sp=cs?cs.H.name:'Hon. Kolawole Ajibade';
   g.fillStyle='#f4f1e6';g.fillRect(0,0,512,300);g.fillStyle='#0b8a3c';g.fillRect(0,0,512,56);g.fillRect(0,272,512,28);
   g.fillStyle='#fff';g.font='800 30px Saira Condensed, Arial Narrow, sans-serif';g.textAlign='center';g.fillText('PORT EKO STATE GOVERNMENT',256,40);
   const words=P.name.toUpperCase().split(' ');let l1='',l2='';words.forEach(w=>{if((l1+' '+w).length<26&&!l2)l1=(l1+' '+w).trim();else l2=(l2+' '+w).trim();});
@@ -563,7 +565,7 @@ function buildStoryProps(){
   const [c,g]=mkC(512,300);g.fillStyle='#f4f1e6';g.fillRect(0,0,512,300);g.fillStyle='#0b8a3c';g.fillRect(0,0,512,56);g.fillRect(0,272,512,28);
   g.fillStyle='#fff';g.font='800 30px Saira Condensed, Arial Narrow, sans-serif';g.textAlign='center';g.fillText('PORT EKO STATE GOVERNMENT',256,40);
   g.fillStyle='#13285a';g.font='800 34px Saira Condensed, Arial Narrow, sans-serif';g.fillText('WHARF END PRIMARY HEALTH',256,100);g.fillText('CENTRE & BOREHOLE',256,138);
-  g.fillStyle='#222';g.font='600 21px Arial, sans-serif';g.fillText('Contract sum: ₦850,000,000',256,180);g.fillText('Contractor: Greenfield Dynamic Ventures Ltd',256,210);g.fillText('Facilitated by Hon. Babatunde Lawal',256,240);
+  g.fillStyle='#222';g.font='600 21px Arial, sans-serif';g.fillText('Contract sum: ₦850,000,000',256,180);g.fillText('Contractor: Greenfield Dynamic Ventures Ltd',256,210);g.fillText('Facilitated by Hon. Kolawole Ajibade',256,240);
   g.fillStyle='#c1361f';g.font='800 22px Arial, sans-serif';g.fillText('COMMISSIONED 30 JUNE',256,293);
   SITE_BOARD.c=c;SITE_BOARD.g=g;SITE_BOARD.tex=ctex(c);
   const board=new THREE.Mesh(new THREE.PlaneGeometry(4.4,2.6),new THREE.MeshLambertMaterial({map:SITE_BOARD.tex}));board.position.set(x+.9,2.4,z);board.rotation.y=-Math.PI/2;scene.add(board);

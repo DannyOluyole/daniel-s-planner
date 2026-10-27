@@ -78,7 +78,9 @@ function dailyVerified(cs,d){
 openSquad=(base=>function(){if(isDaily(curCase)){toast('The Daily Case is solo: every officer plays it alone.','bad');return;}return base();})(openSquad);
 takeBackup=(base=>function(o){if(isDaily(curCase)){toast('The Daily Case is solo: no backup today.','bad');return;}return base(o);})(takeBackup);
 // players' own profiles carry their daily result (verified mode: the server writes it)
-profileDoc=(base=>function(){const d=base();const y=career.daily;if(!NET.verified&&y)Object.assign(d,{dailyDay:y.day,dailyScore:y.score,dailyGrade:y.grade,dailyTitle:y.title,dailyAt:y.at||0});return d;})(profileDoc);
+// an officer saved before the politician-name rule shows up to others as "Officer" plus their friend code
+const publicName=()=>{const o=OFF();return playerNameRisk(o.first,o.last)?'Officer '+myCode().slice(4):`${o.first} ${o.last}`;};
+profileDoc=(base=>function(){const d=base();if(!NET.verified)d.name=publicName();const y=career.daily;if(!NET.verified&&y)Object.assign(d,{dailyDay:y.day,dailyScore:y.score,dailyGrade:y.grade,dailyTitle:y.title,dailyAt:y.at||0});return d;})(profileDoc);
 
 // ---------- the daily leaderboard
 const DLB={day:null,rows:[],at:0,busy:false,err:false,view:'all'};
@@ -94,7 +96,7 @@ function redrawDaily(){const el=$('#modal [data-mdt]');if(el&&mdtTab==='daily')d
 function dailyBoardRows(){
   const day=dailyDay(),y=career.daily;let rows=DLB.day===day?DLB.rows.slice():[];
   // my own result shows straight away, before the next fetch
-  if(y&&y.day===day&&NET.uid&&!rows.some(o=>o.uid===NET.uid)){const o=OFF();rows.push({uid:NET.uid,name:`${o.first} ${o.last}`,rank:rankOf(career.xp).name,dailyScore:y.score,dailyGrade:y.grade,dailyAt:y.at});rows.sort((a,b)=>b.dailyScore-a.dailyScore||(a.dailyAt||0)-(b.dailyAt||0));}
+  if(y&&y.day===day&&NET.uid&&!rows.some(o=>o.uid===NET.uid)){const o=OFF();rows.push({uid:NET.uid,name:publicName(),rank:rankOf(career.xp).name,dailyScore:y.score,dailyGrade:y.grade,dailyAt:y.at});rows.sort((a,b)=>b.dailyScore-a.dailyScore||(a.dailyAt||0)-(b.dailyAt||0));}
   rows.forEach((o,i)=>o.pos=i+1);
   if(DLB.view==='friends')rows=rows.filter(o=>o.uid===NET.uid||isFriend(o.uid));
   return rows;

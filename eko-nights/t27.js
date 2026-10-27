@@ -19,7 +19,7 @@ const ok=(c,m)=>{console.log((c?'PASS ':'FAIL ')+m);if(!c)process.exitCode=1;};
     await pg.waitForFunction(()=>/Guest officer/.test(document.querySelector('#onlineBox').textContent),null,{timeout:20000});await pg.waitForTimeout(800);
     await pg.fill('#cFirst',first);await pg.fill('#cLast',last);await pg.click('#startBtn');await pg.waitForFunction(()=>started,null,{timeout:60000});
     await pg.evaluate(()=>{PERF.off=true;CB.incT=1e9;$('#chap').hidden=true;ST().step='done';});await pg.waitForFunction(()=>NET.me&&NET.me.code,null,{timeout:90000});return pg;};
-  const A=await mk('A','ada','obi'),B=await mk('B','tunde','bakare');
+  const A=await mk('A','ada','obi'),B=await mk('B','tunde','okeke');
   const ev=(pg,f,a)=>pg.evaluate(f,a);
   // start a case, wait for its server ticket, then move the ticket's clock back
   const ticketed=async(pg,start)=>{await ev(pg,start);await pg.waitForFunction(()=>curCase&&curCase.ticket,null,{timeout:20000});const id=await ev(pg,()=>curCase.ticket);await backdate(id,30);return id;};
@@ -55,7 +55,7 @@ const ok=(c,m)=>{console.log((c?'PASS ':'FAIL ')+m);if(!c)process.exitCode=1;};
   await ticketed(B,()=>takeDaily());await solve(B,.7,2);await waitDaily(B,1);await ev(B,()=>$('#rOk')&&$('#rOk').click());
   await ev(A,()=>{fetchDaily(true);openMDT('daily');});await A.waitForTimeout(2500);
   const rows=await ev(A,()=>$$('.dboard tbody tr').map(r=>r.innerText.replace(/\s+/g,' ').trim()));
-  ok(rows.length===2&&/Ada Obi/.test(rows[0])&&/Tunde Bakare/.test(rows[1]),'the daily leaderboard lists both officers, best first');
+  ok(rows.length===2&&/Ada Obi/.test(rows[0])&&/Tunde Okeke/.test(rows[1]),'the daily leaderboard lists both officers, best first');
   ok(errs.length===0,'no page errors: '+JSON.stringify(errs));
   await b.close();srv.close();
 })();

@@ -19,7 +19,7 @@ const rooms=async ns=>{const r=await fetch(`http://127.0.0.1:9000/rooms.json?ns=
     await pg.evaluate(()=>{window._step=(n)=>{const r=renderer.render;renderer.render=()=>{};clock3.getDelta=()=>.05;for(let i=0;i<n;i++)frame();renderer.render=r;};clock3.getDelta=()=>.05;$('#chap').hidden=true;ST().step='done';
       window.__w={};const o=NET.db.doc;NET.db.doc=p=>{const r=o(p);const s=r.set;r.set=d=>{const k=p.split('/')[0];__w[k]=(__w[k]||0)+1;return s(d);};return r;};});};
   const A=await mk('A'),B=await mk('B'),C=await mk('C');const wait=ms=>A.waitForTimeout(ms);
-  await join(A,'ada','obi');await join(B,'tunde','bakare');await join(C,'chioma','eze');const t0=Date.now();
+  await join(A,'ada','obi');await join(B,'tunde','okeke');await join(C,'chioma','eze');const t0=Date.now();
   await A.evaluate(()=>{career.xp=900;career.cases=9;career.failed=1;saveCareer();publishProfile(true);});await wait(1500);
   await A.evaluate(()=>{startCase(makeCase('homicide',777,{free:true}));openSquad();});await wait(2500);
   log('rtdb rooms after squad open',await rooms('demo-eko-default-rtdb'),await rooms('demo-eko-rooms-2'));

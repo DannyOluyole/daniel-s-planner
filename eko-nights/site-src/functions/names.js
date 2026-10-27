@@ -1,6 +1,7 @@
 // Officer name checks. Names are shown to every player, so they are checked on the server.
 // Extend these lists as you see real names come in. Matching ignores case, accents, spaces,
 // and common letter swaps (0→o, 1→i, 3→e, 4→a, 5→s, 7→t, @→a, $→s).
+const { playerNameRisk } = require('./politicians'); // copied from build/politicians.js by build_site.py
 
 // Blocked anywhere inside a name: strong profanity and slurs.
 const ANYWHERE = [
@@ -37,6 +38,7 @@ function checkName(first, last) {
   const words = (f + ' ' + l).split(/[\s'’-]+/).map(squash).filter(Boolean);
   if (words.some(w => WHOLE.includes(w))) return { ok: false, reason: 'That name is not allowed.' };
   if (words.some(w => RESERVED.includes(w))) return { ok: false, reason: 'That name is reserved.' };
+  if (playerNameRisk(f, l)) return { ok: false, reason: 'That name is too close to a real politician\'s. Please choose another name.' };
   return { ok: true, first: f, last: l };
 }
 

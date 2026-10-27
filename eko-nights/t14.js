@@ -16,7 +16,7 @@ const getDoc=async p=>{const r=await fetch(`${FS}/${p}`,{headers:{'Authorization
     await pg.fill('#cFirst',first);await pg.fill('#cLast',last);await pg.click('#startBtn');await pg.waitForTimeout(5000);
     await pg.evaluate(()=>{PERF.off=true;$('#chap').hidden=true;ST().step='done';});await pg.waitForFunction(()=>NET.me&&NET.me.code,null,{timeout:90000});return pg;};
   const call=(pg,n,d)=>pg.evaluate(async([n,d])=>{try{return await NET.srv.call(n,d);}catch(e){return {error:e.code,message:e.message};}},[n,d]);
-  const A=await mk('A','ada','obi'),B=await mk('B','tunde','bakare'),C=await mk('C','ashawo','queen');
+  const A=await mk('A','ada','obi'),B=await mk('B','tunde','okeke'),C=await mk('C','ashawo','queen');
   const me=pg=>pg.evaluate(()=>NET.me&&{uid:NET.me.uid,name:NET.me.name,code:NET.me.code,xp:NET.me.xp,cases:NET.me.cases,rating:NET.me.rating,rank:NET.me.rank,flagged:NET.me.flagged,suspicious:NET.me.suspicious});
   log('A registered',await me(A));log('C (rude name) registered as',(await me(C)).name,await C.$$eval('.toast',x=>x.map(y=>y.textContent).filter(t=>/Online name/.test(t))));
   // 1. editing stats directly

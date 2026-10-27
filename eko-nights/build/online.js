@@ -233,7 +233,7 @@ async function sendInvite(uid){
   if(!NET.db||!curCase)return;
   if(NET.verified){try{await NET.srv.call('sendInvite',{to:uid});toast('Invite sent.','good');}catch(e){toast(e.message||'Could not send the invite.','bad');}return;}const o=NET.cache.get(uid);
   try{const ref=NET.db.doc('invites/'+NET.uid);const cur=await ref.get();const to=((cur.exists&&cur.data().title===curCase.title&&cur.data().to)||[]).filter(x=>x!==uid).concat(uid).slice(-12);
-    await ref.set({to,name:`${OFF().first} ${OFF().last}`,rank:rankOf(career.xp).name,title:curCase.title,at:Date.now()});toast(`Invite sent${o?' to '+o.name:''}.`,'good');}catch(e){toast('Could not send the invite.','bad');}
+    await ref.set({to,name:publicName(),rank:rankOf(career.xp).name,title:curCase.title,at:Date.now()});toast(`Invite sent${o?' to '+o.name:''}.`,'good');}catch(e){toast('Could not send the invite.','bad');}
 }
 async function joinSquadByHost(host){
   if(curCase){toast('Close or hand back your current case first.','bad');return;}
@@ -247,7 +247,7 @@ async function joinSquadByHost(host){
   startCase(cs);squadJoin(q.host);NET.invites=NET.invites.filter(i=>i.from!==host);setFriend(host,true);
   toast(`You joined ${o.name} on "${cs.title}". Clues and arrests are shared.`,'good');publishProfile(true);
 }
-function leaveSquadCase(){const cs=curCase;if(!cs)return;squadLeave();if(NET.db&&NET.canWrite)NET.db.doc('squadstate/'+NET.uid).set({squad:'',name:`${OFF().first} ${OFF().last}`,rank:rankOf(career.xp).name,at:Date.now(),blob:''}).catch(()=>{});cs.squad=null;toast('You left the squad. The case is yours alone now.');publishProfile(true);}
+function leaveSquadCase(){const cs=curCase;if(!cs)return;squadLeave();if(NET.db&&NET.canWrite)NET.db.doc('squadstate/'+NET.uid).set({squad:'',name:publicName(),rank:rankOf(career.xp).name,at:Date.now(),blob:''}).catch(()=>{});cs.squad=null;toast('You left the squad. The case is yours alone now.');publishProfile(true);}
 async function squadJoin(host){
   if(NET.sqHost===host)return;squadLeave();NET.sqHost=host;NET.sqMembers=new Map();
   if(NET.db){NET.sqUnsub=NET.db.collection('squadstate').where('squad','==',host).onSnapshot(s=>{
@@ -268,7 +268,7 @@ function squadLeave(){
 async function pushSquadState(force){
   const cs=curCase;if(!NET.ready||!NET.db||!NET.canWrite||!cs||!cs.squad||NET.busy.sq)return;
   const st=caseState(cs);const k=JSON.stringify(Object.assign({},st,{used:0}));if(k===NET.lastSq&&!force)return;
-  NET.busy.sq=true;try{await NET.db.doc('squadstate/'+NET.uid).set({squad:cs.squad,name:`${OFF().first} ${OFF().last}`,rank:rankOf(career.xp).name,at:Date.now(),blob:JSON.stringify(st)});NET.lastSq=k;}catch(e){}
+  NET.busy.sq=true;try{await NET.db.doc('squadstate/'+NET.uid).set({squad:cs.squad,name:publicName(),rank:rankOf(career.xp).name,at:Date.now(),blob:JSON.stringify(st)});NET.lastSq=k;}catch(e){}
   NET.busy.sq=false;
 }
 setInterval(()=>{if(started)pushSquadState();},1500);
@@ -276,7 +276,7 @@ function onCaseEnd(cs,how,success){
   cs.endedHow=how;
   if(success){(career.byType=career.byType||{})[cs.type]=(career.byType[cs.type]||0)+1;saveCareer();if(cs.backup&&!NET.verified)creditBackup(cs);}
   if(NET.verified)ticketClose(cs,how,success);
-  if(cs.squad&&NET.db&&NET.canWrite){const st=caseState(cs);NET.db.doc('squadstate/'+NET.uid).set({squad:cs.squad,name:`${OFF().first} ${OFF().last}`,rank:rankOf(career.xp).name,at:Date.now(),blob:JSON.stringify(st)}).catch(()=>{});setTimeout(squadLeave,4000);}
+  if(cs.squad&&NET.db&&NET.canWrite){const st=caseState(cs);NET.db.doc('squadstate/'+NET.uid).set({squad:cs.squad,name:publicName(),rank:rankOf(career.xp).name,at:Date.now(),blob:JSON.stringify(st)}).catch(()=>{});setTimeout(squadLeave,4000);}
   if(cs.backup)removeBackup();
   RESUME=null;setTimeout(()=>{saveGame();saveCloud();publishProfile(true);},400);
 }
@@ -290,7 +290,7 @@ let presT=0,lastPres=null;
 function netFrame(dt){
   const S=NET.sq;if(!S)return;
   presT-=dt;if(presT<=0){presT=.4;const me=inCar?{x:+pc.x.toFixed(1),z:+pc.z.toFixed(1),h:+pc.h.toFixed(2),car:1}:{x:+pl.x.toFixed(1),z:+pl.z.toFixed(1),h:+pl.h.toFixed(2),car:0};
-    const L=lastPres;if(!L||L.car!==me.car||Math.hypot(me.x-L.x,me.z-L.z)>.3||Math.abs(angDiff(me.h,L.h))>.12){lastPres=me;S.presence(Object.assign(me,{uid:NET.uid,name:`${OFF().first} ${OFF().last}`,rank:rankOf(career.xp).name,skin:OFF().skin})).catch(()=>{});}}
+    const L=lastPres;if(!L||L.car!==me.car||Math.hypot(me.x-L.x,me.z-L.z)>.3||Math.abs(angDiff(me.h,L.h))>.12){lastPres=me;S.presence(Object.assign(me,{uid:NET.uid,name:publicName(),rank:rankOf(career.xp).name,skin:OFF().skin})).catch(()=>{});}}
   const seen=new Set();
   for(const p of S.peers()){
     if(p.isMe||!p.presence||p.presence.x==null)continue;seen.add(p.peer);const q=p.presence;let m=NET.pm.get(p.peer);
@@ -318,7 +318,7 @@ function updateBackup(dt){
 async function creditBackup(cs){
   if(!NET.db||!NET.canWrite)return;const b=cs.backup;
   try{const ref=NET.db.doc('assists/'+NET.uid);const cur=await ref.get();const list=((cur.exists&&cur.data().list)||[]).slice(-19);
-    list.push({id:cs.seed+'-'+Date.now(),to:b.uid,from:`${OFF().first} ${OFF().last}`,title:cs.title,xp:60,at:Date.now()});
+    list.push({id:cs.seed+'-'+Date.now(),to:b.uid,from:publicName(),title:cs.title,xp:60,at:Date.now()});
     await ref.set({list,to:[...new Set(list.map(c=>c.to))]});}catch(e){}
 }
 function claimCredits(verified){

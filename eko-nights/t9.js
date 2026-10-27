@@ -37,7 +37,7 @@ const ok=(c,m)=>{console.log((c?'PASS ':'FAIL ')+m);if(!c)process.exitCode=1;};
     pg.on('pageerror',e=>errs.push(uid+' PAGEERR '+e.message+' @ '+(e.stack||'').split('\n').slice(1,3).join(' | ')));pg.on('console',m=>{if(m.type()==='error')errs.push(uid+' '+m.text())});
     await pg.goto('file://'+process.cwd()+'/wrapped.html');await pg.waitForTimeout(1200);await pg.fill('#cFirst',first);await pg.fill('#cLast',last);await pg.click('#startBtn');await pg.waitForTimeout(4500);
     await pg.evaluate(()=>{window._step=(n)=>{const r=renderer.render;renderer.render=()=>{};clock3.getDelta=()=>.05;for(let i=0;i<n;i++)frame();renderer.render=r;};clock3.getDelta=()=>.05;$('#chap').hidden=true;ST().step='done';});return pg;};
-  const A=await mkPage('u_alpha','ada','obi'),Bp=await mkPage('u_bravo','tunde','bakare');
+  const A=await mkPage('u_alpha','ada','obi'),Bp=await mkPage('u_bravo','tunde','okeke');
   const evA=(f,a)=>A.evaluate(f,a),evB=(f,a)=>Bp.evaluate(f,a),wait=ms=>A.waitForTimeout(ms),log=(...a)=>console.log(...a);
   await evA(()=>{career.xp=900;career.cases=9;career.failed=1;career.byType={homicide:4,robbery:5};saveCareer();publishProfile(true);});
   await evB(()=>{career.xp=420;career.cases=3;career.failed=2;saveCareer();publishProfile(true);});
@@ -71,7 +71,7 @@ const ok=(c,m)=>{console.log((c?'PASS ':'FAIL ')+m);if(!c)process.exitCode=1;};
   ok(await evB(()=>curCase.backup&&curCase.backup.name==='Ada Obi'&&backupCut(curCase)>0),'B can bring offline A along as backup');
   // invite
   await evB(()=>{openSquad();});await wait(1500);await evB(()=>sendInvite('u_alpha'));await wait(2000);
-  ok(await evA(()=>NET.invites.some(i=>/Tunde Bakare/.test(i.name))),'A receives B\'s squad invite');
+  ok(await evA(()=>NET.invites.some(i=>/Tunde Okeke/.test(i.name))),'A receives B\'s squad invite');
   await A.keyboard.press('Tab');await wait(300);await A.click('[data-t="dispatch"]');await wait(300);await A.screenshot({path:'j_invite.png'});
   const xp0=await evA(()=>career.xp);await evB(()=>{curCase.custody.push(curCase.C.id);endCase(curCase,'closed');});await wait(4000);
   ok(await evA(()=>(career.claimed||[]).length===1)&&(await evA(()=>career.xp))>xp0,'A gets XP for backing B up');

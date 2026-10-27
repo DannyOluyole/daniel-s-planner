@@ -16,7 +16,7 @@ const CFG=`window.EKO_FIREBASE={apiKey:"demo-key",authDomain:"demo-eko.firebasea
     await pg.waitForTimeout(800);await pg.fill('#cFirst',first);await pg.fill('#cLast',last);if(shot)await pg.screenshot({path:shot.replace('.png','_in.png')});
     await pg.click('#startBtn');await pg.waitForTimeout(5000);await steps(pg);};
   const A=await mk('A'),B=await mk('B');const wait=ms=>A.waitForTimeout(ms);
-  await join(A,'ada','obi','k_title.png');await join(B,'tunde','bakare');
+  await join(A,'ada','obi','k_title.png');await join(B,'tunde','okeke');
   const ua=await A.evaluate(()=>[NET.status,NET.uid]),ub=await B.evaluate(()=>[NET.status,NET.uid]);log('A',ua,'B',ub);
   await A.evaluate(()=>{career.xp=900;career.cases=9;career.failed=1;saveCareer();publishProfile(true);});await B.evaluate(()=>publishProfile(true));await wait(2000);
   await A.evaluate(()=>{startCase(makeCase('homicide',777,{free:true}));openSquad();});await wait(3000);
