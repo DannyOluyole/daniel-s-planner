@@ -107,6 +107,8 @@ const ok=(c,m)=>{console.log((c?'PASS ':'FAIL ')+m);if(!c)process.exitCode=1;};
   await ev(()=>{const B=curCase.B;inCar=true;pl.mesh.visible=false;startCarChase(curCase,B,B.door,()=>{});});
   for(let i=0;i<60;i++){await ev(()=>{const c=chase&&chase.car;if(c&&c.mode==='flee'){pc.x=c.x-Math.sin(c.h)*9;pc.z=c.z-Math.cos(c.h)*9;pc.h=c.h;pc.vx=Math.sin(c.h)*c.speed;pc.vz=Math.cos(c.h)*c.speed;}else{pc.vx=pc.vz=0;}});await ev(()=>_step(4));if(await ev(()=>chase&&chase.car.mode==='caught'))break;}
   await pg.screenshot({path:'e_chase.png'});ok((await ev(()=>chase&&chase.car.mode))==='caught','staying close boxes in a fleeing car');
+  // a boxed-in car slides to a stop: wait for it, or the officer ends up beside where it was
+  await ev(()=>{for(let i=0;i<60&&suspect&&suspect.speed>.05;i++)_step(1);});
   await ev(()=>{const s=suspect;pc.vx=pc.vz=0;inCar=false;pl.mesh.visible=true;pl.x=s.rx+Math.cos(s.h)*1.8;pl.z=s.rz-Math.sin(s.h)*1.8;_step(2);});ok(/Arrest/.test(await ev(()=>nearest&&nearest.label)),'the boxed-in driver can be arrested');
   await pg.keyboard.press('KeyE');await wait(200);await ev(()=>{let i=0;while(CUFF&&i++<40)cuffStep(.25);});
   ok(!!(await ev(()=>prisoner&&prisoner.p.name)),'the driver becomes your prisoner');

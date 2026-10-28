@@ -29,6 +29,7 @@ function perfStepDown(){
 function perfStart(){PERF.last=performance.now();while(PERF.step<PERF.saved)applyPerfStep(PERF_STEPS[PERF.step++]);}
 function perfFrame(){
   const now=performance.now(),dt=Math.min(1,(now-PERF.last)/1000);PERF.last=now;
+  fpsTick(now);
   if(PERF.off||!started||cine||cctv||raidS||insideS||blockingModal()||document.hidden)return;
   PERF.acc+=dt;PERF.frames++;if(PERF.acc<6)return;
   PERF.fps=PERF.frames/PERF.acc;PERF.acc=0;PERF.frames=0;
@@ -44,3 +45,15 @@ function goLandscape(){
   try{const p=el.requestFullscreen?el.requestFullscreen({navigationUI:'hide'}):el.webkitRequestFullscreen?el.webkitRequestFullscreen():null;
     Promise.resolve(p).then(()=>screen.orientation&&screen.orientation.lock?screen.orientation.lock('landscape'):null).catch(()=>{});}catch(e){}
 }
+
+// ---------- an optional frame-rate counter (MDT · Controls), to check how smooth the game runs on a device
+let FPSC={on:false,n:0,t0:0,el:null};try{FPSC.on=localStorage.getItem('eko-fps')==='1';}catch(e){}
+function fpsTick(now){
+  if(!FPSC.on){if(FPSC.el)FPSC.el.hidden=true;return;}
+  if(!FPSC.el){FPSC.el=document.createElement('div');FPSC.el.id='fps';document.body.appendChild(FPSC.el);}
+  FPSC.el.hidden=false;FPSC.n++;if(!FPSC.t0)FPSC.t0=now;
+  if(now-FPSC.t0>=500){FPSC.el.textContent=`${Math.round(FPSC.n*1000/(now-FPSC.t0))} fps`;FPSC.n=0;FPSC.t0=now;}
+}
+drawMDT=(base=>function(el){base(el);if(mdtTab!=='help')return;const body=$('#mdtBody',el);
+  body.insertAdjacentHTML('beforeend',`<div class="row" style="margin-top:16px"><span class="muted">Frame-rate counter</span><button class="btn ghost sm" id="fpsTog" aria-pressed="${FPSC.on}">${FPSC.on?'On':'Off'}</button></div>`);
+  $('#fpsTog',body).onclick=()=>{FPSC.on=!FPSC.on;FPSC.t0=0;FPSC.n=0;try{localStorage.setItem('eko-fps',FPSC.on?'1':'0');}catch(e){}drawMDT(el);};})(drawMDT);
