@@ -716,6 +716,11 @@
     details.bible-book > summary::-webkit-details-marker { display: none; }
     details.bible-book > summary::before { content: '▸'; color: var(--teal); transition: transform 0.15s ease; }
     details.bible-book[open] > summary::before { transform: rotate(90deg); }
+    .bible-daily:empty { display: none; }
+    .bible-daily { margin-top: 1rem; padding: 0.9rem 1.1rem; border-radius: 10px; background: var(--cream); border-left: 4px solid var(--gold); }
+    .bible-daily-head { font-size: 0.7rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--gray-med); }
+    .bible-daily-main { margin: 0.2rem 0; color: var(--navy); }
+    .bible-daily-main .good { color: var(--green); font-weight: 700; }
     .bible-book-name { font-weight: 700; color: var(--navy); flex: 1; }
     .bible-tag { font-family: 'IBM Plex Mono', monospace; font-size: 0.6rem; font-weight: 600; color: var(--teal); border: 1px solid currentColor; border-radius: 4px; padding: 0 0.3rem; margin-left: 0.3rem; vertical-align: middle; opacity: 0.8; }
     details.bible-book.complete .bible-book-name::after { content: ' ✓'; color: var(--green); }
@@ -952,6 +957,7 @@
         <div class="card-body">
           <div class="stats-grid" id="bibleKpis"></div>
           <div class="plan-bar" id="bibleBar" style="margin-top:1.25rem;"><div id="bibleBarFill" style="width:0%"></div></div>
+          <div class="bible-daily" id="bibleDaily"></div>
           <div class="plan-note" id="biblePaceNote"></div>
           <div class="bible-controls">
             <div>
@@ -3034,7 +3040,7 @@
           }
         }
       }
-      return { read: read, readToday: readToday, ot: ot, nt: nt, remaining: remaining, daysLeft: daysLeft, perDay: perDay, neededToday: neededToday, projection: projection, target: target, today: today };
+      return { startOfDayRemaining: startOfDayRemaining, read: read, readToday: readToday, ot: ot, nt: nt, remaining: remaining, daysLeft: daysLeft, perDay: perDay, neededToday: neededToday, projection: projection, target: target, today: today };
     }
 
     function bibleNextUnread() {
@@ -3044,6 +3050,32 @@
         for (let ch = 1; ch <= BIBLE_BOOKS[bi].c; ch++) if (!bibleHas(bi, ch)) return { bi: bi, ch: ch };
       }
       return null;
+    }
+
+    /* What to read today to stay on schedule, and how tomorrow's target moves with today's reading.
+       Everything is recomputed from what's actually been read, so a missed day raises the daily
+       target and a big day lowers it. */
+    function bibleDailyHtml(s) {
+      if (s.remaining === 0 || s.startOfDayRemaining === 0) return '';
+      if (s.daysLeft <= 0) return '';
+      const need = s.neededToday, done = s.readToday;
+      const left = Math.max(0, need - done);
+      let html = '<div class="bible-daily-head">Today’s target</div><div class="bible-daily-main">' +
+        '<span class="plan-big">' + need + '</span> chapter' + (need === 1 ? '' : 's') +
+        (left > 0 ? ' · <strong>' + left + ' to go</strong> (' + done + ' read today)' : ' · <span class="good">done for today ✓' + (done > need ? ' (' + (done - need) + ' extra)' : '') + '</span>') +
+        '</div>';
+      if (s.daysLeft > 1) {
+        const afterGoal = Math.max(0, s.startOfDayRemaining - Math.max(done, need));
+        const ifStop = Math.max(0, s.startOfDayRemaining - done);
+        const tomorrow = Math.ceil(afterGoal / (s.daysLeft - 1) - 1e-9);
+        const tomorrowIfStop = Math.ceil(ifStop / (s.daysLeft - 1) - 1e-9);
+        html += '<div class="plan-sub">' + (left > 0
+          ? (tomorrowIfStop > tomorrow
+            ? 'Finish today’s goal and tomorrow’s target is <strong>' + plural(tomorrow, 'chapter') + '</strong>. Stop now and it rises to <strong>' + plural(tomorrowIfStop, 'chapter') + '</strong>.'
+            : 'Tomorrow’s target is about <strong>' + plural(tomorrow, 'chapter') + '</strong>, even if you skip the rest of today — one day barely moves a ' + s.daysLeft + '-day plan.')
+          :'Tomorrow’s target: <strong>' + plural(tomorrow, 'chapter') + '</strong>' + (tomorrow < need ? ' — you’re getting ahead.' : '.')) + '</div>';
+      }
+      return html;
     }
 
     function renderBibleSummary() {
@@ -3067,6 +3099,9 @@
       if (kp) kp.innerHTML = kpis.map(function(k) {
         return '<div class="stat-card"><div class="stat-num">' + escapeHtml(k[0]) + '</div><div class="stat-label">' + escapeHtml(k[1]) + '</div></div>';
       }).join('');
+
+      const dl = document.getElementById('bibleDaily');
+      if (dl) dl.innerHTML = bibleDailyHtml(s);
 
       const bar = document.getElementById('bibleBar');
       const fill = document.getElementById('bibleBarFill');
