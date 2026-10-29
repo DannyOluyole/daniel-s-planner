@@ -1,0 +1,361 @@
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Daniel Planner//Hourly check-ins//EN
+CALSCALE:GREGORIAN
+METHOD:PUBLISH
+X-WR-CALNAME:Daniel Planner check-ins
+BEGIN:VEVENT
+UID:checkin-5@dannyoluyole.github.io
+DTSTAMP:20261029T141541Z
+DTSTART:20261029T050000
+DTEND:20261029T051500
+RRULE:FREQ=DAILY
+SUMMARY:⏰ 5:00 AM check-in
+DESCRIPTION:Good morning! First up: Prayer\n\nOpen your planner to check in
+ :\nhttps://dannyoluyole.github.io/daniel-s-planner/
+URL:https://dannyoluyole.github.io/daniel-s-planner/
+TRANSP:TRANSPARENT
+BEGIN:VALARM
+ACTION:DISPLAY
+DESCRIPTION:⏰ 5:00 AM check-in - Good morning! First up: Prayer
+TRIGGER:PT0S
+END:VALARM
+END:VEVENT
+BEGIN:VEVENT
+UID:checkin-6@dannyoluyole.github.io
+DTSTAMP:20261029T141541Z
+DTSTART:20261029T060000
+DTEND:20261029T061500
+RRULE:FREQ=DAILY
+SUMMARY:⏰ 6:00 AM check-in
+DESCRIPTION:Did you do: Prayer (5:00 AM – 6:00 AM)?\n\nOpen your planner 
+ to check in:\nhttps://dannyoluyole.github.io/daniel-s-planner/
+URL:https://dannyoluyole.github.io/daniel-s-planner/
+TRANSP:TRANSPARENT
+BEGIN:VALARM
+ACTION:DISPLAY
+DESCRIPTION:⏰ 6:00 AM check-in - Did you do: Prayer (5:00 AM – 6:00 AM)
+ ?
+TRIGGER:PT0S
+END:VALARM
+END:VEVENT
+BEGIN:VEVENT
+UID:checkin-7@dannyoluyole.github.io
+DTSTAMP:20261029T141541Z
+DTSTART:20261029T070000
+DTEND:20261029T071500
+RRULE:FREQ=DAILY
+SUMMARY:⏰ 7:00 AM check-in
+DESCRIPTION:Did you do: Bible Reading & Daily Devotional → Gym (6:00 AM 
+ – 7:00 AM)?\n\nOpen your planner to check in:\nhttps://dannyoluyole.gith
+ ub.io/daniel-s-planner/
+URL:https://dannyoluyole.github.io/daniel-s-planner/
+TRANSP:TRANSPARENT
+BEGIN:VALARM
+ACTION:DISPLAY
+DESCRIPTION:⏰ 7:00 AM check-in - Did you do: Bible Reading & Daily Devoti
+ onal → Gym (6:00 AM – 7:00 AM)?
+TRIGGER:PT0S
+END:VALARM
+END:VEVENT
+BEGIN:VEVENT
+UID:checkin-8@dannyoluyole.github.io
+DTSTAMP:20261029T141541Z
+DTSTART:20261029T080000
+DTEND:20261029T081500
+RRULE:FREQ=DAILY
+SUMMARY:⏰ 8:00 AM check-in
+DESCRIPTION:Did you do: Bath & Work Prep (7:00 AM – 8:00 AM)?\n\nOpen you
+ r planner to check in:\nhttps://dannyoluyole.github.io/daniel-s-planner/
+URL:https://dannyoluyole.github.io/daniel-s-planner/
+TRANSP:TRANSPARENT
+BEGIN:VALARM
+ACTION:DISPLAY
+DESCRIPTION:⏰ 8:00 AM check-in - Did you do: Bath & Work Prep (7:00 AM 
+ – 8:00 AM)?
+TRIGGER:PT0S
+END:VALARM
+END:VEVENT
+BEGIN:VEVENT
+UID:checkin-9@dannyoluyole.github.io
+DTSTAMP:20261029T141541Z
+DTSTART:20261029T090000
+DTEND:20261029T091500
+RRULE:FREQ=DAILY
+SUMMARY:⏰ 9:00 AM check-in
+DESCRIPTION:Did you do: Book Reading (while bussing) (8:00 AM – 9:00 AM)?
+ \n\nOpen your planner to check in:\nhttps://dannyoluyole.github.io/daniel-
+ s-planner/
+URL:https://dannyoluyole.github.io/daniel-s-planner/
+TRANSP:TRANSPARENT
+BEGIN:VALARM
+ACTION:DISPLAY
+DESCRIPTION:⏰ 9:00 AM check-in - Did you do: Book Reading (while bussing)
+  (8:00 AM – 9:00 AM)?
+TRIGGER:PT0S
+END:VALARM
+END:VEVENT
+BEGIN:VEVENT
+UID:checkin-10@dannyoluyole.github.io
+DTSTAMP:20261029T141541Z
+DTSTART:20261029T100000
+DTEND:20261029T101500
+RRULE:FREQ=DAILY
+SUMMARY:⏰ 10:00 AM check-in
+DESCRIPTION:Did you do: Work (9:00 AM – 10:00 AM)?\n\nOpen your planner t
+ o check in:\nhttps://dannyoluyole.github.io/daniel-s-planner/
+URL:https://dannyoluyole.github.io/daniel-s-planner/
+TRANSP:TRANSPARENT
+BEGIN:VALARM
+ACTION:DISPLAY
+DESCRIPTION:⏰ 10:00 AM check-in - Did you do: Work (9:00 AM – 10:00 AM)
+ ?
+TRIGGER:PT0S
+END:VALARM
+END:VEVENT
+BEGIN:VEVENT
+UID:checkin-11@dannyoluyole.github.io
+DTSTAMP:20261029T141541Z
+DTSTART:20261029T110000
+DTEND:20261029T111500
+RRULE:FREQ=DAILY
+SUMMARY:⏰ 11:00 AM check-in
+DESCRIPTION:Did you do: Work (10:00 AM – 11:00 AM)?\n\nOpen your planner 
+ to check in:\nhttps://dannyoluyole.github.io/daniel-s-planner/
+URL:https://dannyoluyole.github.io/daniel-s-planner/
+TRANSP:TRANSPARENT
+BEGIN:VALARM
+ACTION:DISPLAY
+DESCRIPTION:⏰ 11:00 AM check-in - Did you do: Work (10:00 AM – 11:00 AM
+ )?
+TRIGGER:PT0S
+END:VALARM
+END:VEVENT
+BEGIN:VEVENT
+UID:checkin-12@dannyoluyole.github.io
+DTSTAMP:20261029T141541Z
+DTSTART:20261029T120000
+DTEND:20261029T121500
+RRULE:FREQ=DAILY
+SUMMARY:⏰ 12:00 PM check-in
+DESCRIPTION:Did you do: Work (11:00 AM – 12:00 PM)?\n\nOpen your planner 
+ to check in:\nhttps://dannyoluyole.github.io/daniel-s-planner/
+URL:https://dannyoluyole.github.io/daniel-s-planner/
+TRANSP:TRANSPARENT
+BEGIN:VALARM
+ACTION:DISPLAY
+DESCRIPTION:⏰ 12:00 PM check-in - Did you do: Work (11:00 AM – 12:00 PM
+ )?
+TRIGGER:PT0S
+END:VALARM
+END:VEVENT
+BEGIN:VEVENT
+UID:checkin-13@dannyoluyole.github.io
+DTSTAMP:20261029T141541Z
+DTSTART:20261029T130000
+DTEND:20261029T131500
+RRULE:FREQ=DAILY
+SUMMARY:⏰ 1:00 PM check-in
+DESCRIPTION:Did you do: Work (12:00 PM – 1:00 PM)?\n\nOpen your planner t
+ o check in:\nhttps://dannyoluyole.github.io/daniel-s-planner/
+URL:https://dannyoluyole.github.io/daniel-s-planner/
+TRANSP:TRANSPARENT
+BEGIN:VALARM
+ACTION:DISPLAY
+DESCRIPTION:⏰ 1:00 PM check-in - Did you do: Work (12:00 PM – 1:00 PM)?
+TRIGGER:PT0S
+END:VALARM
+END:VEVENT
+BEGIN:VEVENT
+UID:checkin-14@dannyoluyole.github.io
+DTSTAMP:20261029T141541Z
+DTSTART:20261029T140000
+DTEND:20261029T141500
+RRULE:FREQ=DAILY
+SUMMARY:⏰ 2:00 PM check-in
+DESCRIPTION:Did you do: Work (1:00 PM – 2:00 PM)?\n\nOpen your planner to
+  check in:\nhttps://dannyoluyole.github.io/daniel-s-planner/
+URL:https://dannyoluyole.github.io/daniel-s-planner/
+TRANSP:TRANSPARENT
+BEGIN:VALARM
+ACTION:DISPLAY
+DESCRIPTION:⏰ 2:00 PM check-in - Did you do: Work (1:00 PM – 2:00 PM)?
+TRIGGER:PT0S
+END:VALARM
+END:VEVENT
+BEGIN:VEVENT
+UID:checkin-15@dannyoluyole.github.io
+DTSTAMP:20261029T141541Z
+DTSTART:20261029T150000
+DTEND:20261029T151500
+RRULE:FREQ=DAILY
+SUMMARY:⏰ 3:00 PM check-in
+DESCRIPTION:Check in on 2:00 PM – 3:00 PM.\n\nOpen your planner to check 
+ in:\nhttps://dannyoluyole.github.io/daniel-s-planner/
+URL:https://dannyoluyole.github.io/daniel-s-planner/
+TRANSP:TRANSPARENT
+BEGIN:VALARM
+ACTION:DISPLAY
+DESCRIPTION:⏰ 3:00 PM check-in - Check in on 2:00 PM – 3:00 PM.
+TRIGGER:PT0S
+END:VALARM
+END:VEVENT
+BEGIN:VEVENT
+UID:checkin-16@dannyoluyole.github.io
+DTSTAMP:20261029T141541Z
+DTSTART:20261029T160000
+DTEND:20261029T161500
+RRULE:FREQ=DAILY
+SUMMARY:⏰ 4:00 PM check-in
+DESCRIPTION:Did you do: Voice Training (3:00 PM – 4:00 PM)?\n\nOpen your 
+ planner to check in:\nhttps://dannyoluyole.github.io/daniel-s-planner/
+URL:https://dannyoluyole.github.io/daniel-s-planner/
+TRANSP:TRANSPARENT
+BEGIN:VALARM
+ACTION:DISPLAY
+DESCRIPTION:⏰ 4:00 PM check-in - Did you do: Voice Training (3:00 PM – 
+ 4:00 PM)?
+TRIGGER:PT0S
+END:VALARM
+END:VEVENT
+BEGIN:VEVENT
+UID:checkin-17@dannyoluyole.github.io
+DTSTAMP:20261029T141541Z
+DTSTART:20261029T170000
+DTEND:20261029T171500
+RRULE:FREQ=DAILY
+SUMMARY:⏰ 5:00 PM check-in
+DESCRIPTION:Did you do: Work (4:00 PM – 5:00 PM)?\n\nOpen your planner to
+  check in:\nhttps://dannyoluyole.github.io/daniel-s-planner/
+URL:https://dannyoluyole.github.io/daniel-s-planner/
+TRANSP:TRANSPARENT
+BEGIN:VALARM
+ACTION:DISPLAY
+DESCRIPTION:⏰ 5:00 PM check-in - Did you do: Work (4:00 PM – 5:00 PM)?
+TRIGGER:PT0S
+END:VALARM
+END:VEVENT
+BEGIN:VEVENT
+UID:checkin-18@dannyoluyole.github.io
+DTSTAMP:20261029T141541Z
+DTSTART:20261029T180000
+DTEND:20261029T181500
+RRULE:FREQ=DAILY
+SUMMARY:⏰ 6:00 PM check-in
+DESCRIPTION:Check in on 5:00 PM – 6:00 PM.\n\nOpen your planner to check 
+ in:\nhttps://dannyoluyole.github.io/daniel-s-planner/
+URL:https://dannyoluyole.github.io/daniel-s-planner/
+TRANSP:TRANSPARENT
+BEGIN:VALARM
+ACTION:DISPLAY
+DESCRIPTION:⏰ 6:00 PM check-in - Check in on 5:00 PM – 6:00 PM.
+TRIGGER:PT0S
+END:VALARM
+END:VEVENT
+BEGIN:VEVENT
+UID:checkin-19@dannyoluyole.github.io
+DTSTAMP:20261029T141541Z
+DTSTART:20261029T190000
+DTEND:20261029T191500
+RRULE:FREQ=DAILY
+SUMMARY:⏰ 7:00 PM check-in
+DESCRIPTION:Check in on 6:00 PM – 7:00 PM.\n\nOpen your planner to check 
+ in:\nhttps://dannyoluyole.github.io/daniel-s-planner/
+URL:https://dannyoluyole.github.io/daniel-s-planner/
+TRANSP:TRANSPARENT
+BEGIN:VALARM
+ACTION:DISPLAY
+DESCRIPTION:⏰ 7:00 PM check-in - Check in on 6:00 PM – 7:00 PM.
+TRIGGER:PT0S
+END:VALARM
+END:VEVENT
+BEGIN:VEVENT
+UID:checkin-20@dannyoluyole.github.io
+DTSTAMP:20261029T141541Z
+DTSTART:20261029T200000
+DTEND:20261029T201500
+RRULE:FREQ=DAILY
+SUMMARY:⏰ 8:00 PM check-in
+DESCRIPTION:Check in on 7:00 PM – 8:00 PM.\n\nOpen your planner to check 
+ in:\nhttps://dannyoluyole.github.io/daniel-s-planner/
+URL:https://dannyoluyole.github.io/daniel-s-planner/
+TRANSP:TRANSPARENT
+BEGIN:VALARM
+ACTION:DISPLAY
+DESCRIPTION:⏰ 8:00 PM check-in - Check in on 7:00 PM – 8:00 PM.
+TRIGGER:PT0S
+END:VALARM
+END:VEVENT
+BEGIN:VEVENT
+UID:checkin-21@dannyoluyole.github.io
+DTSTAMP:20261029T141541Z
+DTSTART:20261029T210000
+DTEND:20261029T211500
+RRULE:FREQ=DAILY
+SUMMARY:⏰ 9:00 PM check-in
+DESCRIPTION:Check in on 8:00 PM – 9:00 PM.\n\nOpen your planner to check 
+ in:\nhttps://dannyoluyole.github.io/daniel-s-planner/
+URL:https://dannyoluyole.github.io/daniel-s-planner/
+TRANSP:TRANSPARENT
+BEGIN:VALARM
+ACTION:DISPLAY
+DESCRIPTION:⏰ 9:00 PM check-in - Check in on 8:00 PM – 9:00 PM.
+TRIGGER:PT0S
+END:VALARM
+END:VEVENT
+BEGIN:VEVENT
+UID:checkin-22@dannyoluyole.github.io
+DTSTAMP:20261029T141541Z
+DTSTART:20261029T220000
+DTEND:20261029T221500
+RRULE:FREQ=DAILY
+SUMMARY:⏰ 10:00 PM check-in
+DESCRIPTION:Did you do: Flute Lessons (9:00 PM – 10:00 PM)?\n\nOpen your 
+ planner to check in:\nhttps://dannyoluyole.github.io/daniel-s-planner/
+URL:https://dannyoluyole.github.io/daniel-s-planner/
+TRANSP:TRANSPARENT
+BEGIN:VALARM
+ACTION:DISPLAY
+DESCRIPTION:⏰ 10:00 PM check-in - Did you do: Flute Lessons (9:00 PM – 
+ 10:00 PM)?
+TRIGGER:PT0S
+END:VALARM
+END:VEVENT
+BEGIN:VEVENT
+UID:checkin-23@dannyoluyole.github.io
+DTSTAMP:20261029T141541Z
+DTSTART:20261029T230000
+DTEND:20261029T231500
+RRULE:FREQ=DAILY
+SUMMARY:⏰ 11:00 PM check-in
+DESCRIPTION:Did you do: Book Reading (10:00 PM – 11:00 PM)?\n\nOpen your 
+ planner to check in:\nhttps://dannyoluyole.github.io/daniel-s-planner/
+URL:https://dannyoluyole.github.io/daniel-s-planner/
+TRANSP:TRANSPARENT
+BEGIN:VALARM
+ACTION:DISPLAY
+DESCRIPTION:⏰ 11:00 PM check-in - Did you do: Book Reading (10:00 PM – 
+ 11:00 PM)?
+TRIGGER:PT0S
+END:VALARM
+END:VEVENT
+BEGIN:VEVENT
+UID:checkin-0@dannyoluyole.github.io
+DTSTAMP:20261029T141541Z
+DTSTART:20261029T000000
+DTEND:20261029T001500
+RRULE:FREQ=DAILY
+SUMMARY:⏰ 12:00 AM check-in
+DESCRIPTION:Did you do: Prayer & Bible Reading (11:00 PM – 12:00 AM)?\n\n
+ Open your planner to check in:\nhttps://dannyoluyole.github.io/daniel-s-pl
+ anner/
+URL:https://dannyoluyole.github.io/daniel-s-planner/
+TRANSP:TRANSPARENT
+BEGIN:VALARM
+ACTION:DISPLAY
+DESCRIPTION:⏰ 12:00 AM check-in - Did you do: Prayer & Bible Reading (11:
+ 00 PM – 12:00 AM)?
+TRIGGER:PT0S
+END:VALARM
+END:VEVENT
+END:VCALENDAR
