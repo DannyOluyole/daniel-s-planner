@@ -965,6 +965,10 @@
               <input type="date" id="bibleTargetDate" class="plan-date" onchange="onBibleTargetChange(this)" />
             </div>
             <div>
+              <label for="bibleStartDate" title="Used to work out whether you are behind an even pace. Leave blank to use the first day you logged a chapter.">Started reading on</label>
+              <input type="date" id="bibleStartDate" class="plan-date" onchange="onBibleStartChange(this)" />
+            </div>
+            <div>
               <label for="bibleLogDate">Log chapters as read on</label>
               <input type="date" id="bibleLogDate" class="plan-date" />
             </div>
@@ -1190,12 +1194,13 @@
     const BIBLE_DEFAULT_TARGET = '2027-08-31';
     function isIsoDate(s) { return typeof s === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(s); }
     function normalizeExtras(raw) {
-      const out = { bible: { targetDate: BIBLE_DEFAULT_TARGET, read: {} }, monthlyGoals: {} };
+      const out = { bible: { targetDate: BIBLE_DEFAULT_TARGET, startDate: '', read: {} }, monthlyGoals: {} };
       try {
         if (raw && typeof raw === 'object') {
           const bb = raw.bible;
           if (bb && typeof bb === 'object') {
             if (isIsoDate(bb.targetDate)) out.bible.targetDate = bb.targetDate;
+            if (isIsoDate(bb.startDate)) out.bible.startDate = bb.startDate;
             if (bb.read && typeof bb.read === 'object') {
               Object.keys(bb.read).forEach(function(name) {
                 const m = bb.read[name];
@@ -3019,6 +3024,16 @@
         perDay = daysLeft > 0 ? startOfDayRemaining / daysLeft : startOfDayRemaining;
         neededToday = Math.ceil(perDay - 1e-9);
       }
+      // Catch-up: compare what's been read before today with an even pace from the plan's start date
+      // (set by the user, otherwise the first day a chapter was logged).
+      let catchup = null;
+      const startIso = isIsoDate(trackerExtras.bible.startDate) ? trackerExtras.bible.startDate : (dates.length ? dates.slice().sort()[0] : '');
+      if (startIso && startIso < today && startOfDayRemaining > 0 && startIso <= target) {
+        const basePace = BIBLE_TOTAL / (dayDiff(startIso, target) + 1);
+        const elapsed = dayDiff(startIso, today);
+        const expected = Math.min(BIBLE_TOTAL, basePace * elapsed);
+        catchup = { start: startIso, basePace: basePace, elapsed: elapsed, behind: expected - (BIBLE_TOTAL - startOfDayRemaining) };
+      }
       // Projection uses completed days only (up to yesterday, last 14 at most) so a
       // half-finished today doesn't make the pace look worse than it is.
       let projection = null;
@@ -3040,7 +3055,7 @@
           }
         }
       }
-      return { startOfDayRemaining: startOfDayRemaining, read: read, readToday: readToday, ot: ot, nt: nt, remaining: remaining, daysLeft: daysLeft, perDay: perDay, neededToday: neededToday, projection: projection, target: target, today: today };
+      return { catchup: catchup, startOfDayRemaining: startOfDayRemaining, read: read, readToday: readToday, ot: ot, nt: nt, remaining: remaining, daysLeft: daysLeft, perDay: perDay, neededToday: neededToday, projection: projection, target: target, today: today };
     }
 
     function bibleNextUnread() {
@@ -3075,6 +3090,23 @@
             : 'Tomorrow’s target is about <strong>' + plural(tomorrow, 'chapter') + '</strong>, even if you skip the rest of today — one day barely moves a ' + s.daysLeft + '-day plan.')
           :'Tomorrow’s target: <strong>' + plural(tomorrow, 'chapter') + '</strong>' + (tomorrow < need ? ' — you’re getting ahead.' : '.')) + '</div>';
       }
+      const cu = s.catchup;
+      if (cu) {
+        const behind = Math.round(cu.behind);
+        const base = fmt1(cu.basePace);
+        if (behind >= 1) {
+          html += '<div class="plan-sub bible-catchup"><strong class="bad">Behind schedule by about ' + plural(behind, 'chapter') + '</strong> (≈ ' + plural(Math.ceil(cu.behind / cu.basePace - 1e-9), 'day') + ' of reading at the original ' + base + '/day pace since ' + fmtDate(cu.start) + '). ' +
+            'To catch up and still finish on time you now need <strong>' + plural(need, 'chapter') + ' a day</strong>';
+          if (s.daysLeft > 14) {
+            html += ', or clear the backlog in a week with <strong>' + Math.ceil(cu.basePace + cu.behind / 7 - 1e-9) + ' a day for 7 days</strong>, then about ' + base + ' a day';
+          }
+          html += '.</div>';
+        } else if (behind <= -1) {
+          html += '<div class="plan-sub bible-catchup"><span class="good">You’re about ' + plural(-behind, 'chapter') + ' ahead of an even pace since ' + fmtDate(cu.start) + '.</span></div>';
+        } else {
+          html += '<div class="plan-sub bible-catchup"><span class="good">You’re right on an even pace since ' + fmtDate(cu.start) + '.</span></div>';
+        }
+      }
       return html;
     }
 
@@ -3087,6 +3119,8 @@
       if (hero) hero.textContent = fmtDate(s.target);
       const tgt = document.getElementById('bibleTargetDate');
       if (tgt && tgt.value !== s.target) tgt.value = s.target;
+      const st = document.getElementById('bibleStartDate');
+      if (st && document.activeElement !== st) st.value = isIsoDate(trackerExtras.bible.startDate) ? trackerExtras.bible.startDate : (s.catchup ? s.catchup.start : '');
 
       const kpis = [
         [s.read + ' / ' + BIBLE_TOTAL, 'Chapters read'],
@@ -3239,6 +3273,12 @@
     function onBibleOrderChange(el) {
       try { localStorage.setItem(BIBLE_ORDER_KEY, el.value === 'canon' ? 'canon' : 'chrono'); } catch (e) {}
       renderBible();
+    }
+
+    function onBibleStartChange(el) {
+      trackerExtras.bible.startDate = isIsoDate(el.value) ? el.value : '';
+      renderBibleSummary();
+      scheduleExtrasSave();
     }
 
     function onBibleTargetChange(el) {
