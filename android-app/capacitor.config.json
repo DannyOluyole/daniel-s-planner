@@ -1,0 +1,18 @@
+{
+  "appId": "com.danielplanner.app",
+  "appName": "Daniel Planner",
+  "webDir": "www",
+  "server": {
+    "url": "https://dannyoluyole.github.io/daniel-s-planner/",
+    "errorPath": "offline.html"
+  },
+  "android": {
+    "allowMixedContent": false
+  },
+  "plugins": {
+    "LocalNotifications": {
+      "smallIcon": "ic_stat_planner",
+      "iconColor": "#007A7A"
+    }
+  }
+}

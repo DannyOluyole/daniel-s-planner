@@ -1120,13 +1120,13 @@
     <div class="modal-body">
       <p style="color:var(--gray-med);font-size:0.9rem;margin-bottom:1rem;">Rings at the top of every hour from 5 AM to midnight and asks whether you did what the Time-Line planned for the hour that just ended.</p>
       <label style="display:flex;align-items:center;gap:0.6rem;font-weight:600;margin-bottom:0.8rem;"><input type="checkbox" id="alarmEnabled" onchange="toggleAlarmEnabled(this.checked)" /> Turn on the hourly alarm</label>
-      <label style="display:flex;align-items:center;gap:0.6rem;margin-bottom:0.8rem;"><input type="checkbox" id="alarmSound" onchange="toggleAlarmSound(this.checked)" /> Play a sound</label>
+      <label id="alarmSoundRow" style="display:flex;align-items:center;gap:0.6rem;margin-bottom:0.8rem;"><input type="checkbox" id="alarmSound" onchange="toggleAlarmSound(this.checked)" /> Play a sound</label>
       <label id="alarmNotifyRow" style="display:flex;align-items:center;gap:0.6rem;margin-bottom:1rem;"><input type="checkbox" id="alarmNotify" onchange="toggleAlarmNotify(this.checked)" /> Show a desktop notification when this tab is in the background</label>
       <div style="display:flex;gap:0.6rem;flex-wrap:wrap;margin-bottom:1rem;">
         <button class="btn btn-gold btn-sm" onclick="testAlarm()">🔊 Test alarm</button>
         <button class="btn btn-teal btn-sm" onclick="closeAlarmModal(); openCheckin({})">✅ Check in now</button>
       </div>
-      <p style="font-size:0.82rem;color:var(--gray-med);line-height:1.5;">⚠ It only rings while this planner is open in a browser tab (a pinned tab works well). It can't ring while the browser or tab is closed, or while your computer is asleep. Anything missed is waiting for you the next time the planner is open.</p>
+      <p id="alarmNote" style="font-size:0.82rem;color:var(--gray-med);line-height:1.5;"></p>
     </div>
     <div class="modal-footer"><button class="btn btn-ghost" onclick="closeAlarmModal()">Close</button></div>
   </div>
@@ -4646,6 +4646,77 @@ function clockLabel(h) {
 }
 function slotLabel(h) { return clockLabel(h) + ' – ' + clockLabel(h + 1); }
 
+/* ---- Android app: the phone itself rings the alarm, even with the app closed ----
+   Inside the Android app the page is shown by Capacitor. A hosted page doesn't get the plugin shortcuts,
+   so these talk to the native bridge directly. In a normal browser none of this runs. */
+const ALARM_CHANNEL_ID = 'hourly-checkin-v1'; // a channel's sound can't be changed once created, so a new sound needs a new id
+function isNativeApp() {
+  const c = window.Capacitor;
+  return !!(c && typeof c.isNativePlatform === 'function' && c.isNativePlatform());
+}
+function nativeCall(method, options) {
+  return window.Capacitor.nativePromise('LocalNotifications', method, options || {});
+}
+function alarmRingHours() {
+  const hours = [];
+  for (let h = DAY_TIMELINE_START_HOUR; h <= DAY_TIMELINE_END_HOUR; h++) hours.push(h);
+  hours.push(0);
+  return hours;
+}
+/* The phone's scheduled alerts have fixed text, so they use the standard routine; the full, up-to-date
+   plan is what you see once you open the check-in. */
+function nativeAlarmText(h) {
+  const ended = (h + 23) % 24;
+  const title = '⏰ ' + clockLabel(h) + ' check-in';
+  if (h === DAY_TIMELINE_START_HOUR) {
+    return { title, body: DEFAULT_TIMELINE[h] ? 'Good morning! First up: ' + DEFAULT_TIMELINE[h] : 'Good morning! Time to start your day.' };
+  }
+  const planned = DEFAULT_TIMELINE[ended];
+  return { title, body: planned ? 'Did you do: ' + planned + ' (' + slotLabel(ended) + ')?' : 'Tap to check in on ' + slotLabel(ended) + '.' };
+}
+async function prepareNativeAlarms() {
+  let perm = await nativeCall('checkPermissions');
+  if (perm.display !== 'granted') perm = await nativeCall('requestPermissions');
+  if (perm.display !== 'granted') return false;
+  try {
+    const exact = await nativeCall('checkExactNotificationSetting');
+    if (exact.exact_alarm === 'denied') await nativeCall('changeExactNotificationSetting');
+  } catch {}
+  await nativeCall('createChannel', {
+    id: ALARM_CHANNEL_ID, name: 'Hourly check-in', description: 'Rings every hour to ask what you have done',
+    importance: 5, visibility: 1, sound: 'ring.wav', vibration: true
+  });
+  return true;
+}
+/* Makes the phone's schedule match the setting: every hour on the hour while on, nothing while off.
+   Returns false only when turning on failed (e.g. notifications are blocked). */
+async function syncNativeAlarms() {
+  if (!isNativeApp()) return true;
+  try {
+    const pending = await nativeCall('getPending');
+    if (pending.notifications && pending.notifications.length) await nativeCall('cancel', { notifications: pending.notifications });
+    if (!alarmSettings().enabled) return true;
+    if (!(await prepareNativeAlarms())) return false;
+    await nativeCall('schedule', {
+      notifications: alarmRingHours().map((h) => {
+        const t = nativeAlarmText(h);
+        return { id: 1000 + h, title: t.title, body: t.body, channelId: ALARM_CHANNEL_ID, schedule: { on: { hour: h, minute: 0 }, allowWhileIdle: true } };
+      })
+    });
+    return true;
+  } catch (e) {
+    console.warn('Phone alarm setup failed:', e);
+    return false;
+  }
+}
+function setupNativeAlarmListeners() {
+  if (!isNativeApp()) return;
+  window.Capacitor.nativeCallback('LocalNotifications', 'addListener', { eventName: 'localNotificationActionPerformed' }, () => {
+    showView('day');
+    openCheckin({});
+  });
+}
+
 /* ---- sound / title / notification ---- */
 function ensureAudio() {
   if (!_alarmCtx) {
@@ -4807,7 +4878,7 @@ async function openCheckin(opts) {
   };
   renderCheckinModal();
   document.getElementById('checkinOverlay').classList.add('open');
-  if (opts.ring) {
+  if (opts.ring && !isNativeApp()) { // in the Android app the phone's own alert does the ringing
     const pending = slots[0];
     const body = pending ? 'Did you do: ' + pending.text + '?' : (cur ? 'Starting now: ' + cur : 'Time to check in');
     const s = alarmSettings();
@@ -4901,14 +4972,27 @@ function openAlarmModal() {
   document.getElementById('alarmEnabled').checked = s.enabled;
   document.getElementById('alarmSound').checked = s.sound;
   document.getElementById('alarmNotify').checked = s.notify && 'Notification' in window && Notification.permission === 'granted';
-  document.getElementById('alarmNotifyRow').style.display = 'Notification' in window ? 'flex' : 'none';
+  const native = isNativeApp();
+  document.getElementById('alarmSoundRow').style.display = native ? 'none' : 'flex';
+  document.getElementById('alarmNotifyRow').style.display = !native && 'Notification' in window ? 'flex' : 'none';
+  document.getElementById('alarmNote').textContent = native
+    ? '📱 This is the Android app: your phone rings every hour even when the app is closed or the screen is locked. Tap the alert to open the check-in. If alarms ever stop, open the app once so it can re-arm them.'
+    : '⚠ It only rings while this planner is open in a browser tab (a pinned tab works well). It can\'t ring while the browser or tab is closed, or while your computer is asleep. Anything missed is waiting for you the next time the planner is open.';
   document.getElementById('alarmOverlay').classList.add('open');
 }
 function closeAlarmModal() { document.getElementById('alarmOverlay').classList.remove('open'); }
-function toggleAlarmEnabled(on) {
+async function toggleAlarmEnabled(on) {
   const s = alarmSettings();
   s.enabled = on;
   saveAlarmSettings(s);
+  if (isNativeApp() && !(await syncNativeAlarms()) && on) {
+    s.enabled = false;
+    saveAlarmSettings(s);
+    document.getElementById('alarmEnabled').checked = false;
+    refreshAlarmButton();
+    showToast('Allow notifications for this app in Android settings, then try again');
+    return;
+  }
   if (on) { ensureAudio(); startAlarmScheduler({ catchUp: false }); showToast('🔔 Hourly alarm on'); }
   else { stopAlarmScheduler(); stopAlarmRing(); showToast('🔕 Hourly alarm off'); }
   refreshAlarmButton();
@@ -4931,11 +5015,25 @@ function toggleAlarmNotify(on) {
     if (!s.notify) showToast('Notifications are blocked. Allow them for this site in your browser settings.');
   });
 }
-function testAlarm() {
+async function testAlarm() {
+  if (isNativeApp()) {
+    try {
+      if (!(await prepareNativeAlarms())) { showToast('Allow notifications for this app in Android settings first'); return; }
+      await nativeCall('schedule', {
+        notifications: [{ id: 999, title: '⏰ Test alarm', body: 'This is how your hourly check-in will look.', channelId: ALARM_CHANNEL_ID,
+          schedule: { at: new Date(Date.now() + 4000), allowWhileIdle: true } }]
+      });
+      showToast('🔔 Test alarm in a few seconds. Try locking the screen.');
+    } catch (e) { showToast('Could not start the test alarm'); }
+    return;
+  }
   playChime();
   if (alarmSettings().notify) sendAlarmNotification('⏰ Test alarm', 'This is how your hourly check-in will look.');
   showToast('🔔 Test alarm played');
 }
+
+/* Background tabs and a phone app coming back to the front can sleep through an hour, so check the clock the moment the page is visible again. */
+document.addEventListener('visibilitychange', () => { if (!document.hidden) alarmTick(new Date()); });
 
 /* A browser only lets a page make sound after you have interacted with it, so unlock on any click. */
 document.addEventListener('pointerdown', () => {
@@ -4970,6 +5068,8 @@ window.addEventListener('DOMContentLoaded', async () => {
   }
   refreshAlarmButton();
   startAlarmScheduler();
+  setupNativeAlarmListeners();
+  syncNativeAlarms(); // re-arms the phone's alerts every time the app opens
   const sttBtn = document.getElementById('sttBtn');
   if (sttBtn && !speechToTextSupported()) {
     sttBtn.disabled = true;

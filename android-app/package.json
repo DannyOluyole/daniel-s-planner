@@ -1,0 +1,12 @@
+{
+  "name": "daniel-planner-android",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Android shell for the Daniel Planner web app, with real hourly alarms",
+  "dependencies": {
+    "@capacitor/android": "^8.6.0",
+    "@capacitor/cli": "^8.6.0",
+    "@capacitor/core": "^8.6.0",
+    "@capacitor/local-notifications": "^8.3.1"
+  }
+}

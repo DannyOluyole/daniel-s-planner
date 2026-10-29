@@ -1,0 +1,68 @@
+name: Build Android app
+
+on:
+  workflow_dispatch: {}
+  push:
+    branches:
+      - main
+    paths:
+      - 'android-app/**'
+      - '.github/workflows/build-android-app.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: android-app
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - uses: android-actions/setup-android@v3
+
+      - name: Install packages
+        run: npm ci
+
+      - name: Generate the Android project
+        run: npx cap add android
+
+      - name: Apply icon, permissions and ring tone
+        run: node patch-android.mjs
+
+      - name: Sync Capacitor
+        run: npx cap sync android
+
+      - name: Build APK
+        working-directory: android-app/android
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon
+
+      - name: Name the APK
+        run: cp android/app/build/outputs/apk/debug/app-debug.apk daniel-planner.apk
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: daniel-planner-apk
+          path: android-app/daniel-planner.apk
+
+      - name: Publish download link
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: android-latest
+          name: Daniel Planner for Android
+          body: |
+            Latest Android build of the planner. On your phone, open this page, download `daniel-planner.apk`, and install it (Android will ask you to allow installs from your browser the first time).
+          files: android-app/daniel-planner.apk
