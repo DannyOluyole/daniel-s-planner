@@ -585,6 +585,22 @@
       font-family: 'IBM Plex Mono', monospace;
     }
     .time-lbl.hour { font-size: 1.15rem; color: var(--teal); }
+    .time-row.is-done input[type="text"] { text-decoration: line-through; opacity: 0.55; }
+    .time-row.is-missed { background: #fdecea; border-bottom-color: #C62828; }
+    .time-row.is-missed input[type="text"] { border-color: #C62828; }
+
+    .ck-title { font-weight: 700; margin-bottom: 0.4rem; color: var(--teal-dark); }
+    .ck-slot { display: flex; align-items: center; gap: 0.75rem; padding: 0.7rem 0; border-bottom: 1px solid var(--gray-xlight); flex-wrap: wrap; }
+    .ck-slot.answered { opacity: 0.65; }
+    .ck-when { font-family: 'IBM Plex Mono', monospace; font-size: 0.78rem; color: var(--teal-dark); min-width: 150px; }
+    .ck-text { flex: 1; font-weight: 600; min-width: 120px; }
+    .ck-actions { display: flex; gap: 0.4rem; }
+    .ck-result.done { color: #2E7D32; font-weight: 700; }
+    .ck-result.missed { color: #C62828; font-weight: 700; }
+    .ck-empty { padding: 0.8rem 0; color: #2E7D32; font-weight: 600; }
+    .ck-now { margin-top: 1rem; padding: 0.7rem 0.9rem; background: var(--cream); border-left: 4px solid var(--gold); border-radius: 6px; }
+    .ck-progress { margin-top: 0.8rem; font-size: 0.85rem; color: var(--gray-med); }
+    .ck-warn { background: #fff4e5; border: 1px solid #ffb74d; border-radius: 8px; padding: 0.6rem 0.8rem; margin-bottom: 0.8rem; font-size: 0.85rem; }
 
     .notes-ta {
       background: var(--cream);
@@ -1000,6 +1016,7 @@
     <button class="btn btn-gold btn-sm" onclick="exportPlanner()">⬇ Export</button>
     <button class="btn btn-gold btn-sm" onclick="importPlanner()">⬆ Import</button>
     <button class="btn btn-ghost btn-sm" onclick="toggleSpeechToText()" id="sttBtn" title="Speech to text (dictation)">🎙 Dictate</button>
+    <button class="btn btn-ghost btn-sm" onclick="openAlarmModal()" id="alarmBtn" title="Hourly alarm and check-in">🔔 Alarm</button>
     <button class="btn btn-ghost btn-sm" onclick="openCloudSyncModal()" id="cloudSyncBtn" title="Cloud Sync">☁ Sync</button>
     <button class="btn btn-red btn-sm" onclick="resetPlanner()">⚠ Reset</button>
   </div>
@@ -1093,6 +1110,35 @@
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeCloudSyncModal()">Close</button>
       <button class="btn btn-teal" onclick="saveCloudSyncConfig()">Save</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="alarmOverlay">
+  <div class="modal" style="max-width:540px;">
+    <div class="modal-header">🔔 Hourly Alarm</div>
+    <div class="modal-body">
+      <p style="color:var(--gray-med);font-size:0.9rem;margin-bottom:1rem;">Rings at the top of every hour from 5 AM to midnight and asks whether you did what the Time-Line planned for the hour that just ended.</p>
+      <label style="display:flex;align-items:center;gap:0.6rem;font-weight:600;margin-bottom:0.8rem;"><input type="checkbox" id="alarmEnabled" onchange="toggleAlarmEnabled(this.checked)" /> Turn on the hourly alarm</label>
+      <label style="display:flex;align-items:center;gap:0.6rem;margin-bottom:0.8rem;"><input type="checkbox" id="alarmSound" onchange="toggleAlarmSound(this.checked)" /> Play a sound</label>
+      <label id="alarmNotifyRow" style="display:flex;align-items:center;gap:0.6rem;margin-bottom:1rem;"><input type="checkbox" id="alarmNotify" onchange="toggleAlarmNotify(this.checked)" /> Show a desktop notification when this tab is in the background</label>
+      <div style="display:flex;gap:0.6rem;flex-wrap:wrap;margin-bottom:1rem;">
+        <button class="btn btn-gold btn-sm" onclick="testAlarm()">🔊 Test alarm</button>
+        <button class="btn btn-teal btn-sm" onclick="closeAlarmModal(); openCheckin({})">✅ Check in now</button>
+      </div>
+      <p style="font-size:0.82rem;color:var(--gray-med);line-height:1.5;">⚠ It only rings while this planner is open in a browser tab (a pinned tab works well). It can't ring while the browser or tab is closed, or while your computer is asleep. Anything missed is waiting for you the next time the planner is open.</p>
+    </div>
+    <div class="modal-footer"><button class="btn btn-ghost" onclick="closeAlarmModal()">Close</button></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="checkinOverlay" onclick="stopAlarmRing()">
+  <div class="modal" style="max-width:580px;">
+    <div class="modal-header" id="checkinHeader">✅ Check-in</div>
+    <div class="modal-body" id="checkinBody"></div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="snoozeCheckin()">😴 Snooze 5 min</button>
+      <button class="btn btn-teal" onclick="closeCheckin()">Done for now</button>
     </div>
   </div>
 </div>
@@ -1341,7 +1387,7 @@
       <!-- RIGHT COLUMN -->
       <div style="display:flex; flex-direction:column; gap:1.5rem;">
         <div class="card">
-          <div class="card-header">⏰ Time-Line</div>
+          <div class="card-header">⏰ Time-Line <span id="timelineProgress" style="margin-left:0.6rem;font-size:0.85rem;font-weight:600;opacity:0.9;"></span></div>
           <div class="card-body" style="padding:0.75rem;">
             <div id="daySchedule"></div>
           </div>
@@ -1359,6 +1405,7 @@
     <div class="day-actions">
       <button class="btn btn-teal" onclick="saveDayPlanner()">💾 Save Day</button>
       <button class="btn btn-gold" onclick="loadDayPlanner()">📂 Reload</button>
+      <button class="btn btn-teal" onclick="openCheckin({})">✅ Check-in</button>
       <button class="btn btn-ghost" onclick="refreshDayDefaults()">🔄 Refresh Defaults</button>
       <button class="btn btn-ghost" onclick="clearDayPlanner()">🗑️ Clear</button>
       <button class="btn btn-ghost" onclick="window.print()">🖨️ Print</button>
@@ -1864,6 +1911,7 @@ const DEFAULT_TIMELINE = {
 
 let _dayUIBuilt = false;
 let _dayLoading = false;
+let _dayRenderedKey = ''; // the day whose fields are currently filled in; '' until the Day Planner has been shown
 let _daySaveTimer = null;
 let _monthSaveTimer = null;
 let _valuesSaveTimer = null;
@@ -4107,10 +4155,11 @@ function buildDayUI() {
     const lbl = h === 12 ? '12:00 PM' : h > 12 ? (h-12) + ':00 PM' : h + ':00 AM';
     const row = document.createElement('div');
     row.className = 'time-row';
+    row.id = 'ds-row-' + h;
     row.innerHTML = `
       <div class="time-lbl hour">${lbl}</div>
-      <input type="text" id="ds-txt-${h}" placeholder="Appointment or event..." oninput="scheduleDaySave()" />
-      <input type="checkbox" class="checkbox-inp" id="ds-chk-${h}" onchange="scheduleDaySave()" />
+      <input type="text" id="ds-txt-${h}" placeholder="Appointment or event..." oninput="updateTimelineProgress(); scheduleDaySave()" />
+      <input type="checkbox" class="checkbox-inp" id="ds-chk-${h}" onchange="onTimelineCheck(${h})" />
     `;
     sched.appendChild(row);
   }
@@ -4173,7 +4222,7 @@ function fillTimelineDefaults(schedule) {
   for (let h = DAY_TIMELINE_START_HOUR; h <= DAY_TIMELINE_END_HOUR; h++) {
     const s = byHour.get(h) || { text: '', done: false };
     const needsDefault = DEFAULT_TIMELINE[h] && !(s.text || '').trim();
-    out.push({ hour: h, text: needsDefault ? DEFAULT_TIMELINE[h] : (s.text || ''), done: !!s.done });
+    out.push({ hour: h, text: needsDefault ? DEFAULT_TIMELINE[h] : (s.text || ''), done: !!s.done, missed: !s.done && !!s.missed });
   }
   return out;
 }
@@ -4195,10 +4244,13 @@ function collectTaskRows() {
 function collectSchedule() {
   const schedule = [];
   for (let h = DAY_TIMELINE_START_HOUR; h <= DAY_TIMELINE_END_HOUR; h++) {
+    const chk = document.getElementById('ds-chk-' + h);
+    const done = !!(chk && chk.checked);
     schedule.push({
       hour: h,
       text: (document.getElementById('ds-txt-' + h) || {}).value || '',
-      done: !!(document.getElementById('ds-chk-' + h) || {}).checked
+      done,
+      missed: !done && !!(chk && chk.dataset.missed === '1')
     });
   }
   return schedule;
@@ -4219,8 +4271,40 @@ function applyScheduleToFields(schedule) {
   for (let h = DAY_TIMELINE_START_HOUR; h <= DAY_TIMELINE_END_HOUR; h++) {
     const s = byHour.get(h) || {};
     const txt = document.getElementById('ds-txt-' + h); if (txt) txt.value = s.text || '';
-    const chk = document.getElementById('ds-chk-' + h); if (chk) chk.checked = !!s.done;
+    const chk = document.getElementById('ds-chk-' + h);
+    if (chk) { chk.checked = !!s.done; chk.dataset.missed = (!s.done && s.missed) ? '1' : ''; }
+    styleTimelineRow(h);
   }
+  updateTimelineProgress();
+}
+
+function styleTimelineRow(h) {
+  const row = document.getElementById('ds-row-' + h);
+  const chk = document.getElementById('ds-chk-' + h);
+  if (!row || !chk) return;
+  row.classList.toggle('is-done', chk.checked);
+  row.classList.toggle('is-missed', !chk.checked && chk.dataset.missed === '1');
+}
+
+function onTimelineCheck(h) {
+  const chk = document.getElementById('ds-chk-' + h);
+  if (chk) chk.dataset.missed = '';
+  styleTimelineRow(h);
+  updateTimelineProgress();
+  scheduleDaySave();
+}
+
+function updateTimelineProgress() {
+  const el = document.getElementById('timelineProgress');
+  if (!el) return;
+  let planned = 0, done = 0;
+  for (let h = DAY_TIMELINE_START_HOUR; h <= DAY_TIMELINE_END_HOUR; h++) {
+    const txt = document.getElementById('ds-txt-' + h);
+    if (!txt || !txt.value.trim()) continue;
+    planned++;
+    if (document.getElementById('ds-chk-' + h).checked) done++;
+  }
+  el.textContent = planned ? '✓ ' + done + '/' + planned : '';
 }
 
 function applyPriStyle(i) {
@@ -4255,6 +4339,7 @@ function renderDayView() {
 
   clearTimeout(_daySaveTimer);
   clearDayFields();
+  _dayRenderedKey = dk;
   renderLocalDay(dk);
   setupDateLinkifyForView('view-day');
   refreshDayFromCloud(dk);
@@ -4272,24 +4357,35 @@ function clearDayFields() {
   }
   for (let h = DAY_TIMELINE_START_HOUR; h <= DAY_TIMELINE_END_HOUR; h++) {
     const txt = document.getElementById('ds-txt-' + h); if (txt) txt.value = '';
-    const chk = document.getElementById('ds-chk-' + h); if (chk) chk.checked = false;
+    const chk = document.getElementById('ds-chk-' + h); if (chk) { chk.checked = false; chk.dataset.missed = ''; }
+    styleTimelineRow(h);
   }
+  updateTimelineProgress();
 }
 
 /* Today and later days always get the defaults merged in, whatever was saved before. Past days are
    history, so they're only filled when a section is completely empty. */
-function renderDayData(dk, saved) {
+function effectiveDayRecord(dk, saved) {
   const data = saved || {};
-  const isPast = dk < dateKey(TODAY);
+  const isPast = dk < dateKey(new Date());
   const hasTaskText = Array.isArray(data.tasks) && data.tasks.some(t => (t.text || '').trim());
   const hasScheduleText = Array.isArray(data.schedule) && data.schedule.some(s => (s.text || '').trim());
+  return {
+    mission: data.mission || '',
+    notes: data.notes || '',
+    tasks: !isPast || !hasTaskText ? reconcileTaskRows(data.tasks) : data.tasks,
+    schedule: !isPast || !hasScheduleText ? fillTimelineDefaults(data.schedule) : data.schedule
+  };
+}
 
+function renderDayData(dk, saved) {
+  const rec = effectiveDayRecord(dk, saved);
   _dayLoading = true;
   try {
-    document.getElementById('dayMission').value = data.mission || '';
-    document.getElementById('dayNotes').value = data.notes || '';
-    applyTaskRowsToFields(!isPast || !hasTaskText ? reconcileTaskRows(data.tasks) : data.tasks);
-    applyScheduleToFields(!isPast || !hasScheduleText ? fillTimelineDefaults(data.schedule) : data.schedule);
+    document.getElementById('dayMission').value = rec.mission;
+    document.getElementById('dayNotes').value = rec.notes;
+    applyTaskRowsToFields(rec.tasks);
+    applyScheduleToFields(rec.schedule);
   } finally {
     _dayLoading = false;
   }
@@ -4517,6 +4613,337 @@ window.addEventListener('beforeunload', function(e) {
 });
 
 /* ================================================================
+   HOURLY ALARM
+   Rings at the top of each hour (5am through midnight) while this page is open, and asks whether the
+   hour that just ended was done. Answers land on the Time-Line (done / missed), and a "done" also
+   completes any Priority Task named in that hour.
+   Settings live outside STORAGE_PREFIX on purpose: they belong to this browser and must not be
+   cloud-synced to other devices.
+================================================================ */
+const ALARM_SETTINGS_KEY = 'danielPlanner-alarm-v1';
+const ALARM_STATE_KEY = 'danielPlanner-alarm-state-v1';
+const ALARM_RING_MS = 120000;
+const ALARM_REPEAT_MS = 4000;
+const ALARM_SNOOZE_MS = 5 * 60000;
+let _alarmTimer = null, _alarmRingTimer = null, _alarmSnoozeTimer = null, _alarmTitleTimer = null;
+let _alarmTitleOrig = '', _alarmCtx = null, _checkin = null;
+
+function alarmSettings() {
+  try {
+    const s = JSON.parse(localStorage.getItem(ALARM_SETTINGS_KEY) || '{}');
+    return { enabled: !!s.enabled, sound: s.sound !== false, notify: !!s.notify };
+  } catch { return { enabled: false, sound: true, notify: false }; }
+}
+function saveAlarmSettings(s) { localStorage.setItem(ALARM_SETTINGS_KEY, JSON.stringify(s)); }
+function alarmLastBoundary() {
+  try { return Date.parse((JSON.parse(localStorage.getItem(ALARM_STATE_KEY) || '{}')).last) || 0; } catch { return 0; }
+}
+function saveAlarmLastBoundary(d) { localStorage.setItem(ALARM_STATE_KEY, JSON.stringify({ last: d.toISOString() })); }
+
+function clockLabel(h) {
+  const hh = ((h % 24) + 24) % 24;
+  return (hh % 12 || 12) + ':00 ' + (hh >= 12 ? 'PM' : 'AM');
+}
+function slotLabel(h) { return clockLabel(h) + ' – ' + clockLabel(h + 1); }
+
+/* ---- sound / title / notification ---- */
+function ensureAudio() {
+  if (!_alarmCtx) {
+    const C = window.AudioContext || window.webkitAudioContext;
+    if (C) { try { _alarmCtx = new C(); } catch { _alarmCtx = null; } }
+  }
+  if (_alarmCtx && _alarmCtx.state === 'suspended') _alarmCtx.resume().catch(() => {});
+  return _alarmCtx;
+}
+function playChime() {
+  const ctx = ensureAudio();
+  if (!ctx) return;
+  const t0 = ctx.currentTime;
+  [880, 660, 880, 660].forEach((freq, i) => {
+    const osc = ctx.createOscillator(), gain = ctx.createGain();
+    const s = t0 + i * 0.35;
+    osc.type = 'sine';
+    osc.frequency.value = freq;
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    gain.gain.setValueAtTime(0.0001, s);
+    gain.gain.exponentialRampToValueAtTime(0.35, s + 0.03);
+    gain.gain.exponentialRampToValueAtTime(0.0001, s + 0.32);
+    osc.start(s);
+    osc.stop(s + 0.34);
+  });
+}
+function startAlarmRing() {
+  stopAlarmRing();
+  const until = Date.now() + ALARM_RING_MS;
+  const beat = () => {
+    if (Date.now() > until) { stopAlarmRing(); return; }
+    playChime();
+    setTimeout(() => {
+      if (_checkin && !_checkin.soundBlocked && _alarmCtx && _alarmCtx.state !== 'running') {
+        _checkin.soundBlocked = true;
+        renderCheckinModal();
+      }
+    }, 400);
+  };
+  beat();
+  _alarmRingTimer = setInterval(beat, ALARM_REPEAT_MS);
+}
+function stopAlarmRing() {
+  clearInterval(_alarmRingTimer);
+  _alarmRingTimer = null;
+  clearInterval(_alarmTitleTimer);
+  _alarmTitleTimer = null;
+  if (_alarmTitleOrig) { document.title = _alarmTitleOrig; _alarmTitleOrig = ''; }
+}
+function flashTitle(msg) {
+  if (_alarmTitleTimer) return;
+  _alarmTitleOrig = document.title;
+  let on = false;
+  _alarmTitleTimer = setInterval(() => { on = !on; document.title = on ? msg : _alarmTitleOrig; }, 900);
+}
+function sendAlarmNotification(title, body) {
+  if (!('Notification' in window) || Notification.permission !== 'granted') return;
+  try {
+    const n = new Notification(title, { body, tag: 'planner-checkin', requireInteraction: true });
+    n.onclick = () => { window.focus(); n.close(); };
+  } catch {}
+}
+
+/* ---- finding what needs checking ---- */
+async function loadEffectiveDay(dk) {
+  return effectiveDayRecord(dk, await storageLoad('day-' + dk));
+}
+
+/* Hours that have ended, have something planned, and haven't been answered yet: today, plus the last
+   hour of yesterday (it ends at midnight) when the planner was actually used yesterday. */
+async function findUnresolvedSlots(now) {
+  const out = [];
+  const yesterday = new Date(now); yesterday.setDate(yesterday.getDate() - 1);
+  const collect = async (dk, hours, requireRecord) => {
+    const saved = await storageLoad('day-' + dk);
+    if (requireRecord && !saved) return;
+    const byHour = new Map(effectiveDayRecord(dk, saved).schedule.map(s => [s.hour, s]));
+    for (const h of hours) {
+      const s = byHour.get(h);
+      if (!s || !(s.text || '').trim() || s.done || s.missed) continue;
+      const end = new Date(dk + 'T00:00:00');
+      end.setHours(h + 1, 0, 0, 0);
+      if (end <= now) out.push({ dk, hour: h, text: s.text.trim(), answered: '' });
+    }
+  };
+  await collect(dateKey(yesterday), [DAY_TIMELINE_END_HOUR], true);
+  const hours = [];
+  for (let h = DAY_TIMELINE_START_HOUR; h <= DAY_TIMELINE_END_HOUR; h++) hours.push(h);
+  await collect(dateKey(now), hours);
+  return out;
+}
+
+function dayProgress(rec) {
+  const planned = rec.schedule.filter(s => (s.text || '').trim());
+  return { planned: planned.length, done: planned.filter(s => s.done).length };
+}
+
+/* ---- recording an answer ---- */
+function hourItems(text) {
+  return String(text || '').replace(/\([^)]*\)/g, ' ').split(/\s*(?:→|&|\+|,|\band\b)\s*/i)
+    .map(s => s.trim().toLowerCase()).filter(Boolean);
+}
+function completeMatchingTasks(rows, hourText) {
+  const items = new Set(hourItems(hourText));
+  rows.forEach((r) => {
+    const t = (r.text || '').trim().toLowerCase();
+    if (t && items.has(t) && (!r.status || r.status === 'inprocess')) { r.status = 'completed'; r.done = true; }
+  });
+}
+
+async function recordCheckin(dk, hour, outcome) {
+  const done = outcome === 'done';
+  if (_dayRenderedKey === dk) {
+    // That day is on screen, so change the fields: otherwise the next autosave would undo the answer.
+    const chk = document.getElementById('ds-chk-' + hour);
+    if (!chk) return;
+    chk.checked = done;
+    chk.dataset.missed = done ? '' : '1';
+    styleTimelineRow(hour);
+    if (done) {
+      const rows = collectTaskRows();
+      completeMatchingTasks(rows, document.getElementById('ds-txt-' + hour).value);
+      applyTaskRowsToFields(rows);
+    }
+    updateTimelineProgress();
+    await saveDayPlanner();
+    return;
+  }
+  const rec = await loadEffectiveDay(dk);
+  const entry = rec.schedule.find(s => s.hour === hour);
+  if (!entry) return;
+  entry.done = done;
+  entry.missed = !done;
+  if (done) completeMatchingTasks(rec.tasks, entry.text);
+  const obj = { date: dk, mission: rec.mission, notes: rec.notes, tasks: rec.tasks, schedule: rec.schedule, savedAt: new Date().toISOString() };
+  if (await storageSave('day-' + dk, obj)) {
+    syncIndexFromDay(new Date(dk + 'T00:00:00'), obj);
+    renderTodayBanner();
+  }
+}
+
+/* ---- the check-in window ---- */
+async function openCheckin(opts) {
+  opts = opts || {};
+  const now = opts.now || new Date();
+  const [slots, today] = await Promise.all([findUnresolvedSlots(now), loadEffectiveDay(dateKey(now))]);
+  if (opts.onlyIfUnresolved && !slots.length) return;
+  const h = now.getHours();
+  const cur = (h >= DAY_TIMELINE_START_HOUR && h <= DAY_TIMELINE_END_HOUR)
+    ? ((today.schedule.find(s => s.hour === h) || {}).text || '').trim() : '';
+  _checkin = {
+    slots,
+    current: cur ? { hour: h, text: cur } : null,
+    progress: dayProgress(today),
+    todayKey: dateKey(now),
+    title: opts.ring ? '⏰ ' + clockLabel(h) + ' check-in' : '✅ Check-in',
+    soundBlocked: false
+  };
+  renderCheckinModal();
+  document.getElementById('checkinOverlay').classList.add('open');
+  if (opts.ring) {
+    const pending = slots[0];
+    const body = pending ? 'Did you do: ' + pending.text + '?' : (cur ? 'Starting now: ' + cur : 'Time to check in');
+    const s = alarmSettings();
+    if (s.sound) startAlarmRing();
+    flashTitle(_checkin.title);
+    if (s.notify && (document.hidden || !document.hasFocus())) sendAlarmNotification(_checkin.title, body);
+  }
+}
+
+function renderCheckinModal() {
+  const st = _checkin;
+  if (!st) return;
+  document.getElementById('checkinHeader').textContent = st.title;
+  let html = '';
+  if (st.soundBlocked) html += '<div class="ck-warn">🔇 Your browser is blocking the alarm sound. Click anywhere on this page once to allow it.</div>';
+  if (st.slots.length) {
+    html += '<div class="ck-title">Did you do what was planned?</div>';
+    st.slots.forEach((s, i) => {
+      const when = (s.dk === st.todayKey ? '' : 'Yesterday · ') + slotLabel(s.hour);
+      const actions = s.answered
+        ? '<span class="ck-result ' + s.answered + '">' + (s.answered === 'done' ? '✓ Done' : '✗ Not done') + '</span>'
+        : '<button class="btn btn-teal btn-sm" onclick="answerCheckin(' + i + ',\'done\')">✓ Done</button>' +
+          '<button class="btn btn-ghost btn-sm" onclick="answerCheckin(' + i + ',\'missed\')">✗ Not done</button>';
+      html += '<div class="ck-slot' + (s.answered ? ' answered' : '') + '"><div class="ck-when">' + esc(when) + '</div>' +
+        '<div class="ck-text">' + esc(s.text) + '</div><div class="ck-actions">' + actions + '</div></div>';
+    });
+  } else {
+    html += '<div class="ck-empty">✅ Nothing is waiting to be checked.</div>';
+  }
+  if (st.current) html += '<div class="ck-now">▶ Starting now (' + esc(slotLabel(st.current.hour)) + '): <strong>' + esc(st.current.text) + '</strong></div>';
+  if (st.progress.planned) html += '<div class="ck-progress">Today: ' + st.progress.done + ' of ' + st.progress.planned + ' planned hours done</div>';
+  document.getElementById('checkinBody').innerHTML = html;
+}
+
+async function answerCheckin(i, outcome) {
+  stopAlarmRing();
+  const slot = _checkin && _checkin.slots[i];
+  if (!slot || slot.answered) return;
+  slot.answered = outcome;
+  renderCheckinModal();
+  await recordCheckin(slot.dk, slot.hour, outcome);
+  _checkin.progress = dayProgress(await loadEffectiveDay(_checkin.todayKey));
+  renderCheckinModal();
+}
+function closeCheckin() {
+  stopAlarmRing();
+  document.getElementById('checkinOverlay').classList.remove('open');
+}
+function snoozeCheckin() {
+  closeCheckin();
+  clearTimeout(_alarmSnoozeTimer);
+  _alarmSnoozeTimer = setTimeout(() => openCheckin({ ring: true, onlyIfUnresolved: true }), ALARM_SNOOZE_MS);
+  showToast('😴 Snoozed for 5 minutes');
+}
+
+/* ---- the clock ---- */
+function alarmTick(now) {
+  if (!alarmSettings().enabled) return;
+  const boundary = new Date(now);
+  boundary.setMinutes(0, 0, 0);
+  if (boundary.getTime() <= alarmLastBoundary()) return;
+  saveAlarmLastBoundary(boundary);
+  const h = boundary.getHours();
+  if (h === 0 || (h >= DAY_TIMELINE_START_HOUR && h <= DAY_TIMELINE_END_HOUR)) return openCheckin({ ring: true, now });
+}
+function startAlarmScheduler(opts) {
+  stopAlarmScheduler();
+  if (!alarmSettings().enabled) return;
+  const boundary = new Date();
+  boundary.setMinutes(0, 0, 0);
+  saveAlarmLastBoundary(boundary); // don't ring for an hour that already started before this page opened
+  _alarmTimer = setInterval(() => alarmTick(new Date()), 15000);
+  if (!opts || opts.catchUp !== false) openCheckin({ onlyIfUnresolved: true });
+}
+function stopAlarmScheduler() {
+  clearInterval(_alarmTimer);
+  _alarmTimer = null;
+  clearTimeout(_alarmSnoozeTimer);
+}
+
+/* ---- settings window ---- */
+function refreshAlarmButton() {
+  const on = alarmSettings().enabled;
+  const btn = document.getElementById('alarmBtn');
+  if (!btn) return;
+  btn.classList.toggle('btn-teal', on);
+  btn.classList.toggle('btn-ghost', !on);
+}
+function openAlarmModal() {
+  const s = alarmSettings();
+  document.getElementById('alarmEnabled').checked = s.enabled;
+  document.getElementById('alarmSound').checked = s.sound;
+  document.getElementById('alarmNotify').checked = s.notify && 'Notification' in window && Notification.permission === 'granted';
+  document.getElementById('alarmNotifyRow').style.display = 'Notification' in window ? 'flex' : 'none';
+  document.getElementById('alarmOverlay').classList.add('open');
+}
+function closeAlarmModal() { document.getElementById('alarmOverlay').classList.remove('open'); }
+function toggleAlarmEnabled(on) {
+  const s = alarmSettings();
+  s.enabled = on;
+  saveAlarmSettings(s);
+  if (on) { ensureAudio(); startAlarmScheduler({ catchUp: false }); showToast('🔔 Hourly alarm on'); }
+  else { stopAlarmScheduler(); stopAlarmRing(); showToast('🔕 Hourly alarm off'); }
+  refreshAlarmButton();
+}
+function toggleAlarmSound(on) {
+  const s = alarmSettings();
+  s.sound = on;
+  saveAlarmSettings(s);
+  if (on) ensureAudio();
+}
+function toggleAlarmNotify(on) {
+  const s = alarmSettings();
+  const box = document.getElementById('alarmNotify');
+  if (!on) { s.notify = false; saveAlarmSettings(s); return; }
+  if (!('Notification' in window)) { box.checked = false; showToast('This browser does not support notifications'); return; }
+  Notification.requestPermission().then((p) => {
+    s.notify = p === 'granted';
+    box.checked = s.notify;
+    saveAlarmSettings(s);
+    if (!s.notify) showToast('Notifications are blocked. Allow them for this site in your browser settings.');
+  });
+}
+function testAlarm() {
+  playChime();
+  if (alarmSettings().notify) sendAlarmNotification('⏰ Test alarm', 'This is how your hourly check-in will look.');
+  showToast('🔔 Test alarm played');
+}
+
+/* A browser only lets a page make sound after you have interacted with it, so unlock on any click. */
+document.addEventListener('pointerdown', () => {
+  if (alarmSettings().enabled) ensureAudio();
+  if (_checkin && _checkin.soundBlocked) { _checkin.soundBlocked = false; renderCheckinModal(); }
+}, true);
+
+/* ================================================================
    INIT
 ================================================================ */
 window.addEventListener('DOMContentLoaded', async () => {
@@ -4541,6 +4968,8 @@ window.addEventListener('DOMContentLoaded', async () => {
     startCloudPolling();
     showToast('☁ Cloud sync connected');
   }
+  refreshAlarmButton();
+  startAlarmScheduler();
   const sttBtn = document.getElementById('sttBtn');
   if (sttBtn && !speechToTextSupported()) {
     sttBtn.disabled = true;
