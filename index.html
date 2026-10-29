@@ -75,6 +75,7 @@
       cursor: pointer;
     }
 
+    .nav-tabs { display: contents; } /* invisible on desktop; becomes a swipeable strip on phones */
     .nav-tab {
       padding: 1rem 1.2rem;
       color: rgba(255,255,255,0.7);
@@ -994,6 +995,52 @@
       #view-day { display: block !important; }
       .card { box-shadow: none; }
     }
+
+    /* ===== PHONES ===== */
+    @media (max-width: 600px) {
+      html { font-size: 14px; -webkit-text-size-adjust: 100%; }
+
+      /* top bar: brand, then a swipeable tab strip, then a swipeable row of buttons */
+      .top-nav { padding: 0; flex-direction: column; flex-wrap: nowrap; align-items: stretch; position: static; }
+      .nav-brand { border-right: 0; margin: 0; padding: 0.6rem 0.9rem 0.2rem; font-size: 1.2rem; }
+      .nav-tabs { display: flex; overflow-x: auto; scrollbar-width: none; padding: 0 0.4rem; }
+      .nav-tabs::-webkit-scrollbar, .nav-actions::-webkit-scrollbar { display: none; }
+      .nav-tab { padding: 0.6rem 0.8rem; font-size: 0.78rem; flex: 0 0 auto; }
+      .nav-actions { margin: 0; padding: 0.35rem 0.6rem 0.5rem; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+      .nav-actions .btn { flex: 0 0 auto; padding: 0.4rem 0.75rem; }
+
+      .page-hero { padding: 1.2rem 1rem; }
+      .page-hero h2 { font-size: 1.5rem; }
+      .page-content { padding: 0.9rem 0.7rem; }
+      .card-header { padding: 0.7rem 1rem; font-size: 1rem; }
+      .card-body { padding: 1rem; }
+
+      /* let single-column layouts shrink to the screen instead of to their widest content */
+      .day-planner-grid { grid-template-columns: minmax(0, 1fr); }
+      .month-main-nav { flex-wrap: wrap; gap: 0.5rem; }
+      .date-display-row { grid-template-columns: auto minmax(0, 1fr); gap: 0.9rem; margin-bottom: 1rem; }
+      .day-number-big { font-size: 3.6rem; text-shadow: 2px 2px 0 rgba(196,154,43,0.2); }
+
+      /* day planner: task name gets the full width, priority and status sit underneath */
+      .task-row { grid-template-columns: 24px 58px minmax(0, 1fr); grid-template-areas: "num pri txt" "num sta sta"; gap: 0.4rem 0.5rem; padding: 0.5rem 0.3rem; }
+      .task-row > .task-row-num { grid-area: num; align-self: start; padding-top: 0.5rem; }
+      .task-row > .priority-sel { grid-area: pri; }
+      .task-row > input[type="text"] { grid-area: txt; }
+      .task-row > .task-status-sel { grid-area: sta; }
+      .task-row > .date-links-row { grid-column: 2 / -1; }
+      .task-row:hover { transform: none; }
+      .time-row { grid-template-columns: 66px minmax(0, 1fr) 26px; gap: 0.5rem; padding: 0.5rem 0.2rem; }
+      .time-lbl.hour { font-size: 0.95rem; }
+
+      /* windows */
+      .modal-overlay { padding: 0.6rem; align-items: flex-start; overflow-y: auto; }
+      .modal-header { padding: 1rem; font-size: 1.1rem; }
+      .modal-body { padding: 1rem; }
+      .modal-footer { padding: 0.8rem 1rem; flex-wrap: wrap; }
+      .ck-when { min-width: 0; flex: 1 0 100%; }
+      .toast { right: 0.8rem; left: 0.8rem; bottom: 3rem; text-align: center; }
+      #autosaveIndicator { left: 0.8rem; bottom: 0.8rem; }
+    }
   </style>
 </head>
 <body>
@@ -1001,6 +1048,7 @@
 <!-- ===== TOP NAV ===== -->
 <nav class="top-nav">
   <div class="nav-brand" onclick="showView('dashboard')">📖 Daniel Planner</div>
+  <div class="nav-tabs">
   <div class="nav-tab active" id="nav-dashboard" onclick="showView('dashboard')">🏠 Dashboard</div>
   <div class="nav-tab" id="nav-calendar" onclick="showView('calendar')">📅 Calendar</div>
   <div class="nav-tab" id="nav-month" onclick="showView('month')">📚 Monthly System</div>
@@ -1010,6 +1058,7 @@
   <div class="nav-tab" id="nav-goals" onclick="showView('goals')">🎯 Setting Goals</div>
   <div class="nav-tab" id="nav-reality" onclick="showView('reality')">🧠 Reality Model</div>
   <div class="nav-tab" id="nav-notes" onclick="showView('notes')">📌 KeepNotes</div>
+  </div>
   <div class="nav-actions">
     <button class="btn btn-ghost btn-sm" onclick="openGlobalSearch()" title="Search across the whole planner">🔍 Search</button>
     <button class="btn btn-teal btn-sm" onclick="saveAllCurrent()">💾 Save</button>
