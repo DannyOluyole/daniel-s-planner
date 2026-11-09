@@ -27,13 +27,15 @@ const cross2=(rx,rz,ix,iz)=>rx*iz-rz*ix;
 function carCollide(dt){
   const S=vehShape(pc);pc.kspin=(pc.kspin||0)*Math.exp(-dt*4);pc.h+=pc.kspin*dt;
   // buildings and walls: each circle is pushed out on its own, the car moves by the biggest push
-  let mx=0,mz=0,hit=false;
-  for(const c of vehCircles(pc,pc.x,pc.z,pc.h)){const o={x:c.x,z:c.z};if(pushOut(o,S.r+.04)){hit=true;const dx=o.x-c.x,dz=o.z-c.z;if(Math.abs(dx)>Math.abs(mx))mx=dx;if(Math.abs(dz)>Math.abs(mz))mz=dz;}}
+  let mx=0,mz=0,hit=false,hc=null;
+  for(const c of vehCircles(pc,pc.x,pc.z,pc.h)){const o={x:c.x,z:c.z};if(pushOut(o,S.r+.04)){hit=true;const dx=o.x-c.x,dz=o.z-c.z;if(!hc||dx*dx+dz*dz>hc.d)hc={c,d:dx*dx+dz*dz};if(Math.abs(dx)>Math.abs(mx))mx=dx;if(Math.abs(dz)>Math.abs(mz))mz=dz;}}
   if(hit){
     pc.x+=mx;pc.z+=mz;const d=Math.hypot(mx,mz)||1,nx=mx/d,nz=mz/d,vn=pc.vx*nx+pc.vz*nz;
     if(vn<0){pc.vx-=1.25*vn*nx;pc.vz-=1.25*vn*nz;pc.vx*=.85;pc.vz*=.85;   // bounce a little off the wall, scrape along it
+      if(-vn>4&&hc)dentVehicle(pc,hc.c.x-nx*S.r,hc.c.z-nz*S.r,nx,nz,Math.min(.42,(-vn-3.5)*.04));
       if(-vn>7){damageCar(-vn*1.1);flashT=.3;shake=.5;SFX.blip('crash');}else if(-vn>2.5)SFX.blip('punch');}
   }
+  carHitsSuspects(Math.hypot(pc.vx,pc.vz),dt);
   // other vehicles
   for(const c of aiCars){
     if(c._hitCd>0)c._hitCd-=dt;
@@ -51,6 +53,7 @@ function carCollide(dt){
     c.kspin=(c.kspin||0)-cross2(k.cx-c.rx,k.cz-c.rz,ix,iz)/(B.m*B.L*B.L/10);
     pc.kspin+=cross2(k.cx-pc.x,k.cz-pc.z,ix,iz)/(A.m*A.L*A.L/10);
     const hard=-vn;c.speed*=hard>3?.15:.7;if(hard>3)c.stunT=1.6+hard*.06;
+    if(hard>3.5){const dep=Math.min(.42,(hard-3)*.04);dentVehicle(pc,k.cx,k.cz,k.n.x,k.n.z,dep*(B.m/(A.m+B.m))*2);dentVehicle(c,k.cx,k.cz,-k.n.x,-k.n.z,dep*(A.m/(A.m+B.m))*2);}
     if(hard>2.5&&!(c._hitCd>0)){c._hitCd=1;
       if(hard>5){SFX.blip('crash');shake=Math.min(.6,hard*.05);flashT=.25;}else SFX.blip('punch');
       if(chase&&c===chase.car&&c.mode==='flee')chase.meter+=Math.min(.3,hard*.03);
@@ -107,3 +110,107 @@ function pedHit(p,dt){
     const q=pedPos(p);p.ox=H.x-q.x;p.oz=H.z-q.z;p.hit=null;m.rotation.set(0,q.h,0);m.rotation.order='XYZ';
   }
 }
+
+// ---------- visible damage: impacts push the bodywork in where they hit
+// A damaged vehicle gets its own copy of its shapes (other cars of the same model share theirs) and the vertices
+// near the impact are pushed in along it, deepest at the point of contact. A wrecked cruiser comes back repaired.
+function vehBox(o){
+  if(o._box)return o._box;const m=o.mesh,r=m.rotation.y,p=m.position.clone();m.rotation.y=0;m.position.set(0,0,0);m.updateMatrixWorld(true);
+  const b=new THREE.Box3();m.traverseVisible(k=>{if(k.isMesh&&!(o.scuffs||[]).includes(k)&&k.geometry){k.geometry.computeBoundingBox();b.union(k.geometry.boundingBox.clone().applyMatrix4(k.matrixWorld));}});
+  m.rotation.y=r;m.position.copy(p);m.updateMatrixWorld(true);return o._box=b;
+}
+function dentVehicle(o,wx,wz,dx,dz,depth){
+  if(!o||!o.mesh||depth<=.005)return;
+  o.dentSum=(o.dentSum||0)+depth;if(o.dentSum>1.2)return;           // past this it is about as crumpled as it gets
+  o.mesh.updateMatrixWorld(true);
+  // the impact as found is between the cars' collision circles, inside the body: move it out to the bodywork, on the
+  // panel the hit came through, and push in square to that panel
+  const B=vehBox(o),lp=o.mesh.worldToLocal(new THREE.Vector3(wx,0,wz)),cz=(B.min.z+B.max.z)/2,hx=(B.max.x-B.min.x)/2,hz=(B.max.z-B.min.z)/2;
+  let x=lp.x,z=lp.z-cz;const side=Math.abs(x)/hx>=Math.abs(z)/hz;
+  if(side){x=Math.sign(x||1)*hx;z=clamp(z,-hz*.9,hz*.9);}else{z=Math.sign(z||1)*hz;x=clamp(x,-hx*.85,hx*.85);}
+  const y=B.min.y+(B.max.y-B.min.y)*(side?.42:.32),nl=side?new THREE.Vector3(Math.sign(x),0,0):new THREE.Vector3(0,0,Math.sign(z));
+  const P=o.mesh.localToWorld(new THREE.Vector3(x,y,z+cz)),D=nl.clone().transformDirection(o.mesh.matrixWorld).negate(),inv=new THREE.Matrix4(),ws=new THREE.Vector3();
+  o.lastDent={x:P.x,z:P.z,nx:-D.x,nz:-D.z};
+  dentScuff(o,P,D,depth,side);
+  o.mesh.traverseVisible(m=>{
+    if(!m.isMesh||!m.geometry||!m.geometry.attributes.position||m.isSprite)return;
+    m.getWorldScale(ws);const sc=(ws.x+ws.y+ws.z)/3||1;
+    inv.copy(m.matrixWorld).invert();const lp=P.clone().applyMatrix4(inv),ld=D.clone().transformDirection(inv);
+    const g=m.geometry;if(!g.boundingSphere)g.computeBoundingSphere();
+    const R=.9/sc;if(g.boundingSphere.center.distanceTo(lp)>g.boundingSphere.radius+R)return;
+    if(!m.userData.dentGeo){m.userData.geo0=g;m.geometry=g.clone();m.userData.dentGeo=true;}
+    const pos=m.geometry.attributes.position,a=pos.array,dl=depth/sc;let moved=false;
+    for(let i=0;i<a.length;i+=3){const ex=a[i]-lp.x,ey=(a[i+1]-lp.y)*1.6,ez=a[i+2]-lp.z,d2=ex*ex+ey*ey+ez*ez;
+      if(d2>=R*R)continue;const f=1-d2/(R*R),k=f*f*dl;a[i]+=ld.x*k;a[i+1]+=ld.y*k;a[i+2]+=ld.z*k;moved=true;}
+    if(moved){pos.needsUpdate=true;m.geometry.computeVertexNormals();}
+  });
+}
+// scraped, creased metal where the hit landed: a mark on the bodywork that moves with the car (up to four a car)
+let SCUFF=null;
+function dentScuff(o,P,D,depth,side){
+  if(depth<.05)return;o.scuffs=o.scuffs||[];if(o.scuffs.length>=4)return;
+  if(!SCUFF){
+    // a shallow dent: an irregular hollow shaded dark below and lit along its top lip, a couple of creases, and short scrapes to bare metal
+    const [c,g]=mkC(256,128);g.clearRect(0,0,256,128);
+    for(let i=0;i<9;i++){const x=128+rnd(-34,34),y=64+rnd(-14,14),rx=rnd(40,70),ry=rnd(22,34);
+      const gr=g.createRadialGradient(x,y+6,2,x,y,rx);gr.addColorStop(0,'rgba(18,18,22,.16)');gr.addColorStop(.7,'rgba(30,30,36,.08)');gr.addColorStop(1,'rgba(30,30,36,0)');
+      g.fillStyle=gr;g.beginPath();g.ellipse(x,y,rx,ry,rnd(-.2,.2),0,Math.PI*2);g.fill();}
+    g.strokeStyle='rgba(255,255,255,.28)';g.lineWidth=3;g.beginPath();g.moveTo(62,46);g.bezierCurveTo(100,30,160,30,196,48);g.stroke();
+    for(let i=0;i<3;i++){const y=rnd(56,82),x0=rnd(74,100),x1=rnd(156,182),cy=y+rnd(-10,10);
+      g.strokeStyle='rgba(10,10,14,.35)';g.lineWidth=rnd(1.5,2.5);g.beginPath();g.moveTo(x0,y);g.quadraticCurveTo(128,cy,x1,y+rnd(-5,5));g.stroke();
+      g.strokeStyle='rgba(255,255,255,.22)';g.lineWidth=1;g.beginPath();g.moveTo(x0,y-2.5);g.quadraticCurveTo(128,cy-2.5,x1,y-2.5);g.stroke();}
+    for(let i=0;i<14;i++){const y=rnd(48,90),x=rnd(60,150);g.strokeStyle=`rgba(200,202,208,${rnd(.35,.7)})`;g.lineWidth=rnd(.6,1.2);
+      g.beginPath();g.moveTo(x,y);g.lineTo(x+rnd(25,55),y+rnd(-2,2));g.stroke();}
+    SCUFF=new THREE.MeshLambertMaterial({map:ctex(c),transparent:true,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-4});}
+  const lp=o.mesh.worldToLocal(P.clone());if(o.scuffs.some(q=>q.position.distanceTo(lp)<.6/o.mesh.scale.x))return;   // the same spot hit again: the dent deepens, not the decal
+  const w=Math.min(1.25,.6+depth*1.8),m=new THREE.Mesh(new THREE.PlaneGeometry(w,w*.5),SCUFF);
+  o.mesh.add(m);m.position.copy(o.mesh.worldToLocal(P.clone().addScaledVector(D,-.012)));m.lookAt(P.clone().addScaledVector(D,-1));m.rotateZ(rnd(-.15,.15));
+  o.scuffs.push(m);
+}
+function repairVehicle(o){
+  if(!o||!o.mesh)return;o.dentSum=0;
+  (o.scuffs||[]).forEach(m=>{o.mesh.remove(m);m.geometry.dispose();});o.scuffs=[];
+  o.mesh.traverse(m=>{if(m.userData&&m.userData.dentGeo){m.geometry.dispose();m.geometry=m.userData.geo0;m.userData.dentGeo=false;m.userData.geo0=null;}});
+}
+// a wreck is towed and replaced: the new cruiser has no dents; traffic that leaves the city frees its dented copies
+damageCar=(base=>function(n){const before=pc.damage;base(n);if(pc.damage<before)repairVehicle(pc);})(damageCar);
+removeAICar=(base=>function(c){if(c&&c.dentSum)repairVehicle(c);return base(c);})(removeAICar);
+
+// ---------- engine smoke once the cruiser is badly damaged
+const SMOKE={puffs:[],t:0,mat:null};
+function smokeFrame(dt){
+  if(!SMOKE.mat){const [c,g]=mkC(64,64);const gr=g.createRadialGradient(32,32,2,32,32,30);gr.addColorStop(0,'rgba(70,70,74,.9)');gr.addColorStop(1,'rgba(70,70,74,0)');g.fillStyle=gr;g.fillRect(0,0,64,64);
+    SMOKE.mat=new THREE.SpriteMaterial({map:ctex(c),transparent:true,depthWrite:false});}
+  const dmg=pc.damage||0;SMOKE.t-=dt;
+  if(dmg>55&&SMOKE.t<=0&&SMOKE.puffs.length<16&&pc.mesh.visible){
+    SMOKE.t=dmg>80?.08:.2;const f=fwdOf(pc.h),S=vehShape(pc),s=new THREE.Sprite(SMOKE.mat.clone());
+    s.position.set(pc.x+f.x*(S.L/2-.7)+rnd(-.2,.2),1.05,pc.z+f.z*(S.L/2-.7)+rnd(-.2,.2));s.scale.setScalar(.5);scene.add(s);
+    SMOKE.puffs.push({s,t:0,life:rnd(1.4,2.2),vx:-pc.vx*.15+rnd(-.2,.2),vz:-pc.vz*.15+rnd(-.2,.2),dark:dmg>80});}
+  for(const p of SMOKE.puffs){p.t+=dt;const k=p.t/p.life;p.s.position.x+=p.vx*dt;p.s.position.z+=p.vz*dt;p.s.position.y+=dt*(.9+k);
+    p.s.scale.setScalar(.5+k*2.2);p.s.material.opacity=(p.dark?.85:.55)*(1-k);}
+  SMOKE.puffs=SMOKE.puffs.filter(p=>{if(p.t<p.life)return true;scene.remove(p.s);p.s.material.dispose();return false;});
+}
+
+// ---------- suspects on foot: the cruiser doesn't pass through them; hit at speed, they go down (and it's reviewed)
+function carHitsSuspects(sp,dt){
+  const S=vehShape(pc),C=vehCircles(pc,pc.x,pc.z,pc.h);
+  const touch=(x,z)=>{for(const c of C){const dx=x-c.x,dz=z-c.z,d=Math.hypot(dx,dz)||.01,R=S.r+.3;if(d<R)return {dx:dx/d,dz:dz/d,pen:R-d};}return null;};
+  // a runner on a foot chase
+  if(runner){const r=runner,k=touch(r.x,r.z);
+    if(k&&sp>3.5){runner=null;const t=toast;toast=()=>{};try{cbRunnerTurns(r);}finally{toast=t;}   // becomes a suspect on the ground, without the "turns to fight" call-out
+      const a=CB.foes[CB.foes.length-1];vehicleStrike(a,sp);}
+    else if(k){r.x+=k.dx*k.pen;r.z+=k.dz*k.pen;}}
+  for(const a of CB.foes){
+    if(['cuffed','cuffing','comply','escaped'].includes(a.state)||a.carT>0)continue;
+    const k=touch(a.x,a.z);if(!k)continue;
+    if(sp>3.5&&a.state!=='down')vehicleStrike(a,sp);else{a.x+=k.dx*k.pen;a.z+=k.dz*k.pen;}
+  }
+  for(const a of CB.foes){if(a.carT>0)a.carT-=dt;if(a.slide){a.x+=a.slide.vx*dt;a.z+=a.slide.vz*dt;const k=Math.exp(-dt*4.4);a.slide.vx*=k;a.slide.vz*=k;
+    const o={x:a.x,z:a.z};pushOut(o,.35);a.x=o.x;a.z=o.z;if(Math.hypot(a.slide.vx,a.slide.vz)<.2)a.slide=null;}}
+}
+function vehicleStrike(a,sp){
+  a.slide={vx:pc.vx*.7,vz:pc.vz*.7};a.carT=1;pc.vx*=.85;pc.vz*=.85;shake=Math.min(.5,sp*.03);SFX.blip('punch');
+  cbDown(a,6+Math.min(6,sp*.3),'Hit by your cruiser. They are down.');CB.force=true;
+  trustDelta(sp>12?-5:-3,'Vehicle strike on a suspect: it goes to the use-of-force review.');
+}
+frame=(base=>function(){const t0=tAcc;base();if(started)smokeFrame(tAcc-t0);})(frame);

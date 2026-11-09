@@ -58,5 +58,36 @@ const ok=(c,m)=>{console.log((c?'PASS ':'FAIL ')+m);if(!c)process.exitCode=1;};
     for(let i=0;i<30;i++){pc.vx=f.x*2;pc.vz=f.z*2;_step(1);}const pq=pedPos(p),x=pq.x+p.ox,z=pq.z+p.oz;
     const d=Math.min(...vehCircles(pc,pc.x,pc.z,pc.h).map(c=>Math.hypot(x-c.x,z-c.z)))-vehShape(pc).r-.28;return [!!p.hit,+d.toFixed(2)];});
   ok(!r[0]&&Math.abs(r[1])<.15,'nudging someone at walking pace: no knock-down, they stay right at the bumper ('+r[1]+' m)');
+  // visible damage: the car hit at speed is dented where it was hit; another car of the same model is not
+  const dents=o=>{let n=0;o.mesh.traverse(m=>{if(m.userData&&m.userData.dentGeo)n++;});return n;};
+  r=await ev(()=>{peds.forEach(p=>{p.hit=null;p.mesh.visible=false;p.u=1e6;});pc.damage=0;repairVehicle(pc);return 1;});
+  r=await crash(Math.PI/2,0,14);
+  r=await ev(()=>{const c=aiCars[0];const other=spawnAICar({model:'Corolla',mode:'parked'});
+    // measure how far the struck car's bodywork moved, compared with its untouched shape
+    let maxMove=0;c.mesh.traverse(m=>{if(m.userData&&m.userData.dentGeo){const a=m.geometry.attributes.position.array,b=m.userData.geo0.attributes.position.array;for(let i=0;i<a.length;i++)maxMove=Math.max(maxMove,Math.abs(a[i]-b[i]));}});
+    let n=0;c.mesh.traverse(m=>{if(m.userData&&m.userData.dentGeo)n++;});let o=0;other.mesh.traverse(m=>{if(m.userData&&m.userData.dentGeo)o++;});let p=0;pc.mesh.traverse(m=>{if(m.userData&&m.userData.dentGeo)p++;});
+    removeAICar(other);return {n,o,p,maxMove:+maxMove.toFixed(3)};});
+  ok(r.n>0&&r.maxMove>.02,'a car hit at 50 km/h is dented where it was hit ('+r.n+' parts, up to '+r.maxMove+' model units)');
+  ok(r.p>0,'the cruiser is dented too');
+  ok(r.o===0,'another car of the same model stays undamaged');
+  r=await ev(()=>{pc.damage=70;_step(30);return SMOKE.puffs.length;});
+  ok(r>2,'a badly damaged cruiser smokes ('+r+' puffs)');
+  r=await ev(()=>{damageCar(40);let n=0;pc.mesh.traverse(m=>{if(m.userData&&m.userData.dentGeo)n++;});return [pc.damage,n];});
+  ok(r[0]<100&&r[1]===0,'a wrecked cruiser is towed and comes back repaired, no dents');
+  // suspects on foot
+  const suspect=(speed,state)=>ev(([speed,state])=>{aiCars.slice().forEach(removeAICar);CB.foes.forEach(a=>scene.remove(a.mesh));CB.foes=[];
+    pc.h=0;pc.x=520;pc.z=300;pc.kspin=0;inCar=true;const m=makePersonMesh(randLook());scene.add(m);
+    const a={x:pc.x,z:pc.z+6,h:Math.PI,mesh:m,state,ph:0,street:true};cbArm(a,'none');a.atkCd=99;CB.foes.push(a);const t0=career.rep;
+    let minGap=9;for(let i=0;i<30;i++){pc.vx=0;pc.vz=speed;_step(1);minGap=Math.min(minGap,Math.min(...vehCircles(pc,pc.x,pc.z,pc.h).map(c=>Math.hypot(a.x-c.x,a.z-c.z)))-vehShape(pc).r-.3);}
+    return {state:a.state,trust:career.rep-t0,minGap:+minGap.toFixed(2)};},[speed,state]);
+  r=await suspect(12,'fight');
+  ok(r.state==='down'&&r.trust<0,'a suspect hit at speed goes down, and the vehicle strike costs trust ('+r.trust+')');
+  r=await suspect(2,'fight');
+  ok(r.state==='fight'&&r.minGap>-.12,'at walking pace the cruiser only nudges a suspect, and doesn\'t pass through them ('+r.minGap+' m)');
+  r=await ev(()=>{CB.foes.forEach(a=>scene.remove(a.mesh));CB.foes=[];const cs=makeCase('robbery',555,{free:true});startCase(cs);pc.h=0;pc.x=520;pc.z=300;inCar=true;
+    startFootChase(cs,cs.C,{x:pc.x,z:pc.z+6,nx:0,nz:1});runner.x=pc.x;runner.z=pc.z+6;
+    // steer at the runner, as a player would: they jink as they run
+    for(let i=0;i<40&&runner;i++){pc.h=Math.atan2(runner.x-pc.x,runner.z-pc.z);pc.vx=Math.sin(pc.h)*12;pc.vz=Math.cos(pc.h)*12;_step(1);}const a=CB.foes.find(f=>f.p===cs.C);return [runner===null,a&&a.state];});
+  ok(r[0]&&r[1]==='down','hitting a runner on a foot chase puts them on the ground, ready to cuff');
   ok(!errs.length,'no page errors: '+JSON.stringify(errs));
   await b.close();srv.close();})();
