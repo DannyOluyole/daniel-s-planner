@@ -82,12 +82,39 @@ const CAR_PROF={
   Van:{W:1.98,wz:1.55,roof:2.08,body:[[-2.4,.42],[-2.46,1.0],[-2.42,2.05],[1.3,2.08],[1.95,1.3],[2.36,1.05],[2.46,.7],[2.4,.42]],glass:[[-2.4,1.42],[-2.4,1.92],[1.3,1.96],[1.92,1.32]]},
   Pickup:{W:1.96,wz:1.6,roof:1.78,body:[[-2.55,.42],[-2.6,1.05],[-.45,1.05],[-.4,1.75],[.65,1.78],[1.2,1.15],[2.3,1.0],[2.46,.7],[2.4,.42]],glass:[[-.42,1.1],[-.4,1.75],[.65,1.78],[1.2,1.15]]},
 };
+// ---------- people: rounded shapes on the same joints the poses move (hips, knees, shoulders, elbows, head)
+// A limb is a capsule whose rounded ends sit on its joints, so knees and elbows bend smoothly; the torso and hips are
+// lathed from a body outline. Less detail on the Performance setting.
+function capsule(rTop,rBot,len,seg){
+  const pts=[],n=2;
+  for(let i=0;i<=n;i++){const a=-Math.PI/2+i/n*Math.PI/2;pts.push(new THREE.Vector2(Math.max(1e-4,rBot*Math.cos(a)),-len/2+rBot*Math.sin(a)));}
+  for(let i=0;i<=n;i++){const a=i/n*Math.PI/2;pts.push(new THREE.Vector2(Math.max(1e-4,rTop*Math.cos(a)),len/2+rTop*Math.sin(a)));}
+  const g=new THREE.LatheGeometry(pts,seg);g.computeVertexNormals();return g;
+}
+// radius of the torso at height y (from its centre): waist, chest, then shoulders rounding in to the neck
+const TORSO=[[-.3,.15],[-.24,.162],[-.14,.152],[-.04,.162],[.06,.18],[.15,.198],[.21,.204],[.255,.19],[.285,.155],[.302,.1],[.31,.05],[.312,0]];
+const torsoR=y=>{if(y<=TORSO[0][0])return TORSO[0][1];for(let i=1;i<TORSO.length;i++)if(y<=TORSO[i][0]){const [y0,r0]=TORSO[i-1],[y1,r1]=TORSO[i];return r0+(r1-r0)*(y-y0)/(y1-y0);}return 0;};
+function lathe(profile,seg){const g=new THREE.LatheGeometry(profile.map(([y,r])=>new THREE.Vector2(Math.max(1e-4,r),y)),seg);g.computeVertexNormals();return g;}
+function personGeo(){
+  const low=typeof QUAL!=='undefined'&&QUAL.pr<1,R=low?7:9,T=low?10:12;
+  GEO.thigh=capsule(.078,.062,.46,R);GEO.shin=capsule(.062,.048,.46,R);
+  GEO.uarm=capsule(.054,.046,.3,R);GEO.farm=capsule(.046,.038,.28,R);
+  GEO.chest=lathe([[-.3,0],...TORSO],T);
+  // the vest hugs the torso a little proud of it; it sits .04 higher than the chest
+  const vy=[-.21,-.15,-.08,0,.07,.13,.18,.205];GEO.vest=lathe([[-.21,0],...vy.map(y=>[y,torsoR(y+.04)+.018]),[.214,.09],[.216,0]],T);
+  GEO.pelvis=lathe([[-.11,0],[-.105,.1],[-.08,.15],[-.03,.172],[.03,.17],[.08,.158],[.1,.13],[.104,0]],T);GEO.pelvis.scale(1,1,.78);
+  GEO.neck=new THREE.CylinderGeometry(.05,.058,.12,R);
+  GEO.shoulder=new THREE.SphereGeometry(.056,8,5);GEO.shoulder.scale(1,1.15,1);GEO.shoulder.translate(-0,-.012,0);
+  GEO.hand=new THREE.SphereGeometry(.045,8,5);GEO.hand.scale(.9,1.25,.72);
+  GEO.shoe=new THREE.SphereGeometry(.06,8,5);GEO.shoe.scale(.95,.7,2.05);
+  GEO.nose=new THREE.SphereGeometry(.022,6,4);GEO.nose.scale(.8,1,1.15);
+}
 function initGeo(){
-  GEO.thigh=new THREE.CylinderGeometry(.075,.062,.46,8);GEO.shin=new THREE.CylinderGeometry(.06,.048,.46,8);GEO.shoe=new THREE.BoxGeometry(.11,.08,.25);
-  GEO.pelvis=new THREE.CylinderGeometry(.17,.16,.2,10);GEO.chest=new THREE.CylinderGeometry(.2,.165,.6,10);GEO.vest=new THREE.CylinderGeometry(.218,.192,.42,10);
-  GEO.neck=new THREE.CylinderGeometry(.05,.055,.12,8);GEO.head=new THREE.SphereGeometry(.125,14,12);GEO.hairCap=new THREE.SphereGeometry(.133,14,10,0,Math.PI*2,0,Math.PI*.55);
-  GEO.eye=new THREE.SphereGeometry(.017,6,6);GEO.slit=new THREE.BoxGeometry(.13,.025,.02);GEO.pack=new THREE.BoxGeometry(.26,.32,.14);
-  GEO.uarm=new THREE.CylinderGeometry(.052,.045,.3,8);GEO.farm=new THREE.CylinderGeometry(.044,.036,.28,8);GEO.hand=new THREE.SphereGeometry(.045,8,6);
+  personGeo();
+  
+  GEO.head=new THREE.SphereGeometry(.125,12,10);GEO.hairCap=new THREE.SphereGeometry(.133,12,8,0,Math.PI*2,0,Math.PI*.55);
+  GEO.eye=new THREE.SphereGeometry(.017,5,4);GEO.slit=new THREE.BoxGeometry(.13,.025,.02);GEO.pack=new THREE.BoxGeometry(.26,.32,.14);
+  
   GEO.hat=new THREE.CylinderGeometry(.13,.135,.09,14);GEO.brim=new THREE.CylinderGeometry(.16,.16,.015,14);GEO.badge=new THREE.BoxGeometry(.05,.06,.01);
   GEO.tire=new THREE.CylinderGeometry(.36,.36,.24,18);GEO.tire.rotateZ(Math.PI/2);GEO.rim=new THREE.CylinderGeometry(.22,.22,.25,10);GEO.rim.rotateZ(Math.PI/2);
   GEO.hl=new THREE.BoxGeometry(.38,.15,.05);GEO.barBase=new THREE.BoxGeometry(1.3,.1,.32);GEO.lens=new THREE.BoxGeometry(.56,.13,.28);GEO.push=new THREE.BoxGeometry(1.3,.42,.1);
@@ -161,12 +188,12 @@ function makePersonMesh(o={}){
   const head=new THREE.Group();head.position.y=.62;torso.add(head);
   M(GEO.neck,skin,0,.02,0,head);
   M(GEO.head,skin,0,.17,0,head).scale.set(1,1.12,1.06);
-  if(!o.masked){M(GEO.eye,lam('#111111'),-.045,.19,.115,head);M(GEO.eye,lam('#111111'),.045,.19,.115,head);}
+  if(!o.masked){M(GEO.eye,lam('#111111'),-.045,.19,.115,head);M(GEO.eye,lam('#111111'),.045,.19,.115,head);M(GEO.nose,skin,0,.16,.13,head);}
   else M(GEO.slit,lam('#d8d4c8'),0,.19,.112,head);
   if(o.hood)M(GEO.hairCap,shirt,0,.18,-.012,head).scale.set(1.14,1.16,1.16);
   else if(o.hair&&!o.masked&&!o.hat)M(GEO.hairCap,lam(o.hair),0,.185,-.008,head);
   if(o.hat){M(GEO.hat,lam(o.hatColor||'#141c30'),0,.31,0,head);M(GEO.brim,lam('#0f1524'),0,.265,.03,head).scale.z=1.15;}
-  const arms=[-1,1].map(s=>{const shd=new THREE.Group();shd.position.set(s*.25,.55,0);torso.add(shd);M(GEO.uarm,shirt,0,-.15,0,shd);const el=new THREE.Group();el.position.y=-.3;shd.add(el);M(GEO.farm,shirt,0,-.14,0,el);M(GEO.hand,lam(o.gloves||skinC),0,-.3,0,el);return {sh:shd,el,s};});
+  const arms=[-1,1].map(s=>{const shd=new THREE.Group();shd.position.set(s*.25,.55,0);torso.add(shd);M(GEO.shoulder,shirt,0,0,0,shd);M(GEO.uarm,shirt,0,-.15,0,shd);const el=new THREE.Group();el.position.y=-.3;shd.add(el);M(GEO.farm,shirt,0,-.14,0,el);M(GEO.hand,lam(o.gloves||skinC),0,-.3,0,el);return {sh:shd,el,s};});
   if(o.kid)g.scale.setScalar(.62);else if(o.tall)g.scale.setScalar(o.tall);
   g.userData.j={root,legs,arms,torso,head};
   resetPose(g);
