@@ -53,6 +53,7 @@ Run from this folder after `./build.sh`, e.g. `node t19.js`. Each prints `PASS`/
   | `t9` | squads on the artifact build, with its storage API mocked |
   | `t26` | case scores and grades, the Daily Case (same case for everyone, one ranked attempt a day) and its leaderboard, on the artifact build with its storage mocked |
   | `t28` | no character in 800 generated cases, the name pools, the story cast or any titled name echoes a real politician, and players can't register as one |
+  | `t32` | collisions: cars meet bodywork to bodywork side-on, head-on and against walls, off-centre hits spin, pedestrians dodge or are knocked down and get up |
   | `t31` | arresting at the door the way a player does, the cuffing scene finishing on its own, and the prisoner going into the cruiser with F |
   | `t29` | Patrol Rush: a real traffic stop, street calls, pursuits, the combo, no cases mid-run, results and the weekly leaderboard (artifact build, storage mocked) |
   | `t11`, `t13l`, `t15`, `t16`, `t18`–`t25` | phone controls, performance, combat, case guidance, the city, 3D models, and more |

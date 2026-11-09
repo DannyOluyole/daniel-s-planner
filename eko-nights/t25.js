@@ -23,7 +23,7 @@ const ok=(c,m)=>{console.log((c?'PASS ':'FAIL ')+m);if(!c)process.exitCode=1;};
  // 3. with models
  pg=await ctx.newPage();errs=[];pg.on('pageerror',e=>errs.push(e.message));await pg.route('https://fonts.**',r=>r.abort());
  await pg.goto('http://127.0.0.1:8091/');await pg.waitForFunction(()=>ART.loaded,null,{timeout:30000});
- ok((await pg.evaluate(()=>artStatus())).join()==='sedan,cruiser','models loaded; a missing file is skipped');
+ ok((await pg.evaluate(()=>artStatus())).sort().join()==='cruiser,sedan','models loaded; a missing file is skipped');
  const sz=await pg.evaluate(()=>{const s=new THREE.Box3().setFromObject(ART.ready.sedan).getSize(new THREE.Vector3());const mn=new THREE.Box3().setFromObject(ART.ready.sedan).min.y;return [s.x,s.y,s.z,mn].map(v=>+v.toFixed(2));});
  ok(Math.abs(sz[2]-4.5)<.05&&sz[0]<2.5&&Math.abs(sz[3])<.01,'scaled to 4.5 m, long side along the road, sitting on the ground ('+sz+')');
  await pg.fill('#cFirst','ade');await pg.fill('#cLast','ola');await pg.click('#startBtn');await pg.waitForFunction(()=>started,null,{timeout:90000});

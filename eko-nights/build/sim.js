@@ -69,6 +69,7 @@ function updateAI(dt){
     }else{c.speed=Math.max(0,c.speed-12*dt);if(c.mode==='caught')c.spin+=dt*c.speed*.22;}
     fx=Math.sin(c.h);fz=Math.cos(c.h);
     c.x+=fx*c.speed*dt;c.z+=fz*c.speed*dt;
+    carKnock(c,dt);fx=Math.sin(c.h);fz=Math.cos(c.h);
     c.rx=c.x-fz*c.latOff;c.rz=c.z+fx*c.latOff;
     c.mesh.position.set(c.rx,0,c.rz);c.mesh.rotation.y=c.h+c.spin;
     const u=c.mesh.userData;const sp=c.speed*dt/.36;u.wheels.forEach(w=>w.rotation.x+=sp);u.steer.forEach(s=>s.rotation.y=c.steerVis||0);
@@ -91,10 +92,11 @@ function spawnPed(){const p={b:[ri(0,NB-1),ri(0,NB-1)],u:rnd(0,8*PR),dir:Math.ra
   const L=randLook();if(Math.random()<.2)L.backpack=pick(['#3a5a8a','#8a3a3a','#e0b52b']);p.mesh=makePersonMesh(L);scene.add(p.mesh);peds.push(p);}
 function updatePeds(dt){
   for(const p of peds){
+    if(p.hit){pedHit(p,dt);continue;}
     p.u+=p.dir*p.sp*dt;p.phase+=dt*p.sp*4.2;
     const q=pedPos(p);p.ox*=Math.max(0,1-dt*.8);p.oz*=Math.max(0,1-dt*.8);
     const x=q.x+p.ox,z=q.z+p.oz;
-    if(inCar&&Math.abs(pc.v)>2){const dx=x-pc.x,dz=z-pc.z,d=Math.hypot(dx,dz)||1;if(d<3.4){p.ox+=dx/d*(3.6-d);p.oz+=dz/d*(3.6-d);}}
+    if(pedCar(p,x,z,dt))continue;
     if(Math.hypot(x-camera.position.x,z-camera.position.z)>140){p.mesh.visible=false;continue;}
     p.mesh.visible=true;p.mesh.position.set(x,.2,z);p.mesh.rotation.y=q.h;animWalk(p.mesh,p.phase,.42);
   }
@@ -134,12 +136,7 @@ function updatePlayer(dt){
     vlat*=Math.exp(-dt*grip);pc.slip=Math.abs(vlat);
     pc.vx=f.x*vl+r.x*vlat;pc.vz=f.z*vl+r.z*vlat;
     pc.x+=pc.vx*dt;pc.z+=pc.vz*dt;pc.v=vl;pc.acc=(vl-v0)/Math.max(dt,1e-3);
-    if(pushOut(pc,2.1)){const sp=Math.hypot(pc.vx,pc.vz);if(sp>7){damageCar(sp*1.1);flashT=.3;shake=.5;SFX.blip('crash');}pc.vx*=-.25;pc.vz*=-.25;}
-    for(const c of aiCars){if(c._hitCd>0)c._hitCd-=dt;const dx=pc.x-c.rx,dz=pc.z-c.rz,d=Math.hypot(dx,dz)||.01;
-      if(d<4.1){const push=(4.1-d)/2;pc.x+=dx/d*push;pc.z+=dz/d*push;c.x-=dx/d*push;c.z-=dz/d*push;
-        if(Math.hypot(pc.vx,pc.vz)>5&&!(c._hitCd>0)){c._hitCd=1;SFX.blip('crash');shake=.4;
-          if(chase&&c===chase.car&&c.mode==='flee'){chase.meter+=.22;}else{damageCar(6);addRep(-1);toast('Collision with a civilian vehicle. Reputation −1.','bad');}
-          flashT=.25;pc.vx*=.55;pc.vz*=.55;}}}
+    carCollide(dt);   // walls and other vehicles: build/crash.js
     const u=pc.mesh.userData;
     pc.mesh.position.set(pc.x,0,pc.z);pc.mesh.rotation.y=pc.h;
     u.body.rotation.z=clamp(-pc.steer*vl*.012-vlat*.02,-.07,.07);u.body.rotation.x=clamp(-pc.acc*.004,-.04,.04);

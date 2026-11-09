@@ -222,7 +222,7 @@ world=rep(world,"signMat('POLICE · PRECINCT 9','#13285a','#f4f1e6',true)","sign
 world=rrep(world,r"fg\.fillStyle='#1d3a7a';fg\.fillRect\(0,0,128,80\);.*?fg\.fill\(\);","fg.fillStyle='#0b8a3c';fg.fillRect(0,0,128,80);fg.fillStyle='#ffffff';fg.fillRect(43,0,42,80);")
 world=rep(world,"db:new THREE.Color('#cfdbe7')","db:new THREE.Color('#ddd3bd')")
 world=rep(world,"dt:new THREE.Color('#3b74c0')","dt:new THREE.Color('#5a8cc4')")
-sim=open('build/sim.js').read()
+sim=open('build/sim.js').read()+'\n'+open('build/crash.js').read()
 sim=rep(sim,"model:pick(['Sedan','Sedan','SUV','Hatchback','Coupe','Pickup','Van','SUV'])","model:pick(TRAFFIC_MODELS)")
 sim=rep(sim,"cruise:(speeder?rnd(45,62):rnd(24,35))/2.237","cruise:(speeder?rnd(64,95):rnd(36,50))/3.6")
 sim=rep(sim,"  c.speed=c.cruise;c.speeding=c.cruise*2.237>LIMIT+.5;","  if(c.model==='Danfo')c.color='#e8b417';if(c.model==='Keke'){c.color=pick(['#e8b417','#2f8a4f']);c.cruise=rnd(25,40)/3.6;}c.small=c.model==='Keke'||c.model==='Okada';\n  c.speed=c.cruise;c.speeding=c.cruise*2.237>LIMIT+.5;")
