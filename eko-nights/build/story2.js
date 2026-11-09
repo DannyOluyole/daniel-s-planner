@@ -152,7 +152,7 @@ function doorTalk(cs,p){
     talkTo(v.g,[you(`${p.first} ${p.last}? Division 9. We need to talk about Firststone account ****${p.acct}.`),{name:p.name,text:'Officer, wetin I do? I be student. I dey read for exam.'},
       {name:`Mama ${p.first}`,text:`Officer, abeg! Na my only son. E never do anything. See one hundred thousand naira here. Make una leave am, abeg. I beg you in God's name.`}],
       [{label:`Arrest ${p.first}`,cls:'red'},{label:'Take the ₦100,000 and leave'},{label:'Walk away',cls:'ghost'}],ch=>{
-        if(ch.label.startsWith('Arrest')){if(!cs.flags.mamaRefused){cs.flags.mamaRefused=true;refuseBribe(4);}attemptArrest(cs,p,v.g.position);}
+        if(ch.label.startsWith('Arrest')){if(!cs.flags.mamaRefused){cs.flags.mamaRefused=true;refuseBribe(4);}return attemptArrest(cs,p,v.g.position);}
         else if(ch.label.startsWith('Take')){takeBribe(100000,8);cs.flags.paid=true;SF(cs,'mulePaid');clog(cs,`You took ₦100,000 from ${p.first}'s mother and walked away.`);}
       });
     return;

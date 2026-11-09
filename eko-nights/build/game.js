@@ -59,7 +59,7 @@ function canvassTalk(cs){
 function doorTalk(cs,p){
   const v=iMeshes.get('home'+p.id);if(!v)return;
   talkTo(v.g,[you(`${p.first} ${p.last}? Officer with Precinct 9. I need a word.`),{name:p.name,text:pick(['Can I help you, officer?','What\'s this about?','I haven\'t done anything.','Do you have a warrant?'])}],
-    [{label:`Arrest ${p.first}`,cls:'red'},{label:'Walk away',cls:'ghost'}],ch=>{if(ch.label.startsWith('Arrest'))attemptArrest(cs,p,v.g.position);});
+    [{label:`Arrest ${p.first}`,cls:'red'},{label:'Walk away',cls:'ghost'}],ch=>{if(ch.label.startsWith('Arrest'))return attemptArrest(cs,p,v.g.position);});
 }
 function attemptArrest(cs,p,at){
   if(prisoner){toast('Book the prisoner you already have at the station first.','bad');return;}
@@ -74,6 +74,7 @@ function attemptArrest(cs,p,at){
     return;
   }
   makePrisoner(cs,p,at.x,at.z);prisoner.state='scene';cuffScene(prisoner.mesh,at.x,at.z,{},()=>{if(prisoner)prisoner.state='follow';cuffed(cs,p);});
+  return true; // the cuffing scene now owns the camera: the conversation that led here must not end it
 }
 function cuffed(cs,p){
   clog(cs,`${p.name} cuffed.`);setGPS(LOC.book.x,LOC.book.z,'Prisoner drop-off bay');

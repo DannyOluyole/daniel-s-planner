@@ -138,7 +138,7 @@ function suspectDoor(cs,p,key){
   if(cs.flags['warrant_'+p.id]&&!cs.done['search_'+p.id])ch.unshift({label:'Search the house (warrant)'});
   ch.push({label:'Leave',cls:'ghost'});
   talkTo(v.g,[you(`${p.first}, a few more questions.`),N(pick(['Again? I have told you everything.','Officer, I am a busy person.','Do you have a warrant, or are we just talking?']))],ch,c=>{
-    if(c.label.startsWith('Arrest'))attemptArrest(cs,p,v.g.position);
+    if(c.label.startsWith('Arrest'))return attemptArrest(cs,p,v.g.position);
     else if(c.label.startsWith('Search'))setTimeout(()=>enterInterior(cs,'search',p),200);
   });
 }

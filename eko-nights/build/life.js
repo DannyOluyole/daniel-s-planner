@@ -13,7 +13,7 @@ function cuffScene(mesh,x,z,o,done){
     const r={x:Math.cos(h),z:-Math.sin(h)};
     startCine({fov:40,pos:V3(x+r.x*2.9-Math.sin(h)*.6,1.6,z+r.z*2.9-Math.cos(h)*.6),look:V3(x-Math.sin(h)*.35,.95,z-Math.cos(h)*.35),
       update(dt){cuffStep(dt);},cleanup(){}});
-    C.cine=true;
+    C.cine=cine; // its own cinematic; if anything ends it early, lifeFrame keeps the scene going
   }
   SFX.blip('shout');
 }
@@ -31,7 +31,7 @@ function cuffStep(dt){
   if(C.clicks===0&&t>.8*k){C.clicks=1;SFX.blip('cuff');}
   if(C.clicks===1&&t>1.25*k){C.clicks=2;SFX.blip('cuff');}
   if(!C.told&&t>1.8*k&&!C.o.quick){C.told=true;toast(`Pat-down: ${C.find[0]}, ${C.find[1]} and ₦${C.cash.toLocaleString()} cash. Bagged as evidence.`);}
-  if(t>=C.len){CUFF=null;if(C.cine)endCine();C.done&&C.done();}
+  if(t>=C.len){CUFF=null;if(C.cine&&cine===C.cine)endCine();C.done&&C.done();}
 }
 function cuffBusy(){return !!CUFF;}
 
@@ -277,7 +277,8 @@ function drawCityMap(){
 // ---------- every frame
 function lifeFrame(dt){
   decorHome();
-  if(CUFF&&!CUFF.cine)cuffStep(dt);
+  // cuffing without a cinematic, or whose cinematic was ended early: it must still finish, or the prisoner never follows
+  if(CUFF&&(!CUFF.cine||cine!==CUFF.cine))cuffStep(dt);
 }
 function bindLife(){
   const m=$('#mini');if(m)m.addEventListener('click',openCityMap);
