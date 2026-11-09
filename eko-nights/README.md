@@ -33,7 +33,7 @@ To play, serve `site/public` with any static server, e.g. `npx serve site/public
 | `site-src/` | website files: Firebase config, online client, rules, Cloud Functions, manifest, icons |
 | `models/` | 3D models that replace the built-in shapes, listed in `models/manifest.json` (copied into the site by the build) |
 | `build/politicians.js` | real Nigerian politicians' names and the sound-alike check: no character may use them, and players can't register as one (the server's name check uses the same file) |
-| `tools/make-models.js` | builds the low-poly vehicle models in `models/`: police cruiser, sedan, hatchback, minivan, pickup, SUV, danfo, keke and okada (400–1,400 triangles each), plus a line-up render: `node tools/make-models.js [names]`. Body panels use a material named `paint`, which the game repaints in each vehicle's own colour |
+| `tools/make-models.js` | builds the low-poly vehicle models in `models/`: police cruiser, sedan, hatchback, minivan, pickup, SUV, danfo, keke and okada (1,700–2,600 triangles each; bodies are lofted through cross-sections, so they have curved panels, cut wheel arches and a glass cabin on pillars), plus a line-up render: `node tools/make-models.js [names]`. Body panels use a material named `paint`, which the game repaints in each vehicle's own colour |
 | `t*.js` | Playwright browser tests |
 
 ## Tests

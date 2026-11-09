@@ -139,11 +139,29 @@ function dentVehicle(o,wx,wz,dx,dz,depth){
     const g=m.geometry;if(!g.boundingSphere)g.computeBoundingSphere();
     const R=.9/sc;if(g.boundingSphere.center.distanceTo(lp)>g.boundingSphere.radius+R)return;
     if(!m.userData.dentGeo){m.userData.geo0=g;m.geometry=g.clone();m.userData.dentGeo=true;}
-    const pos=m.geometry.attributes.position,a=pos.array,dl=depth/sc;let moved=false;
+    // no panel goes in further than 14 cm however often it is hit: a dent, not a hole through to the chassis
+    const pos=m.geometry.attributes.position,a=pos.array,a0=m.userData.geo0.attributes.position.array,dl=depth/sc,cap=.14/sc;const moved=[];
     for(let i=0;i<a.length;i+=3){const ex=a[i]-lp.x,ey=(a[i+1]-lp.y)*1.6,ez=a[i+2]-lp.z,d2=ex*ex+ey*ey+ez*ez;
-      if(d2>=R*R)continue;const f=1-d2/(R*R),k=f*f*dl;a[i]+=ld.x*k;a[i+1]+=ld.y*k;a[i+2]+=ld.z*k;moved=true;}
-    if(moved){pos.needsUpdate=true;m.geometry.computeVertexNormals();}
+      if(d2>=R*R)continue;const f=1-d2/(R*R),k=f*f*dl;a[i]+=ld.x*k;a[i+1]+=ld.y*k;a[i+2]+=ld.z*k;
+      const ux=a[i]-a0[i],uy=a[i+1]-a0[i+1],uz=a[i+2]-a0[i+2],u=Math.hypot(ux,uy,uz);
+      if(u>cap){const q=cap/u;a[i]=a0[i]+ux*q;a[i+1]=a0[i+1]+uy*q;a[i+2]=a0[i+2]+uz*q;}
+      moved.push(i);}
+    if(moved.length){pos.needsUpdate=true;dentNormals(m.geometry,moved);}
   });
+}
+// new normals for the dented vertices only, shared between the triangles that meet at a point so the dent shades as one
+// smooth hollow; the rest of the body keeps the normals it was modelled with
+function dentNormals(g,moved){
+  const pos=g.attributes.position,nor=g.attributes.normal;if(!nor)return;
+  const a=pos.array,n=nor.array,ix=g.index?g.index.array:null,cnt=ix?ix.length:a.length/3,acc=new Map(),key=i=>Math.round(a[i]*500)+','+Math.round(a[i+1]*500)+','+Math.round(a[i+2]*500);
+  const hit=new Set(moved);
+  for(let t=0;t<cnt;t+=3){const i0=(ix?ix[t]:t)*3,i1=(ix?ix[t+1]:t+1)*3,i2=(ix?ix[t+2]:t+2)*3;
+    if(!hit.has(i0)&&!hit.has(i1)&&!hit.has(i2))continue;
+    const ux=a[i1]-a[i0],uy=a[i1+1]-a[i0+1],uz=a[i1+2]-a[i0+2],vx=a[i2]-a[i0],vy=a[i2+1]-a[i0+1],vz=a[i2+2]-a[i0+2];
+    const nx=uy*vz-uz*vy,ny=uz*vx-ux*vz,nz=ux*vy-uy*vx;
+    for(const i of [i0,i1,i2]){if(!hit.has(i))continue;const k=key(i);let e=acc.get(k);if(!e){e=[0,0,0];acc.set(k,e);}e[0]+=nx;e[1]+=ny;e[2]+=nz;}}
+  for(const i of moved){const e=acc.get(key(i));if(!e)continue;const l=Math.hypot(e[0],e[1],e[2])||1;n[i]=e[0]/l;n[i+1]=e[1]/l;n[i+2]=e[2]/l;}
+  nor.needsUpdate=true;
 }
 // scraped, creased metal where the hit landed: a mark on the bodywork that moves with the car (up to four a car)
 let SCUFF=null;
@@ -164,7 +182,7 @@ function dentScuff(o,P,D,depth,side){
     SCUFF=new THREE.MeshLambertMaterial({map:ctex(c),transparent:true,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-4});}
   const lp=o.mesh.worldToLocal(P.clone());if(o.scuffs.some(q=>q.position.distanceTo(lp)<.6/o.mesh.scale.x))return;   // the same spot hit again: the dent deepens, not the decal
   const w=Math.min(1.25,.6+depth*1.8),m=new THREE.Mesh(new THREE.PlaneGeometry(w,w*.5),SCUFF);
-  o.mesh.add(m);m.position.copy(o.mesh.worldToLocal(P.clone().addScaledVector(D,-.012)));m.lookAt(P.clone().addScaledVector(D,-1));m.rotateZ(rnd(-.15,.15));
+  o.mesh.add(m);m.position.copy(o.mesh.worldToLocal(P.clone().addScaledVector(D,Math.min(.14,depth)*.3-.012)));m.lookAt(P.clone().addScaledVector(D,-1));m.rotateZ(rnd(-.15,.15));
   o.scuffs.push(m);
 }
 function repairVehicle(o){
